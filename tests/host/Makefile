@@ -546,6 +546,19 @@ run-ambe: ambeFecTest ambeVoiceTest micGainTest refTrimTest
 	./refTrimTest
 .PHONY: run-ambe
 
+# Satellite tracking (core/sat, docs/spec/satellite.md 8): TLEs, SGP4 against python-sgp4, look angles and passes
+# against Skyfield (sat_ref.h, made by tools/sat_reference.py), Doppler, locators, repeater arming. -Wdouble-promotion
+# as the firmware builds it: the model is double precision, and a float slipping in costs digits
+SAT_SRC := $(sort $(wildcard $(CORE)/sat/*.c))
+TESTS   += satTest
+satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
+
+run: run-sat
+run-sat: satTest
+	./satTest
+.PHONY: run-sat
+
 # The DMR voice call stack (core/dmr/call) against a simulated modem; LC coding cross-checked with sfr.c and dmrData.c
 CALL    := dmrCallTest.c sim/dmr_sim_modem.c $(CORE)/dmr/call/dmr_call.c $(CORE)/dmr/call/dmr_lc.c $(CORE)/dmr/sfr.c $(DATA) $(FRAME) \
            $(CORE)/dmr/dmrPrivacy.c $(CORE)/dmr/ambe/ambeFec.c

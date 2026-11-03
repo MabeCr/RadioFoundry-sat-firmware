@@ -1,0 +1,212 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2026 The RadioFoundry Authors -->
+
+# Satellite tracking
+
+`CONFIG_SAT` (default off). The radio predicts where an amateur satellite is from its two-line elements (TLE): when it
+rises over the radio's position, where to point the antenna, and how far Doppler moves its uplink and downlink. It
+also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
+[feature-matrix.md](../feature-matrix.md).
+
+Status: the library in `core/sat` and its host test. Nothing on the radio calls it yet, so an image with the switch on
+is the same as one without (the linker drops unused code). Section 9 lists what is still to write.
+
+| Section | Topic |
+|---|---|
+| 1 | Files and layers |
+| 2 | Two-line elements |
+| 3 | The orbit model (SGP4) |
+| 4 | Look angles and Doppler |
+| 5 | Pass prediction |
+| 6 | Profiles and repeater arming |
+| 7 | Cost |
+| 8 | Testing |
+| 9 | Not written yet |
+
+## 1. Files and layers
+
+Everything in `core/sat` is portable C with no RTOS calls, no board header and no static state: the caller owns every
+struct. The host tests compile it unchanged.
+
+| File | Does |
+|---|---|
+| `sat_tle.c` | TLE lines to `sat_elements_t`, check digits, epochs, civil dates to day counts |
+| `sgp4.c` | The orbit model: `sgp4_init` once per element set, `sgp4_propagate` per time |
+| `sat_math.c` | Sine and cosine for the model (3.2) |
+| `sat_look.c` | Sidereal time, the observer, azimuth / elevation / range / range rate, Doppler, Maidenhead locators |
+| `sat_pass.c` | The next pass: rise, highest point, set |
+| `sat_profile.c` | The built-in profiles and the arming state machine |
+
+## 2. Two-line elements
+
+The 69-column NORAD format (two lines, columns fixed). `tle_parse` reads only the fields SGP4 uses into
+`sat_elements_t` (64 bytes), so a stored satellite costs 64 bytes, not the 140 of text.
+
+| Rule | Detail |
+|---|---|
+| Line shape | Column 1 is the line number (`1`, `2`), column 2 a space, 69 columns exactly. CR, LF or the string's end after column 69; anything else is `TLE_ERR_LENGTH` |
+| Check digit | Column 69 of each line: the sum of the digits in columns 1-68, plus 1 for each `-`, modulo 10. A mismatch is `TLE_ERR_CHECKSUM`. This is what catches a typo in keypad entry |
+| Catalog number | Columns 3-7 on both lines, which must agree (`TLE_ERR_MISMATCH`). Alpha-5: a leading letter stands for 10-33 (A-Z without I and O), so `A0001` is 100001 |
+| Epoch | Columns 19-32: two-digit year (57-99 = 1957-1999, 00-56 = 2000-2056) and the day of year with its fraction, 1.0 = 1 January 00:00 UTC. Kept as Unix seconds (double) |
+| Drag | B* in columns 54-61, in the format's exponent form: ` 12345-3` is 0.12345e-3 |
+| Angles | Inclination, node, argument of perigee and mean anomaly in degrees; eccentricity with its implied leading point (`0006703` = 0.0006703); mean motion in revolutions a day |
+| Numbers | A fixed-point reader, not `strtod`: the C library's float parser costs flash and accepts forms the format doesn't have. A letter in a number field is `TLE_ERR_FIELD` |
+
+The first and second derivatives of the mean motion (line 1, columns 34-52) are not read: SGP4 doesn't use them.
+
+## 3. The orbit model (SGP4)
+
+### 3.1 Model
+
+SGP4 as published in Hoots and Roehrich, *Spacetrack Report No. 3* (1980), with the corrections in Vallado,
+Crawford, Hujsak and Kelso, *Revisiting Spacetrack Report #3* (AIAA 2006-6753). Written from the papers' equations;
+the variable names are theirs so the code reads against them. No other implementation's source was used
+([CLEANROOM.md](../CLEANROOM.md)).
+
+| Choice | Value | Why |
+|---|---|---|
+| Constants | WGS-72 (mu 398600.8 km^3/s^2, radius 6378.135 km, J2, J3, J4) | The elements are fitted with WGS-72; other constants give a worse position |
+| Precision | Double throughout | Single precision drifts kilometers over the life of an element set |
+| Orbits | Near-earth only: period under 225 minutes | The deep-space terms (SDP4: lunar and solar perturbations, resonances) are as large again and serve no amateur FM satellite. A longer period is `SGP4_ERR_DEEP_SPACE` |
+| Low perigee | Under 220 km: the simplified drag terms (`isimp`) | As the model defines |
+| Errors | Eccentricity out of range, mean motion not positive, semi-latus rectum negative, radius under one earth radius (decayed) | Returned as `sgp4_err_t`; the caller shows the satellite as not trackable |
+| Output | Position (km) and velocity (km/s) in TEME, the frame the model works in | Section 4 turns it to the observer |
+
+`sgp4_t` holds the 46 doubles the model works out once per element set (376 bytes). `sgp4_propagate` takes minutes
+since the epoch, negative allowed, and is a pure function of them.
+
+### 3.2 Math functions
+
+The C library's `pow`, `asin`, `fmod`, `sin` and `cos` would add about 10 KB of flash on a radio without a floating-point
+unit. The model doesn't need their general cases:
+
+| Instead of | `core/sat` uses | Exact because |
+|---|---|---|
+| `pow(x, 2/3)` | Newton's method for the cube root, squared | A near-earth orbit's argument is 0.5-3; it converges from 1 in under 8 steps to the last bit |
+| `pow(x, 1.5)`, `pow(x, 3.5)`, `pow(x, 4)` | `x * sqrt(x)`, products | Identities |
+| `fmod(x, 2 pi)` | `x - 2 pi trunc(x / 2 pi)` | The same, sign kept, for angles under 2^31 turns |
+| `asin(u / r)` | `atan2(u, sqrt(s^2 + e^2))` | The same angle, better conditioned near the zenith |
+| `sin`, `cos` | `sat_sincos`: reduction by pi/2 in three parts of at most 30 bits (exact for under 2^23 quadrants), then Taylor series to the 15th / 16th power on +-pi/4 | Agrees with the C library within 2.2e-16 over +-5000 rad (the host test). The library's general reduction for huge arguments is 3.4 KB on its own |
+
+`atan2` and `sqrt` stay the C library's.
+
+## 4. Look angles and Doppler
+
+`sat_look` turns a TEME state into what the operator sees from `sat_observer_t`:
+
+1. TEME to earth-fixed: a rotation about the pole by Greenwich mean sidereal time (IAU 1982, `sat_gmst`), with the
+   time taken as UT1. The velocity loses the earth's rotation (7.292115e-5 rad/s).
+2. The observer on the WGS-84 ellipsoid from geodetic latitude, longitude and height (`sat_observer_set`).
+3. The range vector in south / east / up at the observer: azimuth from north, clockwise, 0-360 degrees; elevation
+   above the geometric horizon (no refraction); range in km; range rate in km/s, positive while the satellite moves
+   away.
+
+Polar motion and UT1 - UTC are left out. Against a library that applies them (8) the difference is under 0.004 degree
+in azimuth and elevation and under 0.3 m/s in range rate.
+
+Doppler, f in Hz and v the range rate:
+
+| Direction | Frequency | At 7 km/s coming in |
+|---|---|---|
+| Receive a downlink sent on f | f (1 - v / c) | 437.800 MHz heard 10.2 kHz high |
+| Send so the satellite hears f | f / (1 - v / c) | 145.990 MHz sent 3.4 kHz low |
+
+Both round to the hertz; the radio's tuning step applies after. `sat_locator_to_deg` gives the center of a 4- or
+6-character Maidenhead locator, for an observer typed in without a position fix.
+
+## 5. Pass prediction
+
+`sat_pass_next(s, o, from, span, min_el, ...)` finds the first pass that hasn't set by `from` and rises within `span`
+seconds, with a highest point of at least `min_el` degrees. A pass in progress counts: its rise is then before
+`from`.
+
+| Step | Rule |
+|---|---|
+| Below the horizon | Steps of 2 s per degree below, 20-300 s. A low earth orbit's elevation changes by less than 0.5 degree a second below the horizon (about 0.3 at the horizon for a 200 km orbit), so a step can't jump over a rise |
+| Rise and set | Bisection between the samples either side of the horizon, to 1 s |
+| Through the pass | 20 s steps, keeping the highest sample |
+| Highest point | Golden-section search in the 40 s around the highest sample, to 1 s |
+| Too low | A pass under `min_el` is skipped and the search goes on from 20 s after its set |
+| In progress | From `from`, back in 20 s steps (at most 30 minutes) to below the horizon, then as above |
+
+A pass shorter than 20 s peaks a fraction of a degree up and can be missed; nobody works it. A day of passes for one
+satellite takes about 1,600 runs of the model (the ISS over a mid-latitude observer, 7 passes), most of them below the
+horizon.
+
+`sat_pass_t` keeps rise, highest point and set as Unix seconds, the highest elevation and the azimuths at rise and set
+(32 bytes).
+
+## 6. Profiles and repeater arming
+
+### 6.1 Profiles
+
+`sat_profile_t` is what choosing a satellite sets: a name (11 characters), the catalog number of the element set it
+tracks with, uplink and downlink as the satellite uses them (Doppler applies on top), the uplink's CTCSS tone, and an
+optional arming step (6.2).
+
+The built-in list is a starting set, taken from AMSAT's list of FM satellites (November 2026). Satellites fail and
+change modes, so check it against AMSAT before use; the user's own list is to replace it (9).
+
+| Name | Catalog | Uplink (MHz) | Downlink (MHz) | Uplink tone | Arming |
+|---|---|---|---|---|---|
+| ISS | 25544 | 145.990 | 437.800 | 67.0 Hz | — |
+| SO-50 | 27607 | 145.850 | 436.795 | 67.0 Hz | 74.4 Hz for 2 s, awake 10 minutes |
+| AO-91 | 43017 | 435.250 | 145.960 | 67.0 Hz | — (in sunlight only) |
+
+### 6.2 Arming
+
+Some repeaters sleep until a carrier with a different tone wakes them for a set time. `sat_arm_t` runs that on the
+caller's millisecond clock and says what the radio should do; the radio core keys the transmitter.
+
+| State | Output | Moves on when |
+|---|---|---|
+| `SAT_ARM_IDLE` | no key; tone = the uplink tone | `sat_arm_start`: to SENDING. Refused for a profile without arming |
+| `SAT_ARM_SENDING` | key; tone = the arming tone | the arming time has passed: to ARMED. `sat_arm_abort` (PTT released early, the transmitter refused): back to IDLE, not armed |
+| `SAT_ARM_ARMED` | no key; tone = the uplink tone; seconds left, rounded up | the awake time has passed, counted from the carrier's end: to IDLE with `expired` set |
+
+`sat_arm_start` while armed sends a new carrier and restarts the awake time. Times compare by difference, so the
+millisecond clock's wrap is harmless.
+
+## 7. Cost
+
+Measured on a Cortex-M4 build without its floating-point unit (`-mfloat-abi=soft`, `-Os`, LTO, newlib nano), every
+function in use, against an empty program:
+
+| Item | Flash | Notes |
+|---|---:|---|
+| `core/sat` and what it pulls from the C library | 17,200 B | 26,976 B with the C library's `pow`, `asin`, `fmod`, `sin` and `cos` (3.2) |
+| of which software double arithmetic | about 2 KB | Add, multiply, divide; shared with any other double code in the image |
+| of which `atan2`, `atan`, `sqrt` | about 1.7 KB | |
+| Static RAM | 0 | The caller owns `sgp4_t` (376 B), `sat_observer_t` (88 B), `sat_elements_t` (64 B) per stored satellite, `sat_pass_t` (32 B) per listed pass, `sat_arm_t` (16 B) |
+| Stack | about 0.75 KB | `sat_pass_next` down to the soft-float helpers, with `-fstack-usage`; the task that runs it needs that headroom |
+
+The time a run of the model takes on a radio without an FPU is not measured yet. One update a second for live
+tracking and about 1,600 runs per satellite-day for the pass list (5) are the loads to measure against.
+
+## 8. Testing
+
+`tests/host/satTest.c` (`make -C tests/host`):
+
+| What | Against | Agreement |
+|---|---|---|
+| TLE parsing, check digits, Alpha-5, epochs, errors | hand-worked values | exact |
+| `sat_sincos` | the C library | 2.2e-16 over +-5000 rad |
+| SGP4 states, five element sets (ISS, SO-50, AO-91, a perigee under 220 km, an Alpha-5 number), -1 to +3 days | python-sgp4 | under 1e-9 km, 1e-12 km/s |
+| Look angles, 618 samples over a day, above and below the horizon | Skyfield | 0.004 degree, 0.04 km, 0.3 m/s |
+| 41 passes over two days | Skyfield's rise / culmination / set | 0.6 s at rise and set, 0.3 s at the peak, 0.003 degree |
+| Deep-space refusal, decay, minimum elevation, a pass in progress | constructed cases | |
+| Doppler, locators, the arming state machine with the clock's wrap | hand-worked values | exact |
+
+`tools/sat_reference.py` writes the reference values into `tests/host/sat_ref.h`, which is committed so the tests
+don't need Python. It runs python-sgp4 and Skyfield (both MIT) as black boxes; regenerate after changing its element
+sets (`pip install sgp4 skyfield`).
+
+## 9. Not written yet
+
+| Piece | Needs |
+|---|---|
+| Wall-clock time | No driver reads a real-time clock yet ([feature-matrix.md](../feature-matrix.md)); the date and time in a GPS fix (NMEA RMC) are the other source. The model needs UTC to a second or better |
+| Stored element sets and profiles | A data flash area and its format; the age of each set shown, with a warning once it is old |
+| Getting element sets in | Keypad entry with the check digits, the host link, and data over audio |
+| The radio's side | A pass list and a live screen (azimuth, elevation, Doppler, arming countdown), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
+| Speed on the radio | The time per model run without an FPU (7) |

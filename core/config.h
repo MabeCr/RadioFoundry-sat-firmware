@@ -269,6 +269,11 @@
 #ifndef CONFIG_GPS_SKY
 #define CONFIG_GPS_SKY			(CONFIG_GPS && CONFIG_APRS)
 #endif
+// Satellite tracking: SGP4 orbit prediction, passes, Doppler, satellite profiles with repeater arming (core/sat,
+// docs/spec/satellite.md). Needs FM. Off by default while nothing on the radio uses it
+#ifndef CONFIG_SAT
+#define CONFIG_SAT			0
+#endif
 #ifndef CONFIG_NET_KISS
 #define CONFIG_NET_KISS			(CONFIG_NET_TCP && CONFIG_APRS)
 #endif
