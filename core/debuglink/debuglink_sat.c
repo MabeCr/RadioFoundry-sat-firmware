@@ -14,6 +14,7 @@
 #include "hal_time.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_pass.h"
+#include "sat/sat_store.h"
 #include "sat/sat_track.h"
 #if CONFIG_APRS
 #include "aprs/aprs.h"
@@ -88,7 +89,7 @@ __attribute__((noinline)) void debuglink_view_sat(dl_text_t *t)
 	}
 	if (trk.loaded) {
 		dl_text(t, "sat.norad=%u\nsat.epoch=%u\n", (unsigned)trk.norad, (unsigned)trk.model.epoch);
-		dl_text_kv_str(t, "sat.profile", trk.profile ? trk.profile->name : "-");
+		dl_text_kv_str(t, "sat.profile", trk.has_profile ? trk.profile.name : "-");
 		if (utc) {
 			dl_text(t, "sat.age_h=%d\n", (int)rnd((now - trk.model.epoch) / 3600.0));
 		}
@@ -105,12 +106,16 @@ __attribute__((noinline)) void debuglink_view_sat(dl_text_t *t)
 		last_run_us = hal_micros() - t0;
 		dl_text(t, "sat.az_cdeg=%d\nsat.el_cdeg=%d\nsat.range_m=%d\nsat.rr_mm_s=%d\n", (int)rnd(n.look.az * 100.0),
 			(int)rnd(n.look.el * 100.0), (int)rnd(n.look.range * 1000.0), (int)rnd(n.look.range_rate * 1e6));
-		if (trk.profile) {
+		if (trk.has_profile) {
 			dl_text(t, "sat.rx_hz=%u\nsat.tx_hz=%u\n", (unsigned)n.rx_hz, (unsigned)n.tx_hz);
 		}
 	}
 	dl_text(t, "sat.run_us=%u\nsat.bench_runs=%u\nsat.bench_us=%u\n", (unsigned)last_run_us, bench_runs,
 		(unsigned)bench_us);
+	static const char *const store_names[] = { "none", "ours", "foreign" };
+	sat_store_state_t st = sat_store_state();
+	dl_text(t, "sat.store=%s\nsat.slots=%u\nsat.stored=%u\n", store_names[st], sat_store_slots(),
+		st == SAT_STORE_NONE ? 0u : sat_store_count());
 }
 
 static size_t op_tle(const uint8_t *req, uint16_t len, uint8_t *out)
@@ -236,7 +241,75 @@ static size_t op_bench(const uint8_t *req, uint16_t len, uint8_t *out)
 }
 
 // noinline for the same reason, under the debug link's dispatch
-__attribute__((noinline)) size_t debuglink_cmd_sat(const uint8_t *req, uint16_t len, uint8_t *out, size_t cap)
+__attribute__((noinline)) static size_t op_save(const uint8_t *req, uint16_t len, uint8_t *out)
+{
+	// none (the satellite's own profile), or up u32, down u32, up tone u16, arm tone u16, arm ms u16, armed s u16 and
+	// a name of up to 11 characters
+	if (len != 1 && (len < 21 || len > 21u + SAT_NAME_MAX - 1u))
+		return status(out, DL_ST_BAD_ARG);
+	if (!trk.loaded || sat_store_slots() == 0)
+		return status(out, DL_ST_UNAVAILABLE);
+	sat_record_t r = { 0 };
+	r.has_elements = true;
+	r.elements = trk.elements;
+	if (len == 1) {
+		if (trk.has_profile)
+			r.profile = trk.profile;
+	} else {
+		r.profile.up_hz = get32(req + 1);
+		r.profile.down_hz = get32(req + 5);
+		r.profile.up_tone = get16(req + 9);
+		r.profile.arm_tone = get16(req + 11);
+		r.profile.arm_ms = get16(req + 13);
+		r.profile.armed_s = get16(req + 15);
+		memcpy(r.profile.name, req + 17, len - 17u);
+	}
+	r.profile.norad = trk.norad;
+	return status(out, sat_store_put(&r) ? DL_ST_OK : DL_ST_REFUSED);
+}
+
+static size_t op_stored(const uint8_t *req, uint16_t len, uint8_t *out)
+{
+	sat_record_t r;
+	if (len != 3)
+		return status(out, DL_ST_BAD_ARG);
+	uint8_t *p = out;
+	*p++ = DL_ST_OK;
+	if (!sat_store_read(get16(req + 1), &r)) {
+		*p++ = 0;
+		return (size_t)(p - out);
+	}
+	*p++ = 1;
+	p = put32(p, r.profile.norad);
+	*p++ = r.has_elements;
+	p = put32(p, r.has_elements ? (uint32_t)rnd(r.elements.epoch) : 0u);
+	p = put32(p, r.profile.up_hz);
+	p = put32(p, r.profile.down_hz);
+	p = put16(p, r.profile.up_tone);
+	p = put16(p, r.profile.arm_tone);
+	p = put16(p, r.profile.arm_ms);
+	p = put16(p, r.profile.armed_s);
+	size_t n = strlen(r.profile.name);
+	memcpy(p, r.profile.name, n);
+	return (size_t)(p - out) + n;
+}
+
+static size_t op_recall(const uint8_t *req, uint16_t len, uint8_t *out)
+{
+	sat_record_t r;
+	uint8_t sgp4;
+	if (len != 3)
+		return status(out, DL_ST_BAD_ARG);
+	if (!sat_store_read(get16(req + 1), &r) || !r.has_elements)
+		return status(out, DL_ST_UNAVAILABLE);
+	bool ok = sat_track_set(&trk, &r.elements, &r.profile, &sgp4);
+	out[0] = DL_ST_OK;
+	out[1] = sgp4;
+	put32(out + 2, ok ? trk.norad : 0u);
+	return 6;
+}
+
+size_t debuglink_cmd_sat(const uint8_t *req, uint16_t len, uint8_t *out, size_t cap)
 {
 	(void)cap;
 	if (len < 1)
@@ -261,6 +334,24 @@ __attribute__((noinline)) size_t debuglink_cmd_sat(const uint8_t *req, uint16_t 
 		return op_pass(req, len, out);
 	case DL_SAT_OP_BENCH:
 		return op_bench(req, len, out);
+	case DL_SAT_OP_SAVE:
+		return op_save(req, len, out);
+	case DL_SAT_OP_STORED:
+		return op_stored(req, len, out);
+	case DL_SAT_OP_RECALL:
+		return op_recall(req, len, out);
+	case DL_SAT_OP_CLEAR:
+		if (len != 5)
+			return status(out, DL_ST_BAD_ARG);
+		if (get32(req + 1) != DL_SAT_CLEAR_TOKEN)
+			return status(out, DL_ST_REFUSED);
+		if (sat_store_slots() == 0)
+			return status(out, DL_ST_UNAVAILABLE);
+		return status(out, sat_store_clear() ? DL_ST_OK : DL_ST_REFUSED);
+	case DL_SAT_OP_DELETE:
+		if (len != 5)
+			return status(out, DL_ST_BAD_ARG);
+		return status(out, sat_store_delete(get32(req + 1)) ? DL_ST_OK : DL_ST_UNAVAILABLE);
 	default:
 		return status(out, DL_ST_BAD_ARG);
 	}

@@ -549,7 +549,8 @@ run-ambe: ambeFecTest ambeVoiceTest micGainTest refTrimTest
 # Satellite tracking (core/sat, docs/spec/satellite.md 8): TLEs, SGP4 against python-sgp4, look angles and passes
 # against Skyfield (sat_ref.h, made by tools/sat_reference.py), Doppler, locators, repeater arming. -Wdouble-promotion
 # as the firmware builds it: the model is double precision, and a float slipping in costs digits
-SAT_SRC := $(sort $(wildcard $(CORE)/sat/*.c))
+# The library without the store, which needs core/storage (satStoreTest)
+SAT_SRC := $(filter-out %/sat_store.c,$(sort $(wildcard $(CORE)/sat/*.c)))
 TESTS   += satTest
 satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
@@ -557,15 +558,24 @@ satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 # The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
 # reference values. Without APRS: no GPS to take the observer from
 TESTS   += satLinkTest
-SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC)
+SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
+	   $(CORE)/storage/storage.c sim/sim_flash.c
 satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/debuglink/debuglink.h \
-	     $(CORE)/debuglink/debuglink_proto.h
-	$(CC) $(CFLAGS) -I$(ROOT)/hal -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
+	     $(CORE)/debuglink/debuglink_proto.h sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
+
+# Stored satellites (core/sat/sat_store.c) on the simulated flash, with power cuts
+TESTS   += satStoreTest
+SATSTORE := satStoreTest.c $(CORE)/sat/sat_store.c $(CORE)/sat/sat_tle.c $(CORE)/sat/sgp4.c $(CORE)/sat/sat_math.c \
+	    $(CORE)/sat/sat_profile.c $(CORE)/storage/storage.c sim/sim_flash.c
+satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(SATSTORE) -lm
 
 run: run-sat
-run-sat: satTest satLinkTest
+run-sat: satTest satLinkTest satStoreTest
 	./satTest
 	./satLinkTest
+	./satStoreTest
 .PHONY: run-sat
 
 # The DMR voice call stack (core/dmr/call) against a simulated modem; LC coding cross-checked with sfr.c and dmrData.c

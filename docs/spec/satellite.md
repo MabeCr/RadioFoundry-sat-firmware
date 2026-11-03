@@ -39,6 +39,7 @@ static state is the UTC clock (4.1). The host tests compile it unchanged.
 | `sat_profile.c` | The built-in profiles and the arming state machine |
 | `sat_clock.c` | UTC from NMEA date and time, for the model (4.1) |
 | `sat_track.c` | One tracked satellite: its model, the observer, its profile, and the look and Doppler at a time |
+| `sat_store.c` | Stored satellites in the board's data flash (6.3); the one file here that uses `core/storage` |
 | `core/debuglink/debuglink_sat.c` | The debug link's SAT command and `sat` view section ([debuglink.md](debuglink.md) 3.24) |
 
 ## 2. Two-line elements
@@ -193,6 +194,48 @@ caller's millisecond clock and says what the radio should do; the radio core key
 `sat_arm_start` while armed sends a new carrier and restarts the awake time. Times compare by difference, so the
 millisecond clock's wrap is harmless.
 
+### 6.3 Stored satellites
+
+`sat_store.c` keeps satellites in the board's data flash: each one's profile and element set in a record of 128 bytes
+with its own CRC, 32 to a 4 KB sector, in the area the board gives (`hal_flash_map_t.sat_addr` / `sat_size`,
+[settings-store.md](settings-store.md) 1). A board without the area keeps satellites in RAM only (the tracker). Which
+boards have one: [feature-matrix.md](../feature-matrix.md).
+
+| Rule | Detail |
+|---|---|
+| Slots | A slot is free (all 0xFF), a record (magic, layout and CRC right) or anything else |
+| Ours or foreign | The area is ours while every slot is free or a record. One slot of anything else (another firmware's bytes) makes it foreign: records still read, nothing is written until it is cleared (CLEAR on the debug link, behind a token, after a backup) |
+| Write | A change reads the record's sector into the shared sector buffer, changes the record and rewrites the sector through the journal ([settings-store.md](settings-store.md) 4): a power cut leaves the old sector or the new one. Refused while the buffer is taken (a codeplug write) |
+| Put | Replaces the record with the same catalog number in place, else takes the first free slot; refused when full |
+| Delete | The record's slot back to all 0xFF |
+| Elements | Kept as the TLE gives them (degrees, revolutions a day), so a stored set drives the model to the same state bit for bit |
+| RAM | None: records are read from flash when asked for |
+
+Flash writes block for an erase and a program (tens of milliseconds). The debug link runs them in its task; a screen
+must hand them to the housekeeping task (`storage_job_post`).
+
+### 6.4 The record
+
+Little endian; doubles are IEEE 754 binary64. The CRC is the storage layer's CRC-32 over bytes 0-123.
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 4 | magic `0x5441534F` (bytes `4F 53 41 54`, "OSAT") |
+| 4 | 1 | layout, 1 |
+| 5 | 1 | flags: bit 0, an element set follows |
+| 6 | 2 | 0 |
+| 8 | 12 | name, NUL-padded (11 characters at most) |
+| 20 | 4 | catalog number |
+| 24 | 4 | uplink, Hz |
+| 28 | 4 | downlink, Hz |
+| 32 | 2 | uplink CTCSS, Hz x 10, 0 none |
+| 34 | 2 | arming CTCSS, Hz x 10, 0 no arming |
+| 36 | 2 | arming carrier, ms |
+| 38 | 2 | awake time after arming, s |
+| 40 | 64 | the elements: epoch (Unix s), B*, inclination, node, argument of perigee, mean anomaly (degrees), eccentricity, mean motion (revolutions a day) |
+| 104 | 20 | 0 |
+| 124 | 4 | CRC-32 |
+
 ## 7. Cost
 
 Measured on a Cortex-M4 build without its floating-point unit (`-mfloat-abi=soft`, `-Os`, LTO, newlib nano), every
@@ -207,8 +250,9 @@ function in use, against an empty program:
 | Stack | about 0.75 KB | `sat_pass_next` down to the soft-float helpers, with `-fstack-usage`; the task that runs it needs that headroom |
 
 In a firmware image (an STM32F405 radio's default build, LTO, 2026-11-03), `CONFIG_SAT=y` with the debug link adds
-17,920 B of flash and 544 B of RAM: the library, the SAT command and its tracker (`sat_track_t` and the element set's
-two lines as they arrive). The static stack check finds no task deeper than without it.
+19,988 B of flash and 656 B of RAM: the library, the store, the SAT command and its tracker (`sat_track_t` with its
+element set, and the element set's two lines as they arrive). The static stack check finds no task deeper than
+without it: the store's scans read a slot in 32-byte pieces rather than whole.
 
 The time a run of the model takes on a radio without an FPU is not measured yet: the SAT command's BENCH and
 `tests/hil/test_sat.py` measure it. One update a second for live tracking and about 1,600 runs per satellite-day for
@@ -228,10 +272,13 @@ the pass list (5) are the loads to measure against.
 | Deep-space refusal, decay, minimum elevation, a pass in progress | constructed cases | |
 | Doppler, locators, the arming state machine and the UTC clock, each with the millisecond clock's wrap | hand-worked values | exact |
 
-`tests/host/satLinkTest.c` drives the debug link's SAT command and `sat` view section the same way, on a fake clock:
-the element set in pieces, a typo the check digit catches, looks and passes against the same reference values, the
-bench and the refusals. `tests/hil/test_sat.py` does it on the radio, reading the reference values from
-`tests/host/sat_ref.h`, and records the time a run.
+`tests/host/satLinkTest.c` drives the debug link's SAT command and `sat` view section the same way, on a fake clock
+and a simulated flash: the element set in pieces, a typo the check digit catches, looks and passes against the same
+reference values, the bench, saving, listing, recalling, deleting and clearing, and the refusals.
+`tests/host/satStoreTest.c` covers the store on the simulated flash: records in and out bit for bit, replace, full,
+delete, foreign bytes, maps that give no area, the shared buffer taken, and a power cut at every unit of a write (the
+old record or the new one after the next boot, never a mix). `tests/hil/test_sat.py` does it on the radio, reading the reference values from
+`tests/host/sat_ref.h`, records the time a run, and stores, recalls and deletes a made-up satellite.
 
 `tools/sat_reference.py` writes the reference values into `tests/host/sat_ref.h`, which is committed so the tests
 don't need Python. It runs python-sgp4 and Skyfield (both MIT) as black boxes; regenerate after changing its element
@@ -242,7 +289,8 @@ sets (`pip install sgp4 skyfield`).
 | Piece | Needs |
 |---|---|
 | A real-time clock | Time without a GPS fix: a board's clock read at start (and set from GPS), behind a `hal_` hook. Until then the time comes from NMEA only (4.1) |
-| Stored element sets and profiles | A data flash area and its format; the age of each set shown, with a warning once it is old |
-| Getting element sets in | Keypad entry with the check digits, the host link, and data over audio |
+| Element set age | Each stored set's age shown, with a warning once it is old (the record has the epoch) |
+| Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
+| Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
 | The radio's side | A pass list and a live screen (azimuth, elevation, Doppler, arming countdown), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
 | Speed on the radio | A run of `tests/hil/test_sat.py` on each radio: the time per model run without an FPU (7) |

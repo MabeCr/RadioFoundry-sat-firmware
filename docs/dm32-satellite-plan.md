@@ -66,7 +66,7 @@ are to be confirmed on the radio.
 | CPU | C-SKY CK803S in the HR_C7000, 168 MHz. Built with no FPU (`platform/hrc7000/platform.mk`: `-msoft-float`) | SGP4's doubles run in software. Measure the cost |
 | RAM | 288 KB, 211,456 B of it below the codec's window. **The limit on this radio**: the default build leaves about 0.5 KB (`boards/dm32/config.mk`) | Every new feature must find its RAM. See [RAM budget](#ram-budget) |
 | Program flash | 1 MB, bootloader in the first 48 KB, 880 KB of code space before the codec slot | Less tight than RAM |
-| Data flash | 16 MB SPI. The port writes nothing below 0x700000, where the stock codeplug and calibration live | New stored data needs a region. Free space is unmeasured |
+| Data flash | 16 MB SPI. The port writes nothing below 0x700000, where the stock codeplug and calibration live | Stored satellites use 0x71B000 (one sector), in the gap between the settings journal and the open-firmware flash image. The stock firmware's use of 0x6DC000 and up is undocumented: if the store reports `foreign`, back up and `rfoundry_debug.py sat clear` |
 | RF chip | FD6818, frequency in 10 Hz units (8). FM, AM, FSK, DMR pass-through. No SSB or CW receive | Smooth Doppler steps. No real CW receive |
 | Signal readings | RSSI in 0.5 dB steps, plus noise and SNR | Enough for a pass plot and a stepped sweep |
 | Synthesizer | One, for receive and transmit (8) | No full duplex: no hearing the downlink while transmitting, and no measuring the uplink |
@@ -105,8 +105,9 @@ UI's settings code. The satellite code is not in that task. Two consequences, to
 - The satellite work needs about 0.75 KB of stack wherever it runs. The UI task has none to spare, so give it that
   room or run the predictions elsewhere.
 
-The satellite library itself: about 17 KB of flash once used, 12 B of static RAM, about 0.75 KB of stack in the task
-that runs it ([satellite.md](spec/satellite.md) 7). Its state per tracked satellite is about 0.5 KB.
+Satellite tracking as built so far (the library, stored satellites, the debug link's SAT command): about 20 KB of flash
+and 0.7 KB of RAM on an ARM build, and about 0.75 KB of stack in the task that runs the model
+([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM: they are read from flash when needed.
 
 #### Further cuts
 
@@ -167,7 +168,7 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 |---|---|---|
 | 1 | Set up: build, host tests, UI simulator | Host tests and simulator work. Firmware build waits on the toolchain |
 | 2 | UI redesign and Night theme | Night theme merged. Redesign not started |
-| 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Not yet: stored, editable profiles; keying the burst through the radio core |
+| 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Profiles and TLEs are stored in data flash (one sector at 0x71B000, 32 satellites), saved and listed over the debug link (`rfoundry_debug.py sat save`, `list`). Not yet: editing on the radio; keying the burst through the radio core |
 | 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Library done: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`). The debug link loads a TLE and runs the model on the radio, ready for the radio (`rfoundry_debug.py sat`, `tests/hil/test_sat.py`). Not yet: stored TLEs, the pass list screen |
 | 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Radio due |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
@@ -422,7 +423,7 @@ Other:
 | Question | Status |
 |---|---|
 | Does the CK803S have an FPU? | Built without one (`-msoft-float`). Measure SGP4's cost |
-| Flash and RAM left in the image | RAM is the limit, about 0.5 KB in the default build. The configuration above frees about 10 KB on an ARM build; measure it on this radio at its first build |
+| Flash and RAM left in the image | RAM is the limit, about 0.5 KB in the default build. The configuration above frees about 29 KB on an ARM build; measure it on this radio at its first build |
 | Can the RTC be read and set? | Open. Registers are in [hardware-dm32.md](spec/hardware-dm32.md) 3.3; no driver yet |
 | Does `rigctld` set frequency on this radio? | Written, and sets the VFO simplex. No result recorded on the radio yet |
 | Does the GPS get an outdoor fix? | NMEA arrives on the radio. A fix outdoors is still to check |

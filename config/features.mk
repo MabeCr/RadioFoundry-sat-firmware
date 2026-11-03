@@ -262,9 +262,9 @@ CONFIG_APRS_IGATE ?= $(if $(and $(filter y,$(CONFIG_APRS_RX)),$(filter y,$(CONFI
 CONFIG_GPS_SKY ?= $(if $(and $(filter y,$(CONFIG_GPS)),$(filter y,$(CONFIG_APRS))),y,n)
 # satellite tracking (core/sat, docs/spec/satellite.md): orbit prediction (SGP4) from two-line elements, passes over
 # the radio's position, Doppler and satellite profiles with repeater arming (needs FM). Under construction: on the
-# radio so far its UTC clock (set from NMEA by APRS) and, with the debug link, a bench command (DL_CMD_SAT) that runs
-# the model; no screen yet. About 18 KB of flash and 0.5 KB of RAM, which some radios don't have to spare: off by
-# default until it does something for the user (docs/spec/satellite.md 7)
+# radio so far its UTC clock (set from NMEA by APRS) and, with the debug link, a command (DL_CMD_SAT) that runs the
+# model and stores satellites; no screen yet. About 20 KB of flash and 0.7 KB of RAM, which some radios don't have to
+# spare: off by default until it does something for the user (docs/spec/satellite.md 7)
 CONFIG_SAT ?= n
 
 

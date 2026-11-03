@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 The RadioFoundry Authors
 // The debug link's SAT command and sat view section (core/debuglink/debuglink_sat.c, docs/spec/debuglink.md 3.24) on a
-// fake clock: an element set in pieces, the observer, look angles and passes against the reference values
-// (sat_ref.h), the bench, and the refusals
+// fake clock and a simulated flash: an element set in pieces, the observer, look angles and passes against the
+// reference values (sat_ref.h), the bench, the store (save, list, recall, delete), and the refusals
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +10,8 @@
 #include "debuglink/debuglink_proto.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_tle.h"
+#include "sim/sim_flash.h"
+#include "storage/storage.h"
 #include "sat_ref.h"
 
 static int failures;
@@ -18,6 +20,19 @@ static int failures;
 #define COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
 static uint32_t fake_ms, fake_us;
+
+void storage_lock(void) {}
+void storage_unlock(void) {}
+void storage_quick_lock(void) {}
+void storage_quick_unlock(void) {}
+
+static const hal_flash_map_t map = {
+	.settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
+	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = 0x40000u,
+	.sat_addr = 0x1B000u, .sat_size = 0x1000u,
+};
+
+const board_t board = { .name = "test", .flash = &sim_flash };
 
 uint32_t hal_millis(void)
 {
@@ -89,9 +104,83 @@ static bool view_has(const char *kv)
 	return strstr(buf, kv) != NULL;
 }
 
+// The store: the loaded satellite saved with its own profile and with one given, listed, recalled and deleted
+static void test_store(void)
+{
+	uint8_t req[DL_REQ_MAX];
+	CHECK(view_has("sat.store=ours\nsat.slots=32\nsat.stored=0\n"));
+	// SO-50, saved with its built-in profile
+	load(1);
+	req[0] = DL_SAT_OP_SAVE;
+	CHECK(cmd(req, 1) == 1 && out[0] == DL_ST_OK);
+	// AO-91 with a profile given: other frequencies and a name
+	load(2);
+	uint8_t *p = req;
+	*p++ = DL_SAT_OP_SAVE;
+	const uint32_t up = 435250000u, down = 145960000u;
+	const uint16_t tones[4] = { 670, 0, 0, 0 };
+	memcpy(p, &up, 4);
+	memcpy(p + 4, &down, 4);
+	memcpy(p + 8, tones, 8);
+	memcpy(p + 16, "FOX-1B", 6);
+	CHECK(cmd(req, 23) == 1 && out[0] == DL_ST_OK);
+	CHECK(view_has("sat.stored=2\n"));
+	// A name too long, a profile cut short
+	CHECK(cmd(req, 33) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, 20) == 1 && out[0] == DL_ST_BAD_ARG);
+
+	// The list
+	req[0] = DL_SAT_OP_STORED;
+	req[1] = 0;
+	req[2] = 0;
+	size_t n = cmd(req, 3);
+	CHECK(n == 1 + 1 + 4 + 1 + 4 + 4 + 4 + 8 + 5 && out[0] == DL_ST_OK && out[1] == 1 && u32(out + 2) == 27607);
+	CHECK(out[6] == 1 && u32(out + 11) == 145850000u && u16(out + 21) == 744 && memcmp(out + 27, "SO-50", 5) == 0);
+	req[1] = 1;
+	n = cmd(req, 3);
+	CHECK(n == 33 && u32(out + 2) == 43017 && u32(out + 15) == 145960000u && memcmp(out + 27, "FOX-1B", 6) == 0);
+	req[1] = 2;
+	CHECK(cmd(req, 3) == 2 && out[0] == DL_ST_OK && out[1] == 0);	// free
+	req[1] = 200;
+	CHECK(cmd(req, 3) == 2 && out[1] == 0);			// past the end
+
+	// Recall SO-50 over the loaded AO-91: its elements and profile come back
+	req[0] = DL_SAT_OP_RECALL;
+	req[1] = 0;
+	CHECK(cmd(req, 3) == 6 && out[0] == DL_ST_OK && out[1] == 0 && u32(out + 2) == 27607);
+	CHECK(view_has("sat.norad=27607\n") && view_has("sat.profile=SO-50\n"));
+	req[1] = 2;
+	CHECK(cmd(req, 3) == 1 && out[0] == DL_ST_UNAVAILABLE);
+	// Saved again after the recall: replaced in place, still two
+	req[0] = DL_SAT_OP_SAVE;
+	CHECK(cmd(req, 1) == 1 && out[0] == DL_ST_OK && view_has("sat.stored=2\n"));
+
+	// Delete
+	uint32_t id = 43017;
+	req[0] = DL_SAT_OP_DELETE;
+	memcpy(req + 1, &id, 4);
+	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_OK && view_has("sat.stored=1\n"));
+	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_UNAVAILABLE);
+	// Clear, only with its token
+	uint32_t token = 0x43544154u;
+	req[0] = DL_SAT_OP_CLEAR;
+	memcpy(req + 1, &token, 4);
+	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_REFUSED && view_has("sat.stored=1\n"));
+	token = DL_SAT_CLEAR_TOKEN;
+	memcpy(req + 1, &token, 4);
+	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_OK && view_has("sat.stored=0\n"));
+	load(0);
+}
+
 int main(void)
 {
 	uint8_t req[DL_REQ_MAX];
+
+	sim_flash_create(0x40000u, &map);
+	CHECK(storage_init());
+	// Nothing loaded: nothing to save
+	req[0] = DL_SAT_OP_SAVE;
+	CHECK(cmd(req, 1) == 1 && out[0] == DL_ST_UNAVAILABLE);
 
 	// Nothing loaded: the view says so, and the requests that need a satellite are unavailable
 	CHECK(view_has("sat.built=1\nsat.loaded=0\nsat.utc_ok=0\n"));
@@ -126,6 +215,7 @@ int main(void)
 	CHECK(cmd(req, 1) == 7 && out[0] == DL_ST_OK && out[1] == TLE_ERR_CHECKSUM && u32(out + 3) == 0);
 	CHECK(view_has("sat.loaded=0\n"));
 
+	test_store();
 	// The ISS and the reference observer
 	load(0);
 	CHECK(view_has("sat.loaded=1\n") && view_has("sat.norad=25544\n") && view_has("sat.profile=ISS\n"));
@@ -229,6 +319,7 @@ int main(void)
 	req[0] = DL_SAT_OP_OBSERVER_GPS;
 	CHECK(cmd(req, 1) == 1 && out[0] == DL_ST_UNAVAILABLE);
 
+	sim_flash_free();
 	printf("satLinkTest: %u looks, %u passes, %s\n", looks, passes, failures ? "FAILED" : "passed");
 	return failures != 0;
 }

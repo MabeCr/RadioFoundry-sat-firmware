@@ -340,7 +340,7 @@ short. View 5: the `cps.*` and `cpsf.*` keys moved from `storage` to `cps` (27),
 | 25 | `net_svc` | the radio's UDP services on the USB network link: with mDNS `mdns.state mdns.name mdns.queries mdns.answered mdns.sent mdns.busy mdns.conflicts mdns.bad` (`mdns.md` 5), with TFTP `tftp.state tftp.reads tftp.writes tftp.errors tftp.timeouts tftp.retransmits tftp.last_size tftp.blksize tftp.write_allowed` (`tftp.md` 6); `net_svc.built=0` without either |
 | 26 | `net_link` | the host link's MTUs ([usb-network.md](usb-network.md) 3.2), with the IP gateway: `net.mtu` (the link's, DHCP option 26) `net.air_mtu` (one transmission's) and the drops `net.air_too_big net.frag_needed net.up_too_big`; `CONFIG_NET_PPP` builds `ppp.running ppp.ip_up ppp.lcp ppp.ipcp` (RFC 1661 state numbers, 9 = opened) `ppp.rx_frames ppp.tx_frames ppp.rx_errors ppp.mru ppp.peer_mru` ([ppp.md](ppp.md)); `net_link.built=0` without either |
 | 27 | `cps` | open-firmware CPS (`cps.built openfw_eeprom requests reads commits refused overflows last session pending junk reboots_ignored`; [settings-store.md](settings-store.md), [cps-protocol.md](cps-protocol.md)), with `CONFIG_CPS_FAST` the fast codeplug protocol (`cpsf.state read written commits refused`; [cps-fast.md](cps-fast.md)) |
-| 28 | `sat` | satellite tracking ([satellite.md](satellite.md), 3.24): `sat.built sat.loaded sat.utc_ok`, with the clock `sat.utc` (Unix seconds); with an element set `sat.norad sat.epoch sat.profile` (the built-in profile's name, `-` for none) and with the clock `sat.age_h` (hours since the epoch); `sat.observer`, when set `sat.lat sat.lon` (1e-7 degree) `sat.alt_m`; with all three the satellite now: `sat.az_cdeg sat.el_cdeg` (0.01 degree) `sat.range_m sat.rr_mm_s` (range rate, positive going away) and with a profile `sat.rx_hz sat.tx_hz` (its downlink and uplink with Doppler); always `sat.run_us` (the model's last run, here or in LOOK) `sat.bench_runs sat.bench_us` (the last BENCH). Built without the switch: `sat.built=0` |
+| 28 | `sat` | satellite tracking ([satellite.md](satellite.md), 3.24): `sat.built sat.loaded sat.utc_ok`, with the clock `sat.utc` (Unix seconds); with an element set `sat.norad sat.epoch sat.profile` (the built-in profile's name, `-` for none) and with the clock `sat.age_h` (hours since the epoch); `sat.observer`, when set `sat.lat sat.lon` (1e-7 degree) `sat.alt_m`; with all three the satellite now: `sat.az_cdeg sat.el_cdeg` (0.01 degree) `sat.range_m sat.rr_mm_s` (range rate, positive going away) and with a profile `sat.rx_hz sat.tx_hz` (its downlink and uplink with Doppler); always `sat.run_us` (the model's last run, here or in LOOK) `sat.bench_runs sat.bench_us` (the last BENCH); the store `sat.store` (none / ours / foreign) `sat.slots sat.stored`. Built without the switch: `sat.built=0` |
 
 Value forms: numbers in decimal (`temp`, `input.*keys` in hex with `0x`), states as lower-case words, tones as
 `type:value` (`ctcss:1000` = 100.0 Hz, `dcs:19` = D023), strings as they are with control characters replaced by
@@ -771,8 +771,8 @@ radio's answers with records read from the database by `tools/iddb_read.py`.
 ### 3.24 SAT
 
 Satellite tracking on the radio ([satellite.md](satellite.md)): one element set, the observer and the clock in RAM,
-and the orbit model run on request, to compare with reference values and to time it on the radio's CPU. Nothing is
-stored, tuned or keyed. `CONFIG_SAT` builds, else every operation answers `DL_ST_UNAVAILABLE`. Numbers little endian;
+the orbit model run on request (to compare with reference values and to time it on the radio's CPU), and the stored
+satellites in the board's satellite area ([satellite.md](satellite.md) 6.3). Nothing is tuned or keyed. `CONFIG_SAT` builds, else every operation answers `DL_ST_UNAVAILABLE`. Numbers little endian;
 a time of 0 is the radio's clock now.
 
 | Op | Name | Arguments | Reply after the status |
@@ -785,11 +785,17 @@ a time of 0 is the radio's clock now.
 | 5 | LOOK | Unix seconds u32, ms u16 | azimuth u16, elevation i16 (0.01 degree), range u32 (m), range rate i32 (mm/s), downlink and uplink with Doppler u32 (Hz, 0 without a profile), the run's us u32 |
 | 6 | PASS | from u32, span u16 (s, 1-3600), lowest peak i8 (degrees) | found u8, rise, peak, set u32 (Unix seconds, 0 when none), peak elevation i16, azimuth at rise and at set u16 (0.01 degree), model runs u16, us u32 |
 | 7 | BENCH | runs u16 (1-1000) | runs done u16, us u32: the model run that many times, or for 250 ms, whichever ends first |
+| 8 | SAVE | none, or uplink u32, downlink u32 (Hz), uplink tone u16, arming tone u16 (Hz x 10), arming ms u16, awake s u16, name (up to 11 characters) | none. The loaded satellite into the store with its own profile (none), or with this one. Status 4 with nothing loaded or no area, 7 when the store is full or foreign or the write failed |
+| 9 | STORED | slot u16 | found u8, then catalog u32, elements u8, epoch u32 (Unix s), uplink u32, downlink u32, uplink tone u16, arming tone u16, arming ms u16, awake s u16, name (no terminator). Found 0 for a free slot or one past the end |
+| 10 | RECALL | slot u16 | SGP4 error u8 (0 = tracking it), catalog u32: the stored satellite into the tracker, with its profile. Status 4 for a free slot or one without elements |
+| 11 | DELETE | catalog u32 | none; status 4 when it isn't stored or the write failed |
+| 12 | CLEAR | token u32, `'SATC'` (`0x43544153`) | none. Erases the whole area, foreign bytes included: the way out of a foreign area once the flash is backed up. Another token: status 7 |
 
 LOOK, PASS and BENCH answer status 4 when no element set is loaded, no observer is set, or (for a time of 0) the
 radio has no clock. They run the model in the host link's task, so PASS's span is held to an hour (about 100 runs)
-and BENCH to 250 ms. `rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT LON [ALT]]|time [UNIX]|look [UNIX]|pass
-[FROM [SPAN [MIN_EL]]]|bench [RUNS]]`. `tests/hil/test_sat.py` compares the radio's looks and passes with
+and BENCH to 250 ms. SAVE, DELETE and CLEAR write the flash in the same task: an erase and a program, tens of ms.
+`rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT LON [ALT]]|time [UNIX]|look [UNIX]|pass [FROM [SPAN
+[MIN_EL]]]|bench [RUNS]|save [UP DOWN [TONE [NAME]]]|list|recall SLOT|delete NORAD|clear]`. `tests/hil/test_sat.py` compares the radio's looks and passes with
 `tests/host/sat_ref.h` and records the model's time a run.
 
 ## 4. Safety
@@ -816,8 +822,9 @@ and BENCH to 250 ms. `rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT 
   key, the exact length and a CRC-32, loads only into the platform's declared free RAM span, is refused while
   transmitting, and never returns (recover by a power cycle). Off in a release. The stub, not the debug link, is
   what writes flash ([stub-stm32f4.md](stub-stm32f4.md) 6 for the STM32 one's rules).
-- SAT changes only RAM: the tracked satellite, the observer and the clock. It stores, tunes and keys nothing, and
-  bounds each request's work (3.24).
+- SAT changes RAM (the tracked satellite, the observer, the clock) and the satellite area only, through the journal;
+  it never writes a foreign area unless CLEAR's token is given. It tunes and keys nothing, and bounds each request's
+  work (3.24).
 - CODEPLUG writes only codeplug blocks of the open-firmware image, never the settings ring, the journal, the native
   area, the staging area or the calibration window, through the journal or a staged commit (3.20).
 - The debug link never enters hotspot or CPS mode, and never takes bytes that belong to an MMDVM frame or a CPS

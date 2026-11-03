@@ -43,6 +43,8 @@
     rfoundry_debug.py sat load FILE|L1 L2            load a TLE; observer [LAT LON [ALT_M]] (none: the GPS fix);
                                                 time [UNIX] (default: this computer's); look [UNIX]; pass [FROM
                                                 [SPAN_S [MIN_EL]]]; bench [RUNS]: the orbit model's time a run
+    rfoundry_debug.py sat save [UP DOWN [TONE [NAME]]]  store the loaded satellite (MHz, Hz; none: its own profile);
+                                                list; recall SLOT; delete NORAD; clear (erase the whole store)
     rfoundry_debug.py split view                     the split duplex view (role, epoch, offset, buffers, underruns, CACH)
     rfoundry_debug.py split variant N [REG=VAL ...]  the BS framing experiment's variant for the next TX half key-up
                                                 (docs/spec/split-duplex.md 10.1; raw page 4 pairs with N = 255)
@@ -98,8 +100,9 @@ RX2_TOKEN = 0x47445242              # 'BRDG'
 RX2_FLAGS = {1: "present", 2: "up", 4: "bridge", 8: "restart"}
 IDDB = 0x1F                         # the DMR ID database: format, records, an ID looked up (docs/spec/debuglink.md 3.23)
 SAT = 0x20                          # satellite tracking (CONFIG_SAT; docs/spec/debuglink.md 3.24, docs/spec/satellite.md)
-SAT_OP_TLE, SAT_OP_LOAD, SAT_OP_OBSERVER, SAT_OP_OBSERVER_GPS, SAT_OP_TIME, SAT_OP_LOOK, SAT_OP_PASS, SAT_OP_BENCH = \
-    range(8)
+SAT_OP_TLE, SAT_OP_LOAD, SAT_OP_OBSERVER, SAT_OP_OBSERVER_GPS, SAT_OP_TIME, SAT_OP_LOOK, SAT_OP_PASS, SAT_OP_BENCH, \
+    SAT_OP_SAVE, SAT_OP_STORED, SAT_OP_RECALL, SAT_OP_DELETE, SAT_OP_CLEAR = range(13)
+SAT_CLEAR_TOKEN = 0x43544153        # 'SATC'
 SAT_TLE_ERRORS = {0: "ok", 1: "a line isn't 69 columns, or the wrong line number", 2: "check digit wrong",
                   3: "a field doesn't parse", 4: "the two lines name different satellites"}
 SAT_SGP4_ERRORS = {0: "ok", 1: "eccentricity out of range", 2: "mean motion not positive",
@@ -614,6 +617,34 @@ class DebugLink:
     def sat_bench(self, runs=200):
         """Time the orbit model on the radio: (runs done, microseconds); it stops after 250 ms"""
         return struct.unpack_from("<HI", self.request(SAT, struct.pack("<BH", SAT_OP_BENCH, runs))[1])
+
+    def sat_save(self, up_hz=None, down_hz=0, up_tone=0, arm_tone=0, arm_ms=0, armed_s=0, name=""):
+        """Store the loaded satellite: with its own profile (up_hz None), or with this one (tones in Hz x 10)"""
+        if up_hz is None:
+            self.request(SAT, bytes([SAT_OP_SAVE]))
+        else:
+            self.request(SAT, struct.pack("<BIIHHHH", SAT_OP_SAVE, up_hz, down_hz, up_tone, arm_tone, arm_ms, armed_s)
+                         + name.encode("ascii")[:11])
+
+    def sat_stored(self, slot):
+        """A stored satellite by slot: a dict, or None for a free slot"""
+        return decode_sat_stored(self.request(SAT, struct.pack("<BH", SAT_OP_STORED, slot))[1])
+
+    def sat_list(self):
+        """Every stored satellite: [(slot, dict)]"""
+        slots = int(self.view(["sat"]).get("sat.slots", 0))
+        return [(i, r) for i in range(slots) for r in [self.sat_stored(i)] if r is not None]
+
+    def sat_recall(self, slot):
+        """Track a stored satellite: (sgp4 error, catalog number)"""
+        return struct.unpack_from("<BI", self.request(SAT, struct.pack("<BH", SAT_OP_RECALL, slot))[1])
+
+    def sat_delete(self, norad):
+        self.request(SAT, struct.pack("<BI", SAT_OP_DELETE, norad))
+
+    def sat_clear(self):
+        """Erase the whole store, foreign bytes included"""
+        self.request(SAT, struct.pack("<BI", SAT_OP_CLEAR, SAT_CLEAR_TOKEN))
 
     def version(self):
         return parse_kv(self.request(VERSION)[1].decode("ascii", "replace"))
@@ -1535,6 +1566,15 @@ def decode_sat_pass(r):
             "los_az": laz / 100, "runs": runs, "us": us}
 
 
+def decode_sat_stored(r):
+    """SAT STORED's reply after the status (debuglink.md 3.24): None for a free slot"""
+    if not r[0]:
+        return None
+    norad, has, epoch, up, down, up_tone, arm_tone, arm_ms, armed_s = struct.unpack_from("<IBIIIHHHH", r, 1)
+    return {"norad": norad, "elements": bool(has), "epoch": epoch, "up_hz": up, "down_hz": down, "up_tone": up_tone,
+            "arm_tone": arm_tone, "arm_ms": arm_ms, "armed_s": armed_s, "name": r[26:].decode("ascii", "replace")}
+
+
 def cmd_sat(link, a):
     """rfoundry_debug.py sat ...: the SAT command (docs/spec/debuglink.md 3.24)"""
     if a.op == "load":
@@ -1570,6 +1610,34 @@ def cmd_sat(link, a):
             fmt = lambda t: time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t))
             print(f"rise {fmt(p['aos'])} az {p['aos_az']:.1f}, peak {fmt(p['tca'])} el {p['max_el']:.1f}, "
                   f"set {fmt(p['los'])} az {p['los_az']:.1f} UTC ({p['runs']} runs, {p['us']} us)")
+    elif a.op == "save":
+        if not a.args:
+            link.sat_save()
+        else:
+            mhz = lambda x: round(float(x) * 1e6)
+            tone = lambda x: round(float(x) * 10)
+            up, down = mhz(a.args[0]), mhz(a.args[1]) if len(a.args) > 1 else 0
+            ut = tone(a.args[2]) if len(a.args) > 2 else 0
+            name = a.args[3] if len(a.args) > 3 else ""
+            link.sat_save(up, down, ut, name=name)
+        print("saved")
+    elif a.op == "list":
+        for slot, r in link.sat_list():
+            age = f"{(time.time() - r['epoch']) / 86400:.1f} days old" if r["elements"] else "no elements"
+            print(f"{slot:2} {r['norad']:6} {r['name'] or '-':11} up {r['up_hz'] / 1e6:.4f} down {r['down_hz'] / 1e6:.4f}"
+                  f" tone {r['up_tone'] / 10:.1f}" + (f" arm {r['arm_tone'] / 10:.1f}" if r["arm_tone"] else "")
+                  + f", elements {age}")
+    elif a.op == "recall":
+        err, norad = link.sat_recall(int(a.args[0]))
+        if err:
+            print(f"not loaded: {SAT_SGP4_ERRORS.get(err, err)}")
+            return 1
+        print(f"tracking {norad}")
+    elif a.op == "delete":
+        link.sat_delete(int(a.args[0]))
+    elif a.op == "clear":
+        link.sat_clear()
+        print("store erased")
     elif a.op == "bench":
         runs, us = link.sat_bench(int(a.args[0]) if a.args else 200)
         print(f"{runs} runs in {us} us: {us / runs:.1f} us a run" if runs else "no runs")
@@ -2165,9 +2233,10 @@ def main(argv=None):
                        "(docs/spec/debuglink.md 3.23)")
     p.add_argument("ids", nargs="*", type=int)
     p = sub.add_parser("sat", help="satellite tracking: show, load FILE|L1 L2, observer [LAT LON [ALT]], time [UNIX], "
-                       "look [UNIX], pass [FROM [SPAN [MIN_EL]]], bench [RUNS] (docs/spec/debuglink.md 3.24)")
+                       "look [UNIX], pass [FROM [SPAN [MIN_EL]]], bench [RUNS], save [UP_MHZ [DOWN_MHZ [TONE_HZ [NAME]]]], "
+                       "list, recall SLOT, delete NORAD, clear (docs/spec/debuglink.md 3.24)")
     p.add_argument("op", nargs="?", default="show", choices=["show", "load", "observer", "time", "look", "pass",
-                                                             "bench"])
+                                                             "bench", "save", "list", "recall", "delete", "clear"])
     p.add_argument("args", nargs="*")
     p = sub.add_parser("split", help="split duplex: view, BS framing experiment variant (docs/spec/split-duplex.md 10.1)")
     p.add_argument("op", choices=["view", "variant"])

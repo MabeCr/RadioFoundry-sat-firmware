@@ -27,6 +27,7 @@ settings start from the defaults at every boot and nothing can be written.
 | `openfw_end` | the end of the area an open-firmware CPS may write |
 | `calibration_addr` / `_size` | the calibration working copy (the CPS window, `cps-protocol.md` 2.4); 0 when the board has none |
 | `native_addr` / `native_size` | reserved for the native codeplug (`codeplug-native.md` 4) |
+| `sat_addr` / `sat_size` | stored satellites (`CONFIG_SAT`, [satellite.md](satellite.md) 6.3): records of 128 bytes, 32 a sector; 0 when the board has none |
 | `staging_addr` / `staging_size` | a new codeplug image waits here, checked, before it replaces the stored one (the TFTP write, `tftp.md` 4); never written by the open-firmware CPS (above `openfw_end`); 0 when the board has none |
 
 The settings ring and journal go where no open-firmware tool reads or writes, and the CPS shim refuses to write there.

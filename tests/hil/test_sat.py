@@ -4,7 +4,8 @@
 look angles and passes worked out on the radio, against the reference values the host test uses (tests/host/sat_ref.h,
 from python-sgp4 and Skyfield), and the model's time a run on the radio's CPU. Radio only, receive only: nothing is
 tuned or keyed. Loading a TLE and setting the observer change only the tracker's RAM; the clock is set too and an NMEA
-sentence puts it back."""
+sentence puts it back. The store test writes one record to the satellite area, for a made-up satellite (catalog 100001)
+no real one uses, and deletes it again."""
 import pathlib
 import re
 
@@ -96,3 +97,40 @@ def test_sat_model_speed(sat, record_property):
     assert per_run < RUN_US_MAX, f"{per_run:.0f} us a run: too slow for one update a second"
     v = link.view(["sat"])
     assert int(v["sat.bench_runs"]) == runs
+
+
+@pytest.mark.feature("sat")
+def test_sat_store_round_trip(radio):
+    """A satellite saved to the radio's flash, listed, recalled into the tracker and deleted (satellite.md 6.3)"""
+    if "SAT" not in radio.features():
+        skip("not_built", "built without CONFIG_SAT")
+    link = radio.link
+    v = link.view(["sat"])
+    if v.get("sat.store") == "none":
+        skip("not_built", "this radio's flash map has no satellite area (hal_flash_map_t.sat_addr)")
+    if v.get("sat.store") == "foreign":
+        skip("state", "the satellite area holds someone else's bytes: back up the data flash, then "
+                      "rfoundry_debug.py sat clear")
+    tles, obs, _, _ = reference()
+    name, l1, l2 = next(t for t in tles if t[1][2:7] == "A0001")
+    assert link.sat_load(l1, l2) == (0, 0, 100001)
+    link.sat_observer(*obs)
+    stored = int(v["sat.stored"])
+    link.sat_save(437000000, 145900000, 885, name="HIL-TEST")
+    try:
+        found = [(slot, r) for slot, r in link.sat_list() if r["norad"] == 100001]
+        assert len(found) == 1, f"the saved record isn't listed once: {found}"
+        slot, r = found[0]
+        assert r["name"] == "HIL-TEST" and r["up_hz"] == 437000000 and r["down_hz"] == 145900000
+        assert r["up_tone"] == 885 and r["elements"]
+        before = link.sat_look(1793000000.0)
+        # Something else in the tracker, then the stored one back: the same answer
+        assert link.sat_load(tles[0][1], tles[0][2])[2] == 25544
+        assert link.sat_recall(slot) == (0, 100001)
+        after = link.sat_look(1793000000.0)
+        assert (after["az"], after["el"], after["range_km"]) == (before["az"], before["el"], before["range_km"])
+        assert after["tx_hz"] and after["rx_hz"], "the stored profile's frequencies didn't come back"
+        assert int(link.view(["sat"])["sat.stored"]) == stored + 1
+    finally:
+        link.sat_delete(100001)
+    assert int(link.view(["sat"])["sat.stored"]) == stored

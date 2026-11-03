@@ -48,7 +48,15 @@ enum {
 	DL_SAT_OP_PASS		= 6,	// from u32 (0 now), span u16 (s, <= 3600), min el i8 -> found u8, aos u32, tca u32,
 					// los u32, max el i16, aos az u16, los az u16 (0.01 deg), runs u16, us u32
 	DL_SAT_OP_BENCH		= 7,	// runs u16 (<= 1000) -> runs done u16, us u32 (stops after 250 ms)
+	DL_SAT_OP_SAVE		= 8,	// [up u32, down u32 (Hz), up tone u16, arm tone u16 (Hz x 10), arm ms u16, armed s
+					// u16, name]: the loaded satellite into the store, with this profile or its own
+	DL_SAT_OP_STORED	= 9,	// slot u16 -> found u8, catalog u32, elements u8, epoch u32, up u32, down u32, up tone
+					// u16, arm tone u16, arm ms u16, armed s u16, name
+	DL_SAT_OP_RECALL	= 10,	// slot u16 -> sgp4 u8 (0 = loaded), catalog u32: a stored satellite into the tracker
+	DL_SAT_OP_DELETE	= 11,	// catalog u32: its record out of the store
+	DL_SAT_OP_CLEAR		= 12,	// token u32 (DL_SAT_CLEAR_TOKEN): erase the whole store, foreign bytes included
 };
+#define DL_SAT_CLEAR_TOKEN	0x43544153u	// 'SATC'
 
 // DL_CMD_RX2 operations (first payload byte; docs/spec/debuglink.md 3.22). The token is u32 little endian
 enum {
