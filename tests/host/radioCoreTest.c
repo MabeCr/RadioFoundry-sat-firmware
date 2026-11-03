@@ -3437,7 +3437,7 @@ static void test_ui_settings(void)
 	st->long_press_ms = 0;
 	st->repeat_ms = 0;
 	st->pos_format = 9;
-	st->theme = 7;		// bits 0-1 out of range (the bits above hold the crash report's target)
+	st->theme = 7;		// bits 0-1 hold night, the last theme (the bits above hold the crash report's target)
 	st->updown_home = 7;
 	st->privacy_type[0] = 99;
 	settings_end(now);
@@ -3447,7 +3447,7 @@ static void test_ui_settings(void)
 	CHECK(ui_svc_setting_get(UI_SET_BRIGHTNESS) == 100 && ui_svc_setting_get(UI_SET_SQUELCH) == 3 &&
 	      ui_svc_setting_get(UI_SET_MIC_GAIN) == 5);
 	CHECK(ui_svc_setting_get(UI_SET_LONG_PRESS_MS) == 777 && ui_svc_setting_get(UI_SET_REPEAT_MS) == 111);
-	CHECK(ui_svc_setting_get(UI_SET_POS_FORMAT) == 0 && ui_svc_setting_get(UI_SET_THEME) == 0 &&
+	CHECK(ui_svc_setting_get(UI_SET_POS_FORMAT) == 0 && ui_svc_setting_get(UI_SET_THEME) == 3 &&
 	      ui_svc_setting_get(UI_SET_UPDOWN_HOME) == 0);
 	CHECK(ui_svc_setting_get(UI_SET_PRIVACY_TYPE) == DMR_PRIVACY_OFF);
 	// Settings nobody stores: the RAM table

@@ -130,7 +130,7 @@ typedef struct {
 	uint16_t roam_check_s;		// beacon check interval, 0 = off
 	uint8_t roam_zones[SETTINGS_ROAM_ZONE_BYTES];	// bit z % 8 of byte z / 8: zone z is a roaming zone
 	// More of the UI's settings (docs/spec/ui.md 4; appended for uifix)
-	uint8_t theme;			// 0 dark, 1 light, 2 high contrast (color displays)
+	uint8_t theme;			// 0 dark, 1 light, 2 high contrast, 3 night (color displays)
 	uint8_t ui_flags;		// SETTINGS_UI_* bits
 	uint8_t updown_home;		// what Up / Down change on Home: 0 channel, 1 zone, 2 talk target
 	uint8_t low_batt_pct;		// warn at this battery percent (5-30), 0 = only the board's low voltage
@@ -289,9 +289,9 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 #define SETTINGS_ACCENT_COLOR	0x07u
 #define SETTINGS_ACCENT_PLAIN	0x08u
 
-// theme and updown_home hold 0..2 in bits 0-1; their upper bits hold the crash report's target (below)
+// theme holds 0..3 and updown_home 0..2 in bits 0-1; their upper bits hold the crash report's target (below)
 #define SETTINGS_SMALL_MASK	0x03u
-static inline uint8_t settings_theme(const settings_t *s) { return (s->theme & 3u) <= 2u ? s->theme & 3u : 0; }
+static inline uint8_t settings_theme(const settings_t *s) { return s->theme & 3u; }
 static inline uint8_t settings_updown_home(const settings_t *s)
 {
 	return (s->updown_home & 3u) <= 2u ? s->updown_home & 3u : 0;

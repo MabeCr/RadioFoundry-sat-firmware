@@ -2557,6 +2557,10 @@ msgid "High contrast"
 msgstr "Alto contrasto"
 
 #: core/ui/ui_menus.c
+msgid "Night"
+msgstr "Notte"
+
+#: core/ui/ui_menus.c
 msgid "Default"
 msgstr "Predefinito"
 
@@ -2947,6 +2951,10 @@ msgstr "Questa radio non ha motore vibrazione"
 #: core/ui/ui_menus.c
 msgid "Colors are for color screens"
 msgstr "I colori sono per schermi a colori"
+
+#: core/ui/ui_menus.c
+msgid "Night uses its own colors"
+msgstr "Notte usa i propri colori"
 
 #: core/ui/ui_menus.c
 msgid "Mic gain: not in this build"

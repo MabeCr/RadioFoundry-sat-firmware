@@ -259,7 +259,7 @@ With `CONFIG_GPS_SKY`, Tools > Position (`gps`, `ui_gps.c`) has four pages, thre
 | Signal | satellites in the fix of those seen, then one bar per satellite with a signal (SNR above 0), its height the SNR (50 dB-Hz full), filled when used. The satellite numbers under the bars: one row where two digits fit a bar, else two rows taking turns |
 | Grid | the Maidenhead locator (6 characters) large, then the position in degrees, minutes, seconds and in decimal degrees (6 decimals). "No fix yet" without a fix. Not on a tall panel |
 
-Colors name the system (GPS blue, GLONASS red, Galileo yellow, BeiDou green, QZSS purple; darker on the light theme),
+Colors name the system (GPS blue, GLONASS red, Galileo yellow, BeiDou green, QZSS purple; darker on the light theme, shades of red on the night theme),
 and the legend says them in words (P5). A monochrome panel draws everything in ink. Without a GPS, or with it off, the
 screen says so and points to Settings > Location. Without `CONFIG_GPS_SKY` the same Tools row opens a page of text
 (fix, satellites, position, altitude).
@@ -523,8 +523,8 @@ The gallery draws a color page (Home with its filled status bar, the Channels li
 `UI_GALLERY_COLORS` names, as `<screen>__<color>.png` right after the page, on color displays only; screens that only
 differ in color (`home_plain`) are left out at 128x64. The list is set in
 `.github/workflows/ui-gallery.yml` (`docs/dev/ci.md`), and `make ui-gallery` reads it from there. Home (filled and plain
-status bar), RX, TX, the Channels list and Settings > Display are also drawn in the light and high-contrast themes, as
-`<screen>__light.png` and `<screen>__high_contrast.png` (color displays).
+status bar), RX, TX, the Channels list and Settings > Display are also drawn in the light, high-contrast and night themes, as
+`<screen>__light.png`, `<screen>__high_contrast.png` and `<screen>__night.png` (color displays).
 
 
 Geometries: `160x120i5` (160x120 visible, 5 px inset left and right), `160x128` (both 160 px classes render through the 4 bpp frame buffer, as the boards do),
@@ -591,7 +591,7 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
 - Freq trim (Advanced, the last row: Up from the top) is shown only on a radio whose board has `hal_radio_t.ref_trim`
   (`UI_FEAT_REF_TRIM`). The row shows the trim in ppm and opens the Freq Trim page (`freq-trim`, section 2).
 - Voice prompts are dimmed ("Voice prompts aren't built yet: no recorded speech").
-- Theme switches the color palette (dark, light, high contrast). Highlight color (Default, Red, Orange, Yellow, Teal,
+- Theme switches the color palette (dark, light, high contrast, night). Highlight color (Default, Red, Orange, Yellow, Teal,
   Light blue, Purple, Pink) and Filled status bar (Settings > Display, `settings_t.accent`) are for color displays
   too. On a 1 bpp display the three rows are dimmed ("Colors are for color screens"); a build without
   `CONFIG_UI_COLOR` (section 5) has no such rows. A color other than
@@ -607,6 +607,14 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
   least 5:1 on its strip after RGB565 rounding. The shades are light so black
   text reads on them (at least 7.5:1 after RGB565 rounding); the red is lighter and pinker than TX's red, and there is
   no green, which would hide the RX pill. Gallery: `home_dmr*`, `home_plain`, `channels*` (section 7).
+- Night theme (`ui_theme_set` 3) protects night vision: a black background, pure reds for text and lines, dim green
+  only for receive, dim amber only for warnings, nothing blue or white. TX is the brightest red, in a pill with black
+  text. Highlight color and Filled status bar don't apply: their rows are dimmed ("Night uses its own colors") and
+  the strip stays plain, whatever they hold, and their values are kept for the other themes. The focus is a dark bar
+  with brighter text. To avoid blocks of light, a row or tile being edited is an amber outline around a dark center,
+  with `<value>` in amber, and a toast is a red outline around a dark center. The emergency screen stays a full red
+  fill, with black text, so it can't be missed. `ui_task` applies the stored theme before the splash, whose mark and
+  wordmark are dark red in Night, so a radio left in Night doesn't start bright.
 - The VFO has a mode of its own (`dmr-voice.md` 2.1). The Mode tile (tile 4 in the VFO only) switches it FM / DMR ("VFO: DMR", no "for now": it is kept), and in a build with only one VFO kind the tile is dimmed ("VFO: one mode in this build"). On a channel tile 4 is "To VFO" (`dmr-voice.md` 2.2): it copies what is in effect on the channel to the VFO and opens it on Home ("Copied to VFO"); a channel the VFO can't hold is refused with a toast. A channel has no temporary mode change any more. In DMR the quick menu is the DMR one: Timeslot, Color and Talk to change the VFO's own settings, with no dot on Home. The talk target picker lists the VFO's current target first ("Current"); both OK and hold OK keep the target for the VFO.
 - The privacy key is typed in decimal (Anytone 0..65535). Number rows take typed digits; a value outside the range or
   between steps is refused with the range. Only key slot 1 is reachable from the menu.

@@ -95,6 +95,8 @@ static void ui_task(void *arg)
 
 	if (have_fb) {
 		ui_layout_init();
+		// ui_app_init applies the settings after the splash, but the splash has to be dark on a radio left in Night
+		ui_theme_set((uint8_t)ui_svc_setting_get(UI_SET_THEME));
 		char line1[17], line2[17];
 		ui_svc_boot_text(line1, line2);
 		// the release name when this is one (v26.11), else the commit
