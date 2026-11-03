@@ -585,6 +585,7 @@ static const flow_t flows[] = {
 	{ "S passes still being worked out", "sat:working ok 6 0", "2", "shows=Working", 1, false },
 	{ "S before the time", "sat:notime", "ok 6 0", "shows=Waiting_for_the_time", 3, false },
 	{ "S before the position", "sat:nopos", "ok 6 0", "shows=No_position", 3, false },
+	{ "S no room for its task", "sat:nomem", "ok 6 0", "shows=Not_enough_memory", 3, false },
 	{ "S nothing stored", "sat:empty", "ok 6 0", "shows=No_satellites_stored count=0", 3, false },
 	{ "S lowest pass setting", "ok 7 5", "up", "screen=group shows=Lowest_pass shows=10", 1, false },
 	{ "S time zone setting", "ok 7 5", "up up", "screen=group shows=Time_zone shows=UTC-6", 2, false },

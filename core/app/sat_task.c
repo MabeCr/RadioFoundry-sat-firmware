@@ -58,9 +58,17 @@ static void sat_task(void *arg)
 	}
 }
 
+// The heap the other tasks may still need: never take the satellite task's stack from it (tests/hil/test_task_stacks.py
+// asks for 2 KB spare). Without that room the radio runs on and Tools > Satellites says so, rather than the heap
+// running out later, which the crash log turns into a restart
+#define SAT_HEAP_RESERVE	2048u
+
 void sat_task_start(void)
 {
 	sat_svc_init();
-	xTaskCreate(sat_task, "sat", SAT_TASK_STACK, NULL, tskIDLE_PRIORITY, NULL);
+	size_t need = SAT_TASK_STACK * sizeof(StackType_t) + sizeof(StaticTask_t) + SAT_HEAP_RESERVE;
+	if (xPortGetFreeHeapSize() < need ||
+	    xTaskCreate(sat_task, "sat", SAT_TASK_STACK, NULL, tskIDLE_PRIORITY, NULL) != pdPASS)
+		sat_svc_no_memory();
 }
 #endif

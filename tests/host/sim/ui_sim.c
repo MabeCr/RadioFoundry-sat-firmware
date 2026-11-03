@@ -33,7 +33,7 @@
 //   zoneoffer:<src>[,c] another radio offers its zone "Club net" (,c: one channel); the import and sends always work
 //   zoneexpire          the offer is gone (not opened in time)
 //   hotspot:on|off      the host link enters / leaves hotspot mode
-//   sat:notime|nopos|empty|working   satellites (CONFIG_SAT): no clock yet, no position, nothing stored, SO-50's
+//   sat:notime|nopos|nomem|empty|working   satellites (CONFIG_SAT): no clock yet, no position, no task, nothing stored, SO-50's
 //                       passes still being worked out (until the next reset; see sat_sim)
 //   usbnet:off|on|up    USB a serial port, a network adapter, or a network adapter the computer has brought up
 //   battery:<pct>       the battery reads pct; offfailed: auto power off couldn't switch off
@@ -2655,6 +2655,8 @@ static bool run_token(char *t, char *err, size_t len)
 			sat_sim.state = UI_SAT_NO_TIME;
 		else if (strcmp(arg, "nopos") == 0)
 			sat_sim.state = UI_SAT_NO_POSITION;
+		else if (strcmp(arg, "nomem") == 0)
+			sat_sim.state = UI_SAT_NO_MEMORY;
 		sat_sim.empty = strcmp(arg, "empty") == 0;
 		sat_sim.working = strcmp(arg, "working") == 0;
 		return true;

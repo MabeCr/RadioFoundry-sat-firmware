@@ -98,5 +98,6 @@ _Static_assert(SAME(UI_SAT_NO_ORBIT, SAT_ROW_NO_ORBIT) && SAME(UI_SAT_WORKING, S
 	       SAME(UI_SAT_NEXT, SAT_ROW_NEXT) && SAME(UI_SAT_UP, SAT_ROW_UP) && SAME(UI_SAT_NONE, SAT_ROW_NONE) &&
 	       SAME(UI_SAT_OLD, SAT_ROW_OLD) && SAME(UI_SAT_BAD, SAT_ROW_BAD), "ui_svc.h's satellite states follow sat_svc.h's");
 _Static_assert(SAME(UI_SAT_NO_TIME, SAT_SVC_NO_TIME) && SAME(UI_SAT_NO_POSITION, SAT_SVC_NO_POSITION) &&
-	       SAME(UI_SAT_READY, SAT_SVC_READY), "ui_svc.h's satellite service states follow sat_svc.h's");
+	       SAME(UI_SAT_READY, SAT_SVC_READY) && SAME(UI_SAT_NO_MEMORY, SAT_SVC_NO_MEMORY),
+	       "ui_svc.h's satellite service states follow sat_svc.h's");
 #endif

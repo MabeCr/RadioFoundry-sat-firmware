@@ -184,9 +184,9 @@ bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out);	// false past the last
 
 // --- Satellites (Tools > Satellites, CONFIG_SAT; ui_svc_sat.c, docs/spec/ui.md 2.6, docs/spec/satellite.md 5.1). The
 // passes are worked out by another task; these only read what it has so far. Weak stubs: not in this build ---
-enum { UI_SAT_NO_TIME, UI_SAT_NO_POSITION, UI_SAT_READY };
+enum { UI_SAT_NO_TIME, UI_SAT_NO_POSITION, UI_SAT_READY, UI_SAT_NO_MEMORY };
 typedef struct {
-	uint8_t state;		// UI_SAT_NO_TIME / NO_POSITION / READY
+	uint8_t state;		// UI_SAT_NO_TIME / NO_POSITION / READY / NO_MEMORY (its task couldn't start)
 	uint8_t count;		// satellites stored
 	bool store;		// the radio has a satellite store (else satellites are loaded over the cable, to RAM)
 	uint32_t utc;		// UTC now, Unix seconds (0 without the time)

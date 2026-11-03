@@ -3149,6 +3149,10 @@ msgid "Waiting for the time: passes need UTC from a GPS fix"
 msgstr "Esperando la hora: los pases necesitan UTC de un fijo GPS"
 
 #: core/ui/ui_sat.c
+msgid "Not enough memory to work out passes"
+msgstr "Sin memoria para calcular los pases"
+
+#: core/ui/ui_sat.c
 msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
 msgstr "Sin posición: un fijo GPS, o una fija en Herramientas > APRS"
 

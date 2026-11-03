@@ -60,6 +60,8 @@ static const char *list_body(void)
 	status();
 	if (st.state == UI_SAT_NO_TIME) {
 		sb_str(&b, TR("Waiting for the time: passes need UTC from a GPS fix"));
+	} else if (st.state == UI_SAT_NO_MEMORY) {
+		sb_str(&b, TR("Not enough memory to work out passes"));
 	} else if (st.state == UI_SAT_NO_POSITION) {
 		sb_str(&b, TR("No position: a GPS fix, or a fixed one in Tools > APRS"));
 	} else {

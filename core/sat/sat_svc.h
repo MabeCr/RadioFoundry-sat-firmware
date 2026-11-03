@@ -61,9 +61,12 @@ typedef enum {
 	SAT_SVC_NO_TIME,	// no clock yet: nothing is worked out
 	SAT_SVC_NO_POSITION,	// no observer: nothing is worked out
 	SAT_SVC_READY,
+	SAT_SVC_NO_MEMORY,	// its task couldn't start (sat_svc_no_memory): nothing is ever worked out
 } sat_svc_state_t;
 
 void sat_svc_init(void);
+// The service's task couldn't be started: the screens say so (nothing polls the service after this)
+void sat_svc_no_memory(void);
 // Work out the list again from the store (a screen opened); the next poll starts over
 void sat_svc_refresh(void);
 // Satellite norad's passes for the passes screen; 0 closes them

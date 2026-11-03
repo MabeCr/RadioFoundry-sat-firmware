@@ -107,9 +107,39 @@ UI's settings code. The satellite code is not in that task. Two consequences, to
 
 Satellite tracking as built so far (the library, stored satellites, the pass list screens and their task, the debug
 link's SAT command): about 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task stack on an ARM build
-([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM beyond the list's 32 rows. On that build the UI
-task's stack is now exactly at the check's limit (the settings record grew 4 bytes): run `make stack-check` at the
-first DM-32UV build.
+([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM beyond the list's 32 rows.
+
+#### Does it fit? (estimate, 2026-11-03)
+
+Not measured on this radio yet: the C-SKY compiler can't be built where this was done. Static RAM figures are from
+the ARM build of the same core code, which for 32-bit data is close.
+
+| Main RAM (211,456 B) | Bytes |
+|---|---:|
+| Free in the default build (`boards/dm32/config.mk`) | about +500 |
+| The 14 switches turned off above | about +25,000 to +29,000 |
+| Satellite tracking's static RAM | -2,848 |
+| A larger RTOS heap for its task (`boards/dm32/freertos_board.h`, 35 KB with `CONFIG_SAT`) | -2,048 |
+| **Left** | **about +20,000 to +25,000** |
+
+Flash is no concern: the image was about 365 KB of 880 KB, and the satellite code is 27 KB with Spanish's 28 KB gone.
+
+What can and can't go wrong on the radio:
+
+- Static RAM can't surprise us: if it doesn't fit, the linker refuses to build the image.
+- The heap: the satellite task's 1.6 KB stack comes from it. Built with satellites, the heap is 2 KB larger, and the
+  task starts only if 2 KB would still be spare after it; otherwise the radio runs on and Tools > Satellites says
+  "Not enough memory to work out passes", rather than the heap running out and the radio restarting at every boot.
+- Task stacks: the UI task's is at the static check's limit on the ARM build (the settings record grew 4 bytes for the
+  two new settings). The DM-32UV's check has its own numbers.
+
+At the first build, before installing:
+
+1. `make BOARD=dm32 <the line above>`: the linker's RAM line, the room left.
+2. `make BOARD=dm32 <the line above> stack-check`: every task fits; if the UI task doesn't, give it stack from the RAM
+   left.
+3. On the radio: `pytest tests/hil/test_task_stacks.py` (`tasks.heap_min_free` at least 2 KB) and
+   `tests/hil/test_sat.py` (the model's speed, the screens).
 
 #### Further cuts
 

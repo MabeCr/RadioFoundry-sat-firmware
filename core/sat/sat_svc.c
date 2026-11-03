@@ -61,6 +61,13 @@ void sat_svc_init(void)
 	open_changed = false;
 }
 
+void sat_svc_no_memory(void)
+{
+	begin_write();
+	r.state = SAT_SVC_NO_MEMORY;
+	end_write();
+}
+
 void sat_svc_refresh(void)
 {
 	refresh_asked = true;
