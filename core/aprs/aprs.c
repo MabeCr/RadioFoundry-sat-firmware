@@ -19,6 +19,9 @@
 #endif
 #include "settings/settings.h"
 #include "codeplug/codeplug.h"
+#if CONFIG_SAT
+#include "sat/sat_clock.h"
+#endif
 
 #define QUEUE_LEN	2		// frames waiting for the air
 #define TONES_BYTES	512		// one transmission: preamble, frames, tail (4096 symbols, 3.4 s)
@@ -1601,6 +1604,10 @@ void aprs_nmea(const char *s, size_t n, bool gps, uint32_t now_ms)
 			f->speed_kmh = x.speed_kn10 == 0xFFFFu ? 0xFFFFu : (uint16_t)(((uint32_t)x.speed_kn10 * 1852u + 5000u) / 10000u);
 			f->course = x.course10 == 0xFFFFu ? 0xFFFFu : (uint16_t)((x.course10 + 5u) / 10u % 360u);
 			f->date = x.date;
+#if CONFIG_SAT
+			// The radio's only wall clock so far (docs/spec/satellite.md 4.1)
+			sat_clock_set_nmea(&sat_utc, x.date, x.utc_hms, now_ms);
+#endif
 			if (f->speed_kmh == 0) {
 				f->course = 0xFFFFu;	// standing still: no meaningful course
 			}

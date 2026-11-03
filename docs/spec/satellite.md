@@ -8,8 +8,8 @@ rises over the radio's position, where to point the antenna, and how far Doppler
 also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
 [feature-matrix.md](../feature-matrix.md).
 
-Status: the library in `core/sat` and its host test. Nothing on the radio calls it yet, so an image with the switch on
-is the same as one without (the linker drops unused code). Section 9 lists what is still to write.
+Status: the library in `core/sat` and its host test. On the radio only the UTC clock (4.1) runs; nothing else calls
+the library yet, so the linker leaves it out of the image. Section 9 lists what is still to write.
 
 | Section | Topic |
 |---|---|
@@ -25,8 +25,8 @@ is the same as one without (the linker drops unused code). Section 9 lists what 
 
 ## 1. Files and layers
 
-Everything in `core/sat` is portable C with no RTOS calls, no board header and no static state: the caller owns every
-struct. The host tests compile it unchanged.
+Everything in `core/sat` is portable C with no RTOS calls and no board header. The caller owns every struct; the only
+static state is the UTC clock (4.1). The host tests compile it unchanged.
 
 | File | Does |
 |---|---|
@@ -36,6 +36,7 @@ struct. The host tests compile it unchanged.
 | `sat_look.c` | Sidereal time, the observer, azimuth / elevation / range / range rate, Doppler, Maidenhead locators |
 | `sat_pass.c` | The next pass: rise, highest point, set |
 | `sat_profile.c` | The built-in profiles and the arming state machine |
+| `sat_clock.c` | UTC from NMEA date and time, for the model (4.1) |
 
 ## 2. Two-line elements
 
@@ -92,6 +93,26 @@ unit. The model doesn't need their general cases:
 
 ## 4. Look angles and Doppler
 
+### 4.1 Time
+
+The model needs UTC to about a second: a second's error moves a low pass by up to half a degree near its peak and its
+70 cm Doppler by up to 100 Hz. The firmware reads no real-time clock yet ([feature-matrix.md](../feature-matrix.md)),
+so `sat_utc` (`sat_clock.c`) takes the date and time of each valid NMEA RMC sentence, from the board's GPS or from a
+phone or PC feeding NMEA over the host link ([aprs.md](aprs.md) 6), and stamps it with the millisecond clock.
+
+| Rule | Detail |
+|---|---|
+| Source | RMC with status A only, in `aprs_nmea` (so `CONFIG_APRS` carries it). GGA has no date |
+| Year | Two digits, 2000 + yy |
+| Accuracy | RMC names whole seconds and arrives a fraction of a second after the second it names: up to about a second late |
+| Checks | Day, month, leap day, hour, minute and second (60 is a leap second, taken as the next second's start); a bad field changes nothing |
+| Readers | Any task: a sequence count around the writer's two stores, so a reader never sees half an update. No lock, no RTOS call |
+| Without a sentence | `sat_clock_now` is false: no prediction until the first fix |
+
+The millisecond clock wraps after 49 days, harmless while sentences keep coming.
+
+### 4.2 Look angles
+
 `sat_look` turns a TEME state into what the operator sees from `sat_observer_t`:
 
 1. TEME to earth-fixed: a rotation about the pole by Greenwich mean sidereal time (IAU 1982, `sat_gmst`), with the
@@ -104,7 +125,9 @@ unit. The model doesn't need their general cases:
 Polar motion and UT1 - UTC are left out. Against a library that applies them (8) the difference is under 0.004 degree
 in azimuth and elevation and under 0.3 m/s in range rate.
 
-Doppler, f in Hz and v the range rate:
+### 4.3 Doppler
+
+f in Hz and v the range rate:
 
 | Direction | Frequency | At 7 km/s coming in |
 |---|---|---|
@@ -177,7 +200,7 @@ function in use, against an empty program:
 | `core/sat` and what it pulls from the C library | 17,200 B | 26,976 B with the C library's `pow`, `asin`, `fmod`, `sin` and `cos` (3.2) |
 | of which software double arithmetic | about 2 KB | Add, multiply, divide; shared with any other double code in the image |
 | of which `atan2`, `atan`, `sqrt` | about 1.7 KB | |
-| Static RAM | 0 | The caller owns `sgp4_t` (376 B), `sat_observer_t` (88 B), `sat_elements_t` (64 B) per stored satellite, `sat_pass_t` (32 B) per listed pass, `sat_arm_t` (16 B) |
+| Static RAM | 12 B | The UTC clock. The caller owns `sgp4_t` (376 B), `sat_observer_t` (88 B), `sat_elements_t` (64 B) per stored satellite, `sat_pass_t` (32 B) per listed pass, `sat_arm_t` (16 B) |
 | Stack | about 0.75 KB | `sat_pass_next` down to the soft-float helpers, with `-fstack-usage`; the task that runs it needs that headroom |
 
 The time a run of the model takes on a radio without an FPU is not measured yet. One update a second for live
@@ -195,7 +218,7 @@ tracking and about 1,600 runs per satellite-day for the pass list (5) are the lo
 | Look angles, 618 samples over a day, above and below the horizon | Skyfield | 0.004 degree, 0.04 km, 0.3 m/s |
 | 41 passes over two days | Skyfield's rise / culmination / set | 0.6 s at rise and set, 0.3 s at the peak, 0.003 degree |
 | Deep-space refusal, decay, minimum elevation, a pass in progress | constructed cases | |
-| Doppler, locators, the arming state machine with the clock's wrap | hand-worked values | exact |
+| Doppler, locators, the arming state machine and the UTC clock, each with the millisecond clock's wrap | hand-worked values | exact |
 
 `tools/sat_reference.py` writes the reference values into `tests/host/sat_ref.h`, which is committed so the tests
 don't need Python. It runs python-sgp4 and Skyfield (both MIT) as black boxes; regenerate after changing its element
@@ -205,7 +228,7 @@ sets (`pip install sgp4 skyfield`).
 
 | Piece | Needs |
 |---|---|
-| Wall-clock time | No driver reads a real-time clock yet ([feature-matrix.md](../feature-matrix.md)); the date and time in a GPS fix (NMEA RMC) are the other source. The model needs UTC to a second or better |
+| A real-time clock | Time without a GPS fix: a board's clock read at start (and set from GPS), behind a `hal_` hook. Until then the time comes from NMEA only (4.1) |
 | Stored element sets and profiles | A data flash area and its format; the age of each set shown, with a warning once it is old |
 | Getting element sets in | Keypad entry with the check digits, the host link, and data over audio |
 | The radio's side | A pass list and a live screen (azimuth, elevation, Doppler, arming countdown), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |

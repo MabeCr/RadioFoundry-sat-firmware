@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "sat/sat_clock.h"
 #include "sat/sat_math.h"
 #include "sat/sat_tle.h"
 #include "sat/sgp4.h"
@@ -305,6 +306,31 @@ static void test_arm(void)
 	CHECK(!out.key && a.state == SAT_ARM_ARMED && out.armed_left_s == 599);
 }
 
+static void test_clock(void)
+{
+	// 27 October 2026, 12:25:40
+	CHECK(sat_clock_unix_from_nmea(271026, 122540) == 1793103940u);
+	CHECK(sat_clock_unix_from_nmea(10100, 0) == 946684800u);		// 1 January 2000, midnight
+	CHECK(sat_clock_unix_from_nmea(290224, 235959) == 1709251199u);	// a leap day
+	CHECK(sat_clock_unix_from_nmea(290225, 0) == 0 && sat_clock_unix_from_nmea(310426, 0) == 0);
+	CHECK(sat_clock_unix_from_nmea(0, 0) == 0 && sat_clock_unix_from_nmea(11326, 0) == 0);	// day 0, month 13
+	CHECK(sat_clock_unix_from_nmea(271026, 246000) == 0 && sat_clock_unix_from_nmea(271026, 126000) == 0);
+
+	sat_clock_t c = { 0 };
+	double t;
+	CHECK(!sat_clock_now(&c, 1000, &t));
+	CHECK(!sat_clock_set_nmea(&c, 0, 122540, 1000));		// RMC without a date
+	CHECK(!sat_clock_set_nmea(&c, 271026, 0xFFFFFFFFu, 1000));
+	CHECK(!sat_clock_now(&c, 1000, &t));
+	CHECK(sat_clock_set_nmea(&c, 271026, 122540, 5000));
+	CHECK(sat_clock_now(&c, 5000, &t) && t == 1793103940.0);
+	CHECK(sat_clock_now(&c, 7250, &t) && t == 1793103942.25);
+	CHECK((c.seq & 1u) == 0);
+	// Across the millisecond clock's wrap
+	CHECK(sat_clock_set_nmea(&c, 271026, 122540, 0xFFFFFC18u));
+	CHECK(sat_clock_now(&c, 0x000003E8u, &t) && t == 1793103942.0);
+}
+
 int main(void)
 {
 	test_math();
@@ -315,6 +341,7 @@ int main(void)
 	test_doppler();
 	test_locator();
 	test_arm();
+	test_clock();
 	printf("satTest: %s\n", failures ? "FAILED" : "passed");
 	return failures != 0;
 }

@@ -261,9 +261,9 @@ CONFIG_APRS_IGATE ?= $(if $(and $(filter y,$(CONFIG_APRS_RX)),$(filter y,$(CONFI
 # core/ui/ui_gps.c, docs/spec/aprs.md 7.1). Needs GPS and APRS; off, Tools > Position is a page of text
 CONFIG_GPS_SKY ?= $(if $(and $(filter y,$(CONFIG_GPS)),$(filter y,$(CONFIG_APRS))),y,n)
 # satellite tracking (core/sat, docs/spec/satellite.md): orbit prediction (SGP4) from two-line elements, passes over
-# the radio's position, Doppler and satellite profiles with repeater arming (needs FM). Under construction: the
-# library and its host tests only, nothing on the radio calls it yet, so it costs nothing in an image. Off by default
-# until it does; about 17 KB of flash once it's used (docs/spec/satellite.md 7)
+# the radio's position, Doppler and satellite profiles with repeater arming (needs FM). Under construction: on the
+# radio only its UTC clock runs (set from NMEA by APRS), nothing calls the rest yet, so the linker drops it. Off by
+# default until it does; about 17 KB of flash once it's used (docs/spec/satellite.md 7)
 CONFIG_SAT ?= n
 
 
