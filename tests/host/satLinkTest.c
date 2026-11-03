@@ -293,7 +293,14 @@ int main(void)
 	memcpy(req + 1, &now, 4);
 	fake_ms = 5000;
 	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_OK);
-	CHECK(view_has("sat.utc_ok=1\n") && view_has("sat.az_cdeg=") && view_has("sat.rx_hz=") && view_has("sat.age_h="));
+	CHECK(view_has("sat.utc_ok=1\n") && view_has("sat.age_h="));
+	// The view shows the last LOOK (it never runs the model itself)
+	req[0] = DL_SAT_OP_LOOK;
+	memset(req + 1, 0, 6);
+	CHECK(cmd(req, 7) == 25 && out[0] == DL_ST_OK);
+	CHECK(view_has("sat.az_cdeg=") && view_has("sat.rx_hz=") && view_has("sat.look_at="));
+	req[0] = DL_SAT_OP_TIME;
+	memcpy(req + 1, &now, 4);
 	memset(req + 1, 0, 4);
 	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_BAD_ARG);	// 0 is no time
 

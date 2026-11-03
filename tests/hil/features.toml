@@ -213,7 +213,7 @@ source = ["core/aprs/nmea_sky.c", "core/ui/ui_gps.c"]
 [feature.sat]
 switch = "SAT"
 spec = "docs/spec/satellite.md"
-source = ["core/sat", "core/debuglink/debuglink_sat.c"]
+source = ["core/sat", "core/debuglink/debuglink_sat.c", "core/app/sat_task.c", "core/ui/ui_sat.c", "core/ui/ui_svc_sat.c"]
 
 # ── Host link and USB ──
 

@@ -6,6 +6,13 @@
 #include "storage/storage.h"
 
 #define SLOTS_PER_SECTOR	(STORAGE_SECTOR / SAT_STORE_RECORD)
+
+static volatile uint32_t generation;
+
+uint32_t sat_store_generation(void)
+{
+	return generation;
+}
 #define CRC_AT			(SAT_STORE_RECORD - 4u)
 
 // Record offsets (docs/spec/satellite.md 6.4)
@@ -242,6 +249,7 @@ static bool slot_write(uint16_t i, const uint8_t *rec)
 			memset(buf + off, 0xFF, SAT_STORE_RECORD);
 		ok = storage_sector_write(sector, buf);
 	}
+	generation++;		// even a failed write may have changed the sector
 	if (buf != NULL)
 		storage_buffer_release();
 	storage_unlock();
@@ -272,6 +280,7 @@ bool sat_store_clear(void)
 		return false;
 	storage_lock();
 	bool ok = storage_write(a, NULL, n);
+	generation++;
 	storage_unlock();
 	return ok;
 }

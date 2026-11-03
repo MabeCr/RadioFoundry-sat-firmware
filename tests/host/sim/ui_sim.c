@@ -33,6 +33,8 @@
 //   zoneoffer:<src>[,c] another radio offers its zone "Club net" (,c: one channel); the import and sends always work
 //   zoneexpire          the offer is gone (not opened in time)
 //   hotspot:on|off      the host link enters / leaves hotspot mode
+//   sat:notime|nopos|empty|working   satellites (CONFIG_SAT): no clock yet, no position, nothing stored, SO-50's
+//                       passes still being worked out (until the next reset; see sat_sim)
 //   usbnet:off|on|up    USB a serial port, a network adapter, or a network adapter the computer has brought up
 //   battery:<pct>       the battery reads pct; offfailed: auto power off couldn't switch off
 //   foreign             the codeplug is another firmware's: a channel write asks first (codeplug-foreign)
@@ -1779,6 +1781,81 @@ bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out)
 	*out = sim_sats[i];
 	return true;
 }
+#if CONFIG_SAT
+// Satellites (ui_svc.h): the list and SO-50's passes as the mockups have them, at 14:05 UTC (08:05 at UTC-6, the
+// time zone sim_reset sets)
+#define SAT_SIM_UTC	1793196300u	// 2026-10-28 14:05:00
+static struct { uint8_t state; bool empty, working; uint32_t open; } sat_sim;
+static const ui_sat_t sim_sat_rows[] = {
+	{ "ISS", 25544, UI_SAT_UP, 61, 23, 2, 60, SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u },
+	{ "SO-50", 27607, UI_SAT_NEXT, 71, 0, 2, 135, SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u },
+	{ "AO-91", 43017, UI_SAT_NEXT, 12, 0, 1, 190, SAT_SIM_UTC + 123u * 60u, SAT_SIM_UTC + 131u * 60u },
+	{ "AO-27", 22825, UI_SAT_NEXT, 44, 0, 3, 160, SAT_SIM_UTC + 226u * 60u, SAT_SIM_UTC + 236u * 60u },
+	{ "PO-101", 43678, UI_SAT_OLD, 0, 0, 31, 0, 0, 0 },
+	{ "RS-44", 44909, UI_SAT_NO_ORBIT, 0, 0, 0, 0, 0, 0 },
+};
+// SO-50's: two today, then tomorrow's (local time)
+static const ui_sat_pass_t sim_sat_passes[] = {
+	{ SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u, 71, 329, 144, 135 },
+	{ SAT_SIM_UTC + 128u * 60u, SAT_SIM_UTC + 136u * 60u, 18, 270, 190, 200 },
+	{ SAT_SIM_UTC + 1276u * 60u, SAT_SIM_UTC + 1283u * 60u, 12, 0, 90, 90 },
+	{ SAT_SIM_UTC + 1433u * 60u, SAT_SIM_UTC + 1443u * 60u, 47, 45, 180, 165 },
+};
+#define SAT_SIM_ROWS	(sizeof sim_sat_rows / sizeof sim_sat_rows[0])
+#define SAT_SIM_PASSES	(sizeof sim_sat_passes / sizeof sim_sat_passes[0])
+
+bool ui_svc_sat_status(ui_sat_status_t *out)
+{
+	memset(out, 0, sizeof *out);
+	out->state = sat_sim.state;
+	out->count = sat_sim.empty ? 0 : SAT_SIM_ROWS;
+	out->store = true;
+	out->utc = sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
+	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
+	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
+	return true;
+}
+
+bool ui_svc_sat_get(uint8_t i, ui_sat_t *out)
+{
+	if (sat_sim.empty || i >= SAT_SIM_ROWS)
+		return false;
+	*out = sim_sat_rows[i];
+	return true;
+}
+
+void ui_svc_sat_refresh(void) {}
+void ui_svc_sat_open(uint32_t norad) { sat_sim.open = norad; }
+
+bool ui_svc_sat_profile(ui_sat_profile_t *out)
+{
+	if (sat_sim.open == 0)
+		return false;
+	memset(out, 0, sizeof *out);
+	out->up_hz = 145850000u;
+	out->down_hz = 436795000u;
+	out->up_tone = 670;
+	out->arm_tone = 744;
+	out->age_d = 2;
+	return true;
+}
+
+uint8_t ui_svc_sat_pass_count(bool *done)
+{
+	*done = !sat_sim.working;
+	return sat_sim.open != 27607 ? 0 : sat_sim.working ? 1 : SAT_SIM_PASSES;
+}
+
+bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
+{
+	bool done;
+	if (i >= ui_svc_sat_pass_count(&done))
+		return false;
+	*out = sim_sat_passes[i];
+	return true;
+}
+#endif
+
 static bool emergency_on;
 bool ui_svc_emergency(bool on) { emergency_on = on; return true; }
 bool ui_svc_emergency_active(void) { return emergency_on; }
@@ -2009,6 +2086,12 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	ui_svc_setting_set(UI_SET_LANGUAGE, lang != NULL && strlen(lang) == 2 ? (uint8_t)lang[0] << 8 | (uint8_t)lang[1] : 0);
 #if CONFIG_DUAL_WATCH
 	ui_svc_setting_set(UI_SET_DUAL_TALK_BACK, 0);
+#if CONFIG_SAT
+	memset(&sat_sim, 0, sizeof sat_sim);
+	sat_sim.state = UI_SAT_READY;
+	ui_svc_setting_set(UI_SET_UTC_OFFSET, -360);	// UTC-6, as the mockups
+	ui_svc_setting_set(UI_SET_SAT_MIN_EL, 10);
+#endif
 	ui_svc_setting_set(UI_SET_DUAL_B, 0);
 	memset(sim_dual, 0, sizeof sim_dual);
 	sim_at = 0xFF;
@@ -2566,6 +2649,17 @@ static bool run_token(char *t, char *err, size_t len)
 			aprs_sim.cfg.freq_hz = 144930000;
 		return true;
 	}
+#if CONFIG_SAT
+	if (strcmp(t, "sat") == 0 && arg != NULL) {	// sat:notime, sat:nopos, sat:empty, sat:working (see sat_sim)
+		if (strcmp(arg, "notime") == 0)
+			sat_sim.state = UI_SAT_NO_TIME;
+		else if (strcmp(arg, "nopos") == 0)
+			sat_sim.state = UI_SAT_NO_POSITION;
+		sat_sim.empty = strcmp(arg, "empty") == 0;
+		sat_sim.working = strcmp(arg, "working") == 0;
+		return true;
+	}
+#endif
 	if (strcmp(t, "crash") == 0 && arg != NULL) {	// crash:on, crash:ask, crash:auto (see crash_sim)
 		crash_sim.have = true;
 		crash_sim.seen = crash_sim.sent = false;

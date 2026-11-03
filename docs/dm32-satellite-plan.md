@@ -105,9 +105,11 @@ UI's settings code. The satellite code is not in that task. Two consequences, to
 - The satellite work needs about 0.75 KB of stack wherever it runs. The UI task has none to spare, so give it that
   room or run the predictions elsewhere.
 
-Satellite tracking as built so far (the library, stored satellites, the debug link's SAT command): about 20 KB of flash
-and 0.7 KB of RAM on an ARM build, and about 0.75 KB of stack in the task that runs the model
-([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM: they are read from flash when needed.
+Satellite tracking as built so far (the library, stored satellites, the pass list screens and their task, the debug
+link's SAT command): about 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task stack on an ARM build
+([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM beyond the list's 32 rows. On that build the UI
+task's stack is now exactly at the check's limit (the settings record grew 4 bytes): run `make stack-check` at the
+first DM-32UV build.
 
 #### Further cuts
 
@@ -169,7 +171,7 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 | 1 | Set up: build, host tests, UI simulator | Host tests and simulator work. Firmware build waits on the toolchain |
 | 2 | UI redesign and Night theme | Night theme merged. Redesign not started |
 | 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Profiles and TLEs are stored in data flash (one sector at 0x71B000, 32 satellites), saved and listed over the debug link (`rfoundry_debug.py sat save`, `list`). Not yet: editing on the radio; keying the burst through the radio core |
-| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Library done: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`). The debug link loads a TLE and runs the model on the radio, ready for the radio (`rfoundry_debug.py sat`, `tests/hil/test_sat.py`). Not yet: stored TLEs, the pass list screen |
+| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Done in the simulator: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`); Tools > Satellites lists the stored satellites' next passes and one satellite's 24 hours of passes, in local time with direction arrows, worked out by a task of its own; Settings > Location > Time zone and Lowest pass. Untested on the radio: `tests/hil/test_sat.py` measures the model's speed there |
 | 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Radio due |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
 | 7 | Crystal calibration and drift display | Not started |
@@ -205,6 +207,14 @@ Still open:
 - Check the shades and the dimmest text on the real panel.
 - Spanish and Italian strings need a native speaker's check.
 - Idea: switch to Night automatically after sunset, from GPS position and time.
+
+### Satellite screens
+
+Built: Tools > Satellites (OK 6 0) and a satellite's passes ([ui.md](spec/ui.md) 2.6, [user guide](user/24-satellites.md)),
+from the mockups agreed on 2026-11-03. Decided there: tracking tunes the radio temporarily and puts the channel back
+on leaving; times are local through a Time zone setting (no daylight saving rule); a Lowest pass setting (10° at
+first); Satellites is Tools 0; pass alarms come later; arrows show each pass's way across the sky. Still to build:
+the tracking screen, and a short way to it (the list is three levels from Home, the most a field screen may be).
 
 ### UI redesign
 

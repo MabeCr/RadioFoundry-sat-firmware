@@ -40,6 +40,12 @@ void sb_degrees(sbuf_t *b, int32_t e7);
 void sb_coord(sbuf_t *b, int32_t e7, char pos, char neg);
 // The nearest of the 8 compass points to a bearing in degrees: "NE"
 void sb_compass(sbuf_t *b, uint16_t bearing);
+// The arrow toward the nearest of the 8 compass points (font.h GLYPH_DIR_FIRST)
+void sb_dir_arrow(sbuf_t *b, uint16_t bearing);
+// A time of day from seconds: "08:32" (seconds % one day)
+void sb_hhmm(sbuf_t *b, uint32_t seconds);
+// An offset from UTC in minutes: "UTC", "UTC-6", "UTC+5:30"
+void sb_utc_offset(sbuf_t *b, int32_t minutes);
 // A distance and a compass point: "850 m NE", "12.3 km S", "240 km W"
 void sb_range(sbuf_t *b, uint32_t meters, uint16_t bearing);
 

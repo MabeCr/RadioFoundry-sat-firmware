@@ -62,8 +62,14 @@ static const flow_t flows[] = {
 	{ "zone offer banner hidden with Back", "zoneoffer:3101234", "back", "banner=none screen=home", 1, false },
 	{ "zone offer banner goes with the offer", "zoneoffer:3101234 wait:5000", "zoneexpire", "banner=none", 0, false },
 	{ "zone offer banner hidden with Back on a menu", "zoneoffer:3101234 ok", "back", "banner=none screen=hub", 1, false },
+#if CONFIG_SAT
+	// 0 is Satellites: the offer is the last row, without a number
+	{ "zone offer banner goes when Tools opens the offer", "zoneoffer:3101234", "ok 6 up ok", "banner=none shows=Import",
+	  4, false },
+#else
 	{ "zone offer banner goes when Tools opens the offer", "zoneoffer:3101234", "ok 6 0", "banner=none shows=Import", 3,
 	  false },
+#endif
 #endif
 	{ "8 radio check last caller", CALLER, "ctx 4", "checks=1", 2, false },
 	{ "8 radio check by name", "", "5 6 3 ctx 4", "checks=1", 5, false },
@@ -567,6 +573,23 @@ static const flow_t flows[] = {
 	{ "G GPS signal page", "ok 6 2", "3", "shows=9_of_14_in_the_fix", 1, false },
 	{ "G GPS grid page", "ok 6 2", "4", "shows=FN42li", 1, false },
 	{ "G GPS pages wrap", "ok 6 2", "up down", "shows=Status", 2, false },
+#if CONFIG_SAT
+	// Tools > Satellites (ui_sat.c, docs/spec/ui.md 2.6): the list with each next pass in local time, one satellite's
+	// passes, what a satellite without orbit data says, the screens before the clock and the position
+	{ "S satellites list", "", "ok 6 0", "screen=satellites shows=SO-50 shows=08:32 shows=up_now shows=UTC-6", 3,
+	  false },
+	{ "S satellite passes", "ok 6 0", "2", "screen=passes shows=TX_145.850 shows=arm_74.4 shows=Tomorrow shows=NW",
+	  1, false },
+	{ "S passes back to the list", "ok 6 0 2", "back", "screen=satellites", 1, false },
+	{ "S no orbit data", "ok 6 0", "6", "screen=satellites toast=No_orbit_data", 1, false },
+	{ "S passes still being worked out", "sat:working ok 6 0", "2", "shows=Working", 1, false },
+	{ "S before the time", "sat:notime", "ok 6 0", "shows=Waiting_for_the_time", 3, false },
+	{ "S before the position", "sat:nopos", "ok 6 0", "shows=No_position", 3, false },
+	{ "S nothing stored", "sat:empty", "ok 6 0", "shows=No_satellites_stored count=0", 3, false },
+	{ "S lowest pass setting", "ok 7 5", "up", "screen=group shows=Lowest_pass shows=10", 1, false },
+	{ "S time zone setting", "ok 7 5", "up up", "screen=group shows=Time_zone shows=UTC-6", 2, false },
+	{ "S next pass on the Tools row", "ok 6", "up", "shows=Satellites shows=ISS_up", 1, false },
+#endif
 	{ "A KISS on USB", "ok 6 8", "up up ok", "aprs_kiss=1", 3, false },
 	{ "A stations heard", "", "ok 6 8 up ok", "screen=aprs-heard count=2", 5, false },
 	{ "A not in this build", "aprs:off", "ok 6 8 2", "toast=APRS:_not aprs_auto=0", 4, false },

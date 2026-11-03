@@ -27,7 +27,10 @@
 
 static sat_track_t trk;
 static char lines[2][TLE_LINE_LEN];	// the element set as it arrives (DL_SAT_OP_TLE)
-static uint32_t last_run_us;		// the model's last run in the view, or in LOOK
+static uint32_t last_run_us;		// the model's last run (LOOK)
+static bool have_look;			// the last LOOK, for the view: the view itself never runs the model, since the
+static uint32_t look_at;		// status page serves it from deep in the host link's stack (make stack-check)
+static sat_track_now_t look;
 static uint16_t bench_runs;
 static uint32_t bench_us;
 
@@ -100,14 +103,12 @@ __attribute__((noinline)) void debuglink_view_sat(dl_text_t *t)
 		dl_text(t, "sat.lat=%d\nsat.lon=%d\nsat.alt_m=%d\n", (int)rnd(trk.observer.lat * r2d * 1e7),
 			(int)rnd(trk.observer.lon * r2d * 1e7), (int)rnd(trk.observer.alt * 1000.0));
 	}
-	sat_track_now_t n;
-	uint32_t t0 = hal_micros();
-	if (utc && sat_track_at(&trk, now, &n)) {
-		last_run_us = hal_micros() - t0;
-		dl_text(t, "sat.az_cdeg=%d\nsat.el_cdeg=%d\nsat.range_m=%d\nsat.rr_mm_s=%d\n", (int)rnd(n.look.az * 100.0),
-			(int)rnd(n.look.el * 100.0), (int)rnd(n.look.range * 1000.0), (int)rnd(n.look.range_rate * 1e6));
+	if (have_look) {
+		dl_text(t, "sat.look_at=%u\nsat.az_cdeg=%d\nsat.el_cdeg=%d\nsat.range_m=%d\nsat.rr_mm_s=%d\n", (unsigned)look_at,
+			(int)rnd(look.look.az * 100.0), (int)rnd(look.look.el * 100.0), (int)rnd(look.look.range * 1000.0),
+			(int)rnd(look.look.range_rate * 1e6));
 		if (trk.has_profile) {
-			dl_text(t, "sat.rx_hz=%u\nsat.tx_hz=%u\n", (unsigned)n.rx_hz, (unsigned)n.tx_hz);
+			dl_text(t, "sat.rx_hz=%u\nsat.tx_hz=%u\n", (unsigned)look.rx_hz, (unsigned)look.tx_hz);
 		}
 	}
 	dl_text(t, "sat.run_us=%u\nsat.bench_runs=%u\nsat.bench_us=%u\n", (unsigned)last_run_us, bench_runs,
@@ -131,6 +132,7 @@ static size_t op_load(uint8_t *out)
 {
 	uint8_t tle, sgp4;
 	bool ok = sat_track_load(&trk, lines[0], lines[1], &tle, &sgp4);
+	have_look = have_look && !ok;
 	out[0] = DL_ST_OK;
 	out[1] = tle;
 	out[2] = sgp4;
@@ -177,6 +179,9 @@ static size_t op_look(const uint8_t *req, uint16_t len, uint8_t *out)
 	if (!sat_track_at(&trk, t, &n))
 		return status(out, DL_ST_UNAVAILABLE);
 	last_run_us = hal_micros() - t0;
+	look = n;
+	look_at = (uint32_t)t;
+	have_look = true;
 	uint8_t *p = out;
 	*p++ = DL_ST_OK;
 	p = put16(p, (uint16_t)rnd(n.look.az * 100.0));
@@ -303,6 +308,7 @@ static size_t op_recall(const uint8_t *req, uint16_t len, uint8_t *out)
 	if (!sat_store_read(get16(req + 1), &r) || !r.has_elements)
 		return status(out, DL_ST_UNAVAILABLE);
 	bool ok = sat_track_set(&trk, &r.elements, &r.profile, &sgp4);
+	have_look = have_look && !ok;
 	out[0] = DL_ST_OK;
 	out[1] = sgp4;
 	put32(out + 2, ok ? trk.norad : 0u);

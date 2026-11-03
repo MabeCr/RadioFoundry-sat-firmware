@@ -270,7 +270,7 @@
 #define CONFIG_GPS_SKY			(CONFIG_GPS && CONFIG_APRS)
 #endif
 // Satellite tracking: SGP4 orbit prediction, passes, Doppler, satellite profiles with repeater arming (core/sat,
-// docs/spec/satellite.md). Needs FM. Off by default while the radio has only its clock and the debug link's bench
+// docs/spec/satellite.md). Needs FM. Off by default: some radios have no RAM or flash to spare for it
 #ifndef CONFIG_SAT
 #define CONFIG_SAT			0
 #endif

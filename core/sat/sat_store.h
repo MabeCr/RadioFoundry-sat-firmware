@@ -49,6 +49,9 @@ bool sat_store_delete(uint32_t norad);
 // flash is backed up). False without an area or when the flash fails
 bool sat_store_clear(void);
 
+// Counts every change written (put, delete, clear): a reader that keeps what it read knows to read again
+uint32_t sat_store_generation(void);
+
 // A record's 128 bytes and back (little endian, doubles as IEEE 754 binary64), for the store and its tests
 void sat_store_encode(const sat_record_t *r, uint8_t out[SAT_STORE_RECORD]);
 bool sat_store_decode(const uint8_t in[SAT_STORE_RECORD], sat_record_t *out);

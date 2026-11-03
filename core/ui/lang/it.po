@@ -748,7 +748,7 @@ msgstr "0-9 scegli  Indietro"
 msgid "Heard"
 msgstr "Sentite"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_screens.c
 msgid "Back"
 msgstr "Indietro"
 
@@ -2524,6 +2524,10 @@ msgstr "Ripetitore freq. unica"
 msgid "Diagnostics"
 msgstr "Diagnostica"
 
+#: core/ui/ui_menus.c core/ui/ui_sat.c
+msgid "Satellites"
+msgstr "Satelliti"
+
 #: core/ui/ui_menus.c
 msgid "Zones/Chs Received"
 msgstr "Zone/Can. ricevuti"
@@ -2539,6 +2543,10 @@ msgstr "Rete"
 #: core/ui/ui_menus.c
 msgid "Serial"
 msgstr "Seriale"
+
+#: core/ui/ui_menus.c
+msgid "up"
+msgstr "su"
 
 #: core/ui/ui_menus.c
 msgid "Never"
@@ -2815,6 +2823,14 @@ msgstr "Invia posizione"
 #: core/ui/ui_menus.c
 msgid "Answer GPS requests"
 msgstr "Rispondi a GPS"
+
+#: core/ui/ui_menus.c
+msgid "Time zone"
+msgstr "Fuso orario"
+
+#: core/ui/ui_menus.c
+msgid "Lowest pass"
+msgstr "Passaggio min."
 
 #: core/ui/ui_menus.c
 msgid "Hotspot allowed"
@@ -3127,6 +3143,70 @@ msgstr "Codeplug di un altro firmware? Crea nuovo cancella contatti, nominativo 
 #: core/ui/ui_menus.c
 msgid "Old codeplug"
 msgstr "Codeplug precedente"
+
+#: core/ui/ui_sat.c
+msgid "Waiting for the time: passes need UTC from a GPS fix"
+msgstr "In attesa dell'ora: i passaggi richiedono l'UTC da un fix GPS"
+
+#: core/ui/ui_sat.c
+msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
+msgstr "Nessuna posizione: un fix GPS, o una fissa in Strumenti > APRS"
+
+#: core/ui/ui_sat.c
+msgid "Above"
+msgstr "Sopra"
+
+#: core/ui/ui_sat.c
+msgid "no orbit"
+msgstr "senza orbita"
+
+#: core/ui/ui_sat.c
+msgid "bad orbit"
+msgstr "orbita errata"
+
+#: core/ui/ui_sat.c
+msgid "no pass"
+msgstr "nessuno"
+
+#: core/ui/ui_sat.c
+msgid "up now"
+msgstr "su ora"
+
+#: core/ui/ui_sat.c
+msgid "No orbit data: load its TLE over the cable"
+msgstr "Nessun dato d'orbita: carica il suo TLE dal cavo"
+
+#: core/ui/ui_sat.c
+msgid "This TLE can't be predicted"
+msgstr "Questo TLE non è prevedibile"
+
+#: core/ui/ui_sat.c
+msgid "OK passes  Back"
+msgstr "OK passaggi  Indietro"
+
+#: core/ui/ui_sat.c
+msgid "No satellites stored. Load them over the cable: rfoundry_debug.py sat"
+msgstr "Nessun satellite salvato. Caricali dal cavo: rfoundry_debug.py sat"
+
+#: core/ui/ui_sat.c core/ui/ui_screens.c
+msgid "Tone"
+msgstr "Tono"
+
+#: core/ui/ui_sat.c
+msgid "arm"
+msgstr "arma"
+
+#: core/ui/ui_sat.c
+msgid "Tomorrow"
+msgstr "Domani"
+
+#: core/ui/ui_sat.c
+msgid "Working"
+msgstr "Calcolo"
+
+#: core/ui/ui_sat.c
+msgid "No pass above the lowest in 24 h (Settings > Location)"
+msgstr "Nessun passaggio sopra il minimo in 24 h (Impostazioni > Posizione)"
 
 #: core/ui/ui_screens.c
 msgid "IDLE"
@@ -3555,10 +3635,6 @@ msgstr "Ancora nessuna chiamata"
 #: core/ui/ui_screens.c
 msgid "{Squelch|SQL}"
 msgstr "{Squelch|SQL}"
-
-#: core/ui/ui_screens.c
-msgid "Tone"
-msgstr "Tono"
 
 #: core/ui/ui_screens.c
 msgid "{Monitor|MON}"

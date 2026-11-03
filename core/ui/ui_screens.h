@@ -200,6 +200,7 @@ void ui_draw_banner(const ui_state_t *s);
 #define UI_ITEM_EDIT	0x08u	// the row's inline editor is open
 #define UI_ITEM_INFO	0x10u	// a text line, not something to pick (never focused)
 #define UI_ITEM_PREVIEW	0x20u	// the label is the start of a longer text (a message): shortened at its end, not the middle
+#define UI_ITEM_LIVE	0x40u	// the value is happening now (a satellite overhead): drawn in the receive color, with a word
 
 typedef struct {
 	char label[36];

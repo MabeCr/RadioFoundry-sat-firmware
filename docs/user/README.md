@@ -38,6 +38,7 @@ The chapters below name the command line tools as alternatives.
 14. [Hotspot mode](14-hotspot.md): MMDVMHost and Pi-Star, SFR, two radios as a duplex repeater
 15. [USB network mode](15-usb-network.md): IP over DMR, the status page, rig control, KISS, TFTP, SNMP, control station
 16. [Battery and power](16-battery-and-power.md)
+24. [Satellites](24-satellites.md): passes of amateur satellites over you, in builds with satellite tracking
 
 ### Reference
 

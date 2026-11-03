@@ -11,7 +11,7 @@ import re
 
 import pytest
 
-from rfoundry_hil import skip
+from rfoundry_hil import LONG, skip
 
 REF = pathlib.Path(__file__).resolve().parent.parent / "host" / "sat_ref.h"
 # One update a second is the requirement for live tracking (docs/dm32-satellite-plan.md): a run must be far under it
@@ -134,3 +134,28 @@ def test_sat_store_round_trip(radio):
     finally:
         link.sat_delete(100001)
     assert int(link.view(["sat"])["sat.stored"]) == stored
+
+
+@pytest.mark.feature("sat")
+def test_sat_screens_open(radio):
+    """Tools > Satellites (OK 6 0) lists what the store holds, and BACK leaves it (docs/spec/ui.md 2.6). Keys only"""
+    if "SAT" not in radio.features():
+        skip("not_built", "built without CONFIG_SAT")
+    radio.ensure_awake()
+    if radio.screen() != "home":
+        radio.press("back", LONG)
+    screen = lambda name: radio.wait_for(lambda v: v.get("ui.screen") == name, sections=("link",), what=name)
+    screen("home")
+    stored = int(radio.link.view(["sat"]).get("sat.stored", 0))
+    try:
+        radio.press("ok")
+        screen("hub")
+        radio.press("6")
+        screen("tools")
+        radio.press("0")
+        v = screen("satellites")
+        assert int(v.get("ui.count", -1)) == min(stored, 32), f"{v.get('ui.count')} rows for {stored} stored"
+        radio.press("back")
+        screen("tools")
+    finally:
+        radio.press("back", LONG)

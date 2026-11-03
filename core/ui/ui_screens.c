@@ -2554,6 +2554,8 @@ void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l
 		color_t vfg = (it.flags & UI_ITEM_DIM) && gfx_bpp() != 1 ? ui_col.line : ui_col.dim;
 		if (it.flags & UI_ITEM_TEMP)
 			vfg = ui_col.warn;
+		if ((it.flags & UI_ITEM_LIVE) && gfx_bpp() != 1)
+			vfg = ui_col.rx;
 		// Night outlines the row being edited, as a warning banner is drawn: a filled row would be a bright bar
 		bool outline = false;
 		if (focus) {

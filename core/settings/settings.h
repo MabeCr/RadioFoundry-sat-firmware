@@ -223,6 +223,11 @@ typedef struct {
 	// Zone share: the zones imported last, so the same zone sent again updates its import instead of adding a copy
 	// (docs/spec/zone-share.md 5.4); key 0 = unused, the oldest replaced first
 	settings_zs_import_t zs_import[SETTINGS_ZS_IMPORTS];
+	// Satellite tracking's settings (Settings > Location, docs/spec/satellite.md 5.1; appended for sat); 0 in an older
+	// record: UTC and the default lowest pass
+	int16_t utc_offset_min;		// local time: minutes from UTC, -720..+840 in steps of 15
+	uint8_t sat_min_el;		// the lowest pass listed: 0 = the default (10 degrees), else degrees + 1
+	uint8_t reserved9;		// 0
 } settings_t;
 
 // Pages: settings_t is stored as records of SETTINGS_PAGE_BYTES each (settings-store.md 2.1). Only the pages its size

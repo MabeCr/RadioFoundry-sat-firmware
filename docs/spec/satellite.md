@@ -8,9 +8,10 @@ rises over the radio's position, where to point the antenna, and how far Doppler
 also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
 [feature-matrix.md](../feature-matrix.md).
 
-Status: the library in `core/sat`, its host test, and the debug link's SAT command, which loads an element set and
-runs the model on the radio ([debuglink.md](debuglink.md) 3.24). No screen and no stored data yet. Section 9 lists
-what is still to write.
+Status: the library in `core/sat` and its host tests; stored satellites (6.3); the debug link's SAT command, which loads
+and stores element sets and runs the model on the radio ([debuglink.md](debuglink.md) 3.24); and Tools > Satellites,
+the satellite list and pass list, worked out by a task of their own (5.1, [ui.md](ui.md) 2.6). Tracking a pass with
+Doppler is not built yet. Section 9 lists what is still to write.
 
 | Section | Topic |
 |---|---|
@@ -26,8 +27,8 @@ what is still to write.
 
 ## 1. Files and layers
 
-Everything in `core/sat` is portable C with no RTOS calls and no board header. The caller owns every struct; the only
-static state is the UTC clock (4.1). The host tests compile it unchanged.
+Everything in `core/sat` is portable C with no RTOS calls and no board header. The caller owns every struct; the
+static state is the UTC clock (4.1) and the service's results (5.1). The host tests compile it unchanged.
 
 | File | Does |
 |---|---|
@@ -38,6 +39,9 @@ static state is the UTC clock (4.1). The host tests compile it unchanged.
 | `sat_pass.c` | The next pass: rise, highest point, set |
 | `sat_profile.c` | The built-in profiles and the arming state machine |
 | `sat_clock.c` | UTC from NMEA date and time, for the model (4.1) |
+| `sat_svc.c` | The service: every stored satellite's next pass and one satellite's pass list, a slice at a time (5.1) |
+| `core/app/sat_task.c` | The service's task: its inputs (clock, position, setting), a poll, a sleep |
+| `core/ui/ui_svc_sat.c`, `core/ui/ui_sat.c` | What the screens read, and the screens ([ui.md](ui.md) 2.6) |
 | `sat_track.c` | One tracked satellite: its model, the observer, its profile, and the look and Doppler at a time |
 | `sat_store.c` | Stored satellites in the board's data flash (6.3); the one file here that uses `core/storage` |
 | `core/debuglink/debuglink_sat.c` | The debug link's SAT command and `sat` view section ([debuglink.md](debuglink.md) 3.24) |
@@ -250,9 +254,10 @@ function in use, against an empty program:
 | Stack | about 0.75 KB | `sat_pass_next` down to the soft-float helpers, with `-fstack-usage`; the task that runs it needs that headroom |
 
 In a firmware image (an STM32F405 radio's default build, LTO, 2026-11-03), `CONFIG_SAT=y` with the debug link adds
-19,988 B of flash and 656 B of RAM: the library, the store, the SAT command and its tracker (`sat_track_t` with its
-element set, and the element set's two lines as they arrive). The static stack check finds no task deeper than
-without it: the store's scans read a slot in 32-byte pieces rather than whole.
+26,792 B of flash and 2,848 B of static RAM, and the `sat` task's 1,536-byte stack from the RTOS heap: the library, the
+store, the service and its task (5.1), the screens, the SAT command and its tracker. The static stack check finds the
+`sat` task 88 bytes clear and no other task deeper than without it: the debug link's view shows the last LOOK rather
+than running the model under the status page, and the store's scans read a slot in 32-byte pieces.
 
 The time a run of the model takes on a radio without an FPU is not measured yet: the SAT command's BENCH and
 `tests/hil/test_sat.py` measure it. One update a second for live tracking and about 1,600 runs per satellite-day for
@@ -289,8 +294,8 @@ sets (`pip install sgp4 skyfield`).
 | Piece | Needs |
 |---|---|
 | A real-time clock | Time without a GPS fix: a board's clock read at start (and set from GPS), behind a `hal_` hook. Until then the time comes from NMEA only (4.1) |
-| Element set age | Each stored set's age shown, with a warning once it is old (the record has the epoch) |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
-| The radio's side | A pass list and a live screen (azimuth, elevation, Doppler, arming countdown), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
+| Tracking | The live screen (azimuth, elevation, sky plot, Doppler, arming countdown) and a short way to it (a programmable key: the list is three levels from Home), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
+| Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
 | Speed on the radio | A run of `tests/hil/test_sat.py` on each radio: the time per model run without an FPU (7) |

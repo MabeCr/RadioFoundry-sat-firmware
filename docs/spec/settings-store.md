@@ -74,7 +74,7 @@ so with two pages a sector is erased once every 64 saves.
 ### 2.1 Pages
 
 `settings_t` is longer than one slot's payload, so it is stored as pages: page k holds bytes `236 * k` on.
-`SETTINGS_PAGES` is the number its size needs (2 now, 392 bytes); the page field allows 16 (3776 bytes). Each page is
+`SETTINGS_PAGES` is the number its size needs (2 now, 396 bytes); the page field allows 16 (3776 bytes). Each page is
 a record with its own length, so `settings_t` grows by appending fields, and a short page fills the fields it has.
 
 | Rule | Why |
@@ -155,6 +155,7 @@ callsign. The own DMR ID is always the codeplug's.
 | codeplug acceptance | Page 1, after `lang` (was reserved): `cp_flags` bit 0 (`SETTINGS_CP_ACCEPTED`), the user chose Use anyway for another firmware's codeplug ([codeplug-native.md](codeplug-native.md) 2). Cleared when a CPS or TFTP write of the codeplug commits and by a factory reset. 0 (an older record) = not accepted |
 | zone sharing | Page 1: `zs_offers` (zone shares accepted: 0 the default and what an older record reads as, On; 1 On, as the old Ask; 2 Off. A record from before On became the default reads On whatever it stored), then `ref_trim_ppb` (an int16, the reference trim in ppb, -10000..+10000, `radio-features.md` 6.1; in the old `reserved8`, so an older record reads 0, no trim) and `ds_ip_gateway` (DMR data settings). `zs_import[4]` (appended, after the zone journal): the last four zone imports, newest first, each a key (an FNV-1a hash of the sender's ID and the zone ID; 0 unused), the 16-byte name the zone got (not terminated at 16), `sig` (the XOR of the written channels' hashes) and `count` (how many it wrote), then three reserved bytes. Settings > Connections > Zone offers ([zone-share.md](zone-share.md) 5.1, 5.4) |
 | crash report | packed into spare bits, so an older record reads as off with no target: the mode (0 off, 1 ask, 2 send at once) in `accent` bits 4-5; the target's codeplug contact number (0 none, else 1..1024, 11 bits) bits 0-5 in `theme` bits 2-7 and bits 6-10 in `updown_home` bits 2-6. `theme` and `updown_home` keep their value in bits 0-1; read and write them through `settings_theme` / `settings_updown_home` and `settings_crash_*` (`settings.h`). Firmware from before reads a `theme` or `updown_home` with these bits as out of range: the dark theme and Up/Down = channel. Firmware from before the night theme also reads `theme` 3 as out of range: the dark theme ([crash-log.md](crash-log.md) 5.2) |
+| satellite tracking | Page 1, appended for sat after `zs_import`: `utc_offset_min` (an int16, local time as minutes from UTC, -720..+840 in steps of 15; 0 = UTC), `sat_min_el` (the lowest satellite pass listed: 0 = the default, 10 degrees; else degrees + 1, 0..90), `reserved9` (0). Settings > Location > Time zone and Lowest pass ([satellite.md](satellite.md) 5.1) |
 
 All of these are still layout 1: they were appended before any firmware with the settings store shipped. Page 0
 is full: its later fields went into reserved bytes where 0 already meant
