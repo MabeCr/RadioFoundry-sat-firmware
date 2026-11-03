@@ -46,6 +46,7 @@ first build is the first test of it.
 | `VOX`, `VIBRATE` | Off by default | Not written for this radio. The vibration motor's drive pin isn't known ([hardware-dm32.md](spec/hardware-dm32.md) 6.6) |
 | `USB`, `USB_NETWORK`, `NAND_STORAGE` | Unsupported | The radio has no USB data port and no SPI NAND |
 | `DMR` | **Keep on** | `NET_PPP` needs it on this platform (`platform/hrc7000/config.mk`), and the IP gateway and `rigctld` ride that link |
+| `DUAL_WATCH` | **Keep on** | Two channels on Home, for everyday use outside satellite passes. The largest RAM cost left (5.3 KB, [Further cuts](#further-cuts)), kept by choice |
 | `CRASH_LOG`, `DEBUGLINK`, `FAULT_TRACE`, `WATCHDOG`, `STUB_ENTRY` | **Keep on** | They are what diagnoses and recovers a first build on a new radio |
 | `VFO`, `SUBTONE`, `APRS`, `GPS`, `GPS_SKY`, `UI_COLOR` | **Keep on** | Satellite operation and the Night theme use them. `GPS_SKY` needs both `GPS` and `APRS`. `APRS` also carries the NMEA that sets the clock |
 | `SAT` | **On** | The satellite library. Off by default in the tree until the radio uses it |
@@ -97,13 +98,13 @@ that runs it ([satellite.md](spec/satellite.md) 7). Its state per tracked satell
 
 #### Further cuts
 
-Each switch turned off on top of the configuration above. Decision: open. Children follow their parent (`NET_HTTP`
+Each switch turned off on top of the configuration above. Decided: keep `APRS_RX` and `DUAL_WATCH`. The rest: open. Children follow their parent (`NET_HTTP`
 includes `NET_WEBCTL`; `HOTSPOT` includes split duplex and MMDVM SFR).
 
 | Switch | RAM | Flash | What goes |
 |---|---:|---:|---|
 | `APRS_RX` | 6,984 | 9,344 | APRS receive. Needed for ISS APRS and telemetry capture: keep |
-| `DUAL_WATCH` | 5,304 | 19,432 | Two channels on Home |
+| `DUAL_WATCH` | 5,304 | 19,432 | Two channels on Home. Useful outside satellite passes: keep |
 | `NET_USRP` | 4,624 | 3,016 | AllStarLink / DVSwitch audio over the IP link |
 | `HOTSPOT` | 4,224 | 13,128 | The MMDVM hotspot over the K1 cable |
 | `ZONE_SHARE` | 3,928 | 12,504 | Sending and importing zones over DMR |
