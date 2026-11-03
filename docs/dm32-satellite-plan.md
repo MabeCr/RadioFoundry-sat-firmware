@@ -31,7 +31,8 @@ The configuration chosen for satellite use on the DM-32UV:
 
 ```
 make BOARD=dm32 CONFIG_SFR=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n \
-	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_SAT=y
+	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_SAT=y \
+	CONFIG_NET_USRP=n CONFIG_HOTSPOT=n CONFIG_ZONE_SHARE=n CONFIG_NET_HTTP=n CONFIG_DMR_ROAMING=n
 ```
 
 `make -n` accepts this combination and sets the switches as intended. It has not been compiled: that needs
@@ -43,6 +44,7 @@ first build is the first test of it.
 | `SFR` | Off | Not related to satellites, and experimental. `SFR_DUALPATH_RX` and `SFR_CWID` follow it |
 | `DMR_PRIVACY`, `DMR_TMS`, `DMR_ARS`, `DMR_LRRP`, `DMR_CONTROL_STATION`, `SNMP`, `HOTSPOT_SPLIT` | Off | Not needed for this use |
 | `LANG_ES` | Off | English only. `LANG_IT` is already off by default |
+| `NET_USRP`, `HOTSPOT`, `ZONE_SHARE`, `NET_HTTP`, `DMR_ROAMING` | Off | Not needed, and the five largest RAM costs left after dual watch ([Further cuts](#further-cuts)). `HOTSPOT_SPLIT` and MMDVM SFR go with `HOTSPOT`; `NET_WEBCTL` and `NET_HTTP_GZIP` with `NET_HTTP`. `rigctld`, KISS over TCP and APRS-IS stay |
 | `VOX`, `VIBRATE` | Off by default | Not written for this radio. The vibration motor's drive pin isn't known ([hardware-dm32.md](spec/hardware-dm32.md) 6.6) |
 | `USB`, `USB_NETWORK`, `NAND_STORAGE` | Unsupported | The radio has no USB data port and no SPI NAND |
 | `DMR` | **Keep on** | `NET_PPP` needs it on this platform (`platform/hrc7000/config.mk`), and the IP gateway and `rigctld` ride that link |
@@ -90,26 +92,38 @@ its first build.
 | Configuration | Flash | RAM |
 |---|---:|---:|
 | That radio's default | 507,344 B | 178,680 B |
-| The configuration above (switches off) | 434,800 B | 168,528 B |
-| Saved | 72,544 B | 10,152 B |
+| The first nine switches off | 434,800 B | 168,528 B |
+| The configuration above: those, the five further cuts, `SAT` on | 375,896 B | 149,064 B |
+| Saved against the default | 131,448 B | 29,616 B |
+
+That configuration builds with no warnings. Its static stack check finds the UI task 16 bytes over its limit (the
+default build has 8 bytes to spare there): leaving features out changed what the link-time optimizer inlined into the
+UI's settings code. The satellite code is not in that task. Two consequences, to check at the first DM-32UV build:
+
+- Run `make BOARD=dm32 <the line above> stack-check`. If the UI task is over, give it more stack from the RAM freed
+  here.
+- The satellite work needs about 0.75 KB of stack wherever it runs. The UI task has none to spare, so give it that
+  room or run the predictions elsewhere.
 
 The satellite library itself: about 17 KB of flash once used, 12 B of static RAM, about 0.75 KB of stack in the task
 that runs it ([satellite.md](spec/satellite.md) 7). Its state per tracked satellite is about 0.5 KB.
 
 #### Further cuts
 
-Each switch turned off on top of the configuration above. Decided: keep `APRS_RX` and `DUAL_WATCH`. The rest: open. Children follow their parent (`NET_HTTP`
-includes `NET_WEBCTL`; `HOTSPOT` includes split duplex and MMDVM SFR).
+Each switch turned off on top of the first nine switch-offs, one at a time. Decided: keep `APRS_RX` and `DUAL_WATCH`;
+turn off `NET_USRP`, `HOTSPOT`, `ZONE_SHARE`, `NET_HTTP` and `DMR_ROAMING` (in the configuration above). The rest:
+open. Children follow their parent (`NET_HTTP` includes `NET_WEBCTL`; `HOTSPOT` includes split duplex and MMDVM SFR).
 
 | Switch | RAM | Flash | What goes |
 |---|---:|---:|---|
 | `APRS_RX` | 6,984 | 9,344 | APRS receive. Needed for ISS APRS and telemetry capture: keep |
 | `DUAL_WATCH` | 5,304 | 19,432 | Two channels on Home. Useful outside satellite passes: keep |
-| `NET_USRP` | 4,624 | 3,016 | AllStarLink / DVSwitch audio over the IP link |
-| `HOTSPOT` | 4,224 | 13,128 | The MMDVM hotspot over the K1 cable |
-| `ZONE_SHARE` | 3,928 | 12,504 | Sending and importing zones over DMR |
-| `NET_HTTP` | 3,840 | 18,696 | The status web page and web control over PPP. `rigctld` stays. Then `TCP_CONNS=1` would free about 3 KB more: the other two connections are the browser's |
-| `DMR_ROAMING` | 3,136 | 12,068 | DMR repeater roaming |
+| `NET_USRP` | 4,624 | 3,016 | AllStarLink / DVSwitch audio over the IP link: off |
+| `HOTSPOT` | 4,224 | 13,128 | The MMDVM hotspot over the K1 cable: off |
+| `ZONE_SHARE` | 3,928 | 12,504 | Sending and importing zones over DMR: off |
+| `NET_HTTP` | 3,840 | 18,696 | The status web page and web control over PPP: off. `rigctld` stays |
+| `DMR_ROAMING` | 3,136 | 12,068 | DMR repeater roaming: off |
+| `TCP_CONNS=2` | about 1,500 | — | One TCP connection fewer (3 by default on this platform). With the web page gone, `rigctld`, KISS over TCP and the APRS-IS client share them; at 2, only two of those can be connected at once. 1 would leave one |
 | `NET_WEBCTL` alone | 1,000 | 12,992 | Web control; the status page stays |
 | `ZONE_EDIT` | 896 | 4,952 | The zone editor |
 | `MDNS`, `TFTP` | 336, 176 | 6,480, 8,300 | Name lookup and codeplug transfer over the IP link |
