@@ -210,6 +210,12 @@ hardware = "a GPS receiver"
 spec = "docs/spec/aprs.md"
 source = ["core/aprs/nmea_sky.c", "core/ui/ui_gps.c"]
 
+[feature.sat]
+switch = "SAT"
+spec = "docs/spec/satellite.md"
+source = ["core/sat"]
+manual = ["Nothing on the radio uses the library yet beyond its UTC clock; the host test (tests/host/satTest.c) covers it"]
+
 # ── Host link and USB ──
 
 [feature.usb]
