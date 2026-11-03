@@ -613,8 +613,8 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
   the strip stays plain, whatever they hold, and their values are kept for the other themes. The focus is a dark bar
   with brighter text. To avoid blocks of light, a row or tile being edited is an amber outline around a dark center,
   with `<value>` in amber, and a toast is a red outline around a dark center. The emergency screen stays a full red
-  fill, with black text, so it can't be missed. `ui_task` applies the stored theme before the splash, whose mark and
-  wordmark are dark red in Night, so a radio left in Night doesn't start bright.
+  fill, with black text, so it can't be missed. The boot splash isn't themed: `ui_task` draws it before it applies the
+  stored settings, and the logo's colors are fixed.
 - The VFO has a mode of its own (`dmr-voice.md` 2.1). The Mode tile (tile 4 in the VFO only) switches it FM / DMR ("VFO: DMR", no "for now": it is kept), and in a build with only one VFO kind the tile is dimmed ("VFO: one mode in this build"). On a channel tile 4 is "To VFO" (`dmr-voice.md` 2.2): it copies what is in effect on the channel to the VFO and opens it on Home ("Copied to VFO"); a channel the VFO can't hold is refused with a toast. A channel has no temporary mode change any more. In DMR the quick menu is the DMR one: Timeslot, Color and Talk to change the VFO's own settings, with no dot on Home. The talk target picker lists the VFO's current target first ("Current"); both OK and hold OK keep the target for the VFO.
 - The privacy key is typed in decimal (Anytone 0..65535). Number rows take typed digits; a value outside the range or
   between steps is refused with the range. Only key slot 1 is reachable from the menu.

@@ -659,12 +659,6 @@ static bool in_rrect(int px, int py, int x, int y, int w, int h, int r)
 	return (px - cx) * (px - cx) + (py - cy) * (py - cy) <= r * r;
 }
 
-// The mark's colors in the Night theme: dark reds that keep their order of lightness, which their green channels give
-static color_t mark_night(color_t c)
-{
-	return ui_theme_is_night() ? RGB565(24 + ((c >> 5) & 0x3Fu) * 12 / 5, 0, 0) : c;
-}
-
 // The color at one point of the 1024 grid, or -1 outside the hexagon
 static int mark_color(int X, int Y, bool mono, bool small)
 {
@@ -716,7 +710,7 @@ static void draw_mark(int cx, int cy, int r)
 		for (int dx = -r; dx < r; dx++) {
 			int c = mark_color(512 + (2 * dx + 1) * 241 / r, 512 + (2 * dy + 1) * 241 / r, mono, small);
 			if (c >= 0)
-				gfx_pixel(cx + dx, cy + dy, mark_night((color_t)c));
+				gfx_pixel(cx + dx, cy + dy, (color_t)c);
 		}
 	}
 }
@@ -726,7 +720,7 @@ static int draw_wordmark(const font_t *f, int y)
 {
 	int w1 = gfx_text_width(f, "Radio") + 1, w = w1 + gfx_text_width(f, "Foundry");
 	int x = (gfx_width() - w) / 2;
-	gfx_text(f, x, y, "Radio", gfx_bpp() == 1 ? ui_col.fg : mark_night(AMBER));
+	gfx_text(f, x, y, "Radio", gfx_bpp() == 1 ? ui_col.fg : AMBER);
 	gfx_text(f, x + w1, y, "Foundry", ui_col.fg);
 	return f->h;
 }
@@ -807,12 +801,12 @@ void ui_draw_splash(const char *board_name, const char *version, const char *lin
 		int sw = side_w, ww = gfx_text_width(wf, word);
 		int x0 = (w - sw - ww) / 2, row_h = 2 * side_r > wf->h ? 2 * side_r : wf->h;
 		draw_mark(x0 + (sw - 4) / 2, y + row_h / 2, side_r);
-		gfx_text(wf, x0 + sw, y + (row_h - wf->h) / 2, "Radio", gfx_bpp() == 1 ? ui_col.fg : mark_night(AMBER));
+		gfx_text(wf, x0 + sw, y + (row_h - wf->h) / 2, "Radio", gfx_bpp() == 1 ? ui_col.fg : AMBER);
 		gfx_text(wf, x0 + sw + gfx_text_width(wf, "Radio") + 1, y + (row_h - wf->h) / 2, "Foundry", ui_col.fg);
 		y += row_h;
 	} else
 		y += draw_wordmark(wf, y);
-	gfx_hline(w / 2 - w / 6, y + gap / 2, w / 3, gfx_bpp() == 1 ? ui_col.fg : mark_night(ORANGE));
+	gfx_hline(w / 2 - w / 6, y + gap / 2, w / 3, gfx_bpp() == 1 ? ui_col.fg : ORANGE);
 	y += gap;
 	if (n_lines > 0) {
 		y += gap;

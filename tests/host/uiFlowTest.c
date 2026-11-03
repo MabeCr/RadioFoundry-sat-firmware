@@ -1318,7 +1318,7 @@ static void night_checks(void)
 	char err[160];
 	// Nothing white, gray or blue: what isn't red is the dim green or amber, which have far less green than white
 	static const char *const screens[] = { "", "pttdown", "rx:3101234,91,g,K1ABC", "ok 5", "ok 7 2", "ok 6 2 2", "quick",
-					       "quick 3 7", "battery:5", "emergency:3101234", "splash" };
+					       "quick 3 7", "battery:5", "emergency:3101234" };
 	for (size_t i = 0; i < sizeof screens / sizeof screens[0]; i++) {
 		char script[80];
 		snprintf(script, sizeof script, "theme:night %s", screens[i]);
@@ -1338,20 +1338,6 @@ static void night_checks(void)
 					break;
 				}
 			}
-	}
-	// The boot screen has its own colors, all of them dark red in this theme
-	for (int small = 0; small < 2; small++) {
-		const sim_geom_t *gs = sim_geom_find(small ? "160x128" : "240x320");
-		sim_reset(gs, SIM_MAP_K);
-		if (sim_run("theme:night splash", err, sizeof err))
-			for (int y = 0; y < gfx_height(); y++)
-				for (int x = 0; x < gfx_width(); x++)
-					if (gfx_get_pixel(x, y) & 0x07FFu) {
-						printf("FAIL night: the boot screen isn't all red at %d,%d\n", x, y);
-						fails++;
-						y = gfx_height();
-						break;
-					}
 	}
 	// The status strip stays on the screen's background, though Filled status bar is on by default
 	sim_reset(g, SIM_MAP_K);
