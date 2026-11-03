@@ -12,3 +12,4 @@
 | [build-config.md](build-config.md) | Contributors | Every build switch and value, variants, board defaults |
 | [feature-matrix.md](feature-matrix.md) | Contributors | Each feature's flash cost and per-radio default; whole-image sizes |
 | [CLEANROOM.md](CLEANROOM.md) | Contributors | The clean-room rules |
+| [dm32-satellite-plan.md](dm32-satellite-plan.md) | This fork | The satellite plan: decisions, build configuration, feature backlog, open questions |
