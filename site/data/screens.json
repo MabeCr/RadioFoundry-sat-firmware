@@ -693,6 +693,24 @@
     "GPS_SKY"
    ]
   },
+  "satellites": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellite_passes": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellites_no_time": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
   "diagnostics": {
    "group": "tools",
    "needs": [
@@ -706,6 +724,12 @@
    ]
   },
   "settings_display": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
+  "settings_location": {
    "group": "settings",
    "needs": [
     "UI_SETTINGS"
