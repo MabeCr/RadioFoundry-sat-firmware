@@ -40,6 +40,12 @@ static color_t sys_color(uint8_t sys)
 	};
 	if (!CONFIG_UI_COLOR || gfx_bpp() == 1 || sys >= UI_GNSS_COUNT)
 		return ui_col.fg;
+	// Night: shades of red, and the legend tells the systems apart
+	static const color_t night[UI_GNSS_COUNT] = {
+		RGB565(0xFF, 0, 0), RGB565(0xC8, 0, 0), RGB565(0x98, 0, 0), RGB565(0x70, 0, 0), RGB565(0x50, 0, 0),
+	};
+	if (ui_theme_is_night())
+		return night[sys];
 	bool light_bg = ((ui_col.bg >> 5) & 0x3Fu) > 0x20u;
 	return light_bg ? light[sys] : dark[sys];
 }

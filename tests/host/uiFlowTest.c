@@ -773,6 +773,9 @@ static const flow_t flows_k[] = {
 	  "dual=1 azone=0 apos=4", 1, false },
 #if CONFIG_UI_COLOR
 	{ "S theme light (color screens)", "", "ok 7 2 down down ok", "set7=1", 6, false },
+	{ "S theme night (color screens)", "", "ok 7 2 down down ok ok ok", "set7=3", 8, false },
+	{ "S theme night: the highlight color doesn't apply", "", "ok 7 2 down down ok ok ok down ok", "toast=Night_uses set61=0", 10, false },
+	{ "S theme night: the filled status bar doesn't apply", "", "ok 7 2 down down ok ok ok down down ok", "toast=Night_uses set62=1", 11, false },
 	{ "S highlight color red (the first after Default)", "", "ok 7 2 down down down ok", "set61=1", 7, false },
 	{ "S filled status bar off (on by default)", "", "ok 7 2 down down down down ok", "set62=0", 8, false },
 #else
@@ -1298,6 +1301,75 @@ static int check_name_is_id(void)
 	return bad;
 }
 
+#if CONFIG_UI_COLOR
+// The Night theme: count of pixels in a color, from row y0 down
+static int count_color(color_t c, int y0)
+{
+	int n = 0;
+	for (int y = y0; y < gfx_height(); y++)
+		for (int x = 0; x < gfx_width(); x++)
+			n += gfx_get_pixel(x, y) == c;
+	return n;
+}
+
+static void night_checks(void)
+{
+	const sim_geom_t *g = sim_geom_find("240x320");
+	char err[160];
+	// Nothing white, gray or blue: what isn't red is the dim green or amber, which have far less green than white
+	static const char *const screens[] = { "", "pttdown", "rx:3101234,91,g,K1ABC", "ok 5", "ok 7 2", "ok 6 2 2", "quick",
+					       "quick 3 7", "battery:5", "emergency:3101234" };
+	for (size_t i = 0; i < sizeof screens / sizeof screens[0]; i++) {
+		char script[80];
+		snprintf(script, sizeof script, "theme:night %s", screens[i]);
+		sim_reset(g, SIM_MAP_K);
+		if (!sim_run(script, err, sizeof err)) {
+			printf("FAIL night [%s]: %s\n", screens[i], err);
+			fails++;
+			continue;
+		}
+		for (int y = 0; y < gfx_height(); y++)
+			for (int x = 0; x < gfx_width(); x++) {
+				color_t c = gfx_get_pixel(x, y);
+				if (((c >> 5) & 0x3Fu) > (136u >> 2) || (c & 0x1Fu) > (40u >> 3)) {
+					printf("FAIL night [%s]: 0x%04x at %d,%d\n", screens[i], c, x, y);
+					fails++;
+					y = gfx_height();
+					break;
+				}
+			}
+	}
+	// The status strip stays on the screen's background, though Filled status bar is on by default
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:night", err, sizeof err) || gfx_get_pixel(gfx_width() / 2, 1) != ui_col.bg) {
+		printf("FAIL night: the status strip is filled\n");
+		fails++;
+	}
+	// The tile being edited is an outline around a dark center, not a block of the warning color
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:night quick 3 7", err, sizeof err) || count_color(ui_col.warn, 0) > 1500 ||
+	    count_color(ui_col.warn, 0) < 200 || count_color(ui_col.hint_bg, 0) < 3000) {
+		printf("FAIL night: edited tile: %d warning pixels, %d center\n", count_color(ui_col.warn, 0),
+		       count_color(ui_col.hint_bg, 0));
+		fails++;
+	}
+	// A toast is an outline around a dark center too, in red: amber is for warnings
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:night ok 7 2 down down down ok", err, sizeof err) ||
+	    gfx_get_pixel(0, gfx_height() - 1) != ui_col.fg || gfx_get_pixel(1, gfx_height() - 2) != ui_col.hint_bg) {
+		printf("FAIL night: the toast isn't an outline\n");
+		fails++;
+	}
+	// Emergency fills the screen with red, so its text has to be black to read
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:night emergency:3101234", err, sizeof err) ||
+	    count_color(RGB565(0, 0, 0), ui_layout.channel_y) < 100) {
+		printf("FAIL night: emergency text doesn't read on the red\n");
+		fails++;
+	}
+}
+#endif
+
 int main(void)
 {
 	if (check_name_is_id() != 0)
@@ -1322,6 +1394,9 @@ int main(void)
 		run_flow(&flows_f[i], gf, SIM_MAP_F, "F few keys");
 	printf("# %d flows run\n", flows_run);
 	about_checks();
+#if CONFIG_UI_COLOR
+	night_checks();
+#endif
 	call_screen_checks();
 	vfo_split_dmr_checks();
 	no_battery_checks();

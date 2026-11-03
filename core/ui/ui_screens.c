@@ -33,6 +33,12 @@ static void accent_apply(void)
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
+	if (ui_theme == 3) {
+		// Night: the highlight color is ignored, its choices are all too bright, and the strip is never filled (ui_draw_top).
+		// The focus is a dark bar with brighter text, not reverse video: a bright row would outshine the screen
+		ui_col.focus_fg = RGB565(255, 0, 0);
+		return;
+	}
 	static const color_t acc[UI_ACCENT_COUNT] = {
 		[UI_ACCENT_DEFAULT] = RGB565(216, 216, 216),
 		[UI_ACCENT_RED] = RGB565(240, 112, 112),
@@ -100,6 +106,20 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(0, 0, 255);
 		ui_col.hint_bg = RGB565(0, 0, 0);
 		ui_col.priv = RGB565(0, 255, 255);
+	} else if (theme == 3) {
+		// Night: black and pure reds, to keep night vision, and nothing blue. Only two other colors, both dim: green
+		// for receive and amber for warnings, which red text would hide. TX is the brightest red, in a pill (P5)
+		ui_col.bg = RGB565(0, 0, 0);
+		ui_col.fg = RGB565(200, 0, 0);
+		ui_col.dim = RGB565(128, 0, 0);
+		ui_col.line = RGB565(64, 0, 0);
+		ui_col.tx = RGB565(255, 0, 0);
+		ui_col.rx = RGB565(0, 128, 40);
+		ui_col.warn = RGB565(176, 96, 0);
+		ui_col.idle = RGB565(168, 0, 0);
+		ui_col.focus = RGB565(64, 0, 0);
+		ui_col.hint_bg = RGB565(32, 0, 0);
+		ui_col.priv = RGB565(160, 0, 0);
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);
@@ -113,9 +133,14 @@ void ui_theme_set(uint8_t theme)
 		ui_col.hint_bg = RGB565(32, 32, 32);
 		ui_col.priv = RGB565(64, 140, 255);
 	}
-	ui_col.pill_fg = RGB565(255, 255, 255);
+	ui_col.pill_fg = theme == 3 ? RGB565(0, 0, 0) : RGB565(255, 255, 255);	// no white at night
 	ui_col.pill_dark_fg = RGB565(0, 0, 0);
 	accent_apply();
+}
+
+bool ui_theme_is_night(void)
+{
+	return ui_theme == 3 && gfx_bpp() != 1;	// a monochrome panel keeps the stored theme but draws ink on paper
 }
 
 void ui_accent_set(uint8_t accent)
@@ -293,7 +318,7 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		pfg = ui_col.pill_dark_fg;
 	// A filled strip (Settings > Display) draws on its own background in black, warnings in a dark shade that reads on
 	// it (accent_apply); the idle pill turns inverse on it, RX / TX / NO TX keep their colors and words (P5)
-	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1;
+	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_night();
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
 	if (filled && st == RS_IDLE) {
@@ -538,8 +563,10 @@ void ui_draw_hint(const char *text, bool toast)
 	const font_t *f = L->small;
 	int w = gfx_width();
 	char fit[64];
-	color_t bg = toast ? ui_col.fg : ui_col.hint_bg;
-	color_t fg = toast ? ui_col.bg : ui_col.dim;
+	// Night outlines a toast in red: reverse video would be a block of light, and amber is for warnings
+	bool outline = toast && ui_theme_is_night();
+	color_t bg = toast && !outline ? ui_col.fg : ui_col.hint_bg;
+	color_t fg = outline ? ui_col.fg : toast ? ui_col.bg : ui_col.dim;
 	if (gfx_bpp() == 1 && !toast)
 		fg = ui_col.fg;
 	if (toast) {
@@ -566,6 +593,8 @@ void ui_draw_hint(const char *text, bool toast)
 			top = overlay_top(y);
 		}
 		gfx_fill(0, top, w, gfx_height() - top, bg);
+		if (outline)
+			gfx_rect(0, top, w, gfx_height() - top, fg);
 		gfx_text(f, (w - gfx_text_width(f, fit)) / 2, y, fit, fg);
 		if (second[0]) {
 			gfx_text_fit(f, second, w - 2, fit, sizeof fit);
@@ -2525,13 +2554,19 @@ void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l
 		color_t vfg = (it.flags & UI_ITEM_DIM) && gfx_bpp() != 1 ? ui_col.line : ui_col.dim;
 		if (it.flags & UI_ITEM_TEMP)
 			vfg = ui_col.warn;
+		// Night outlines the row being edited, as a warning banner is drawn: a filled row would be a bright bar
+		bool outline = false;
 		if (focus) {
-			color_t bg = (it.flags & UI_ITEM_EDIT) ? ui_col.warn : ui_col.focus;
+			bool edit = (it.flags & UI_ITEM_EDIT) != 0;
+			outline = edit && ui_theme_is_night();
+			color_t bg = outline ? ui_col.hint_bg : edit ? ui_col.warn : ui_col.focus;
 			gfx_fill(0, ry, w, L->row_h, bg);
-			fg = gfx_bpp() == 1 ? ui_col.bg : (it.flags & UI_ITEM_EDIT) ? ui_col.pill_dark_fg : ui_col.focus_fg;
+			if (outline)
+				gfx_rect(0, ry, w, L->row_h, ui_col.warn);
+			fg = gfx_bpp() == 1 ? ui_col.bg : outline ? ui_col.warn : edit ? ui_col.pill_dark_fg : ui_col.focus_fg;
 			vfg = fg;
 		}
-		int x = 1;
+		int x = outline ? 2 : 1;
 		if (gfx_bpp() == 1 && !focus)
 			x = gfx_text(f, 0, ry + pad, " ", fg);
 		if (it.num) {
@@ -2548,7 +2583,7 @@ void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l
 		} else {
 			str_copy(val, sizeof val, it.value);
 		}
-		row_text(f, x, ry + pad, w, it.label, val, fg, vfg, (it.flags & UI_ITEM_PREVIEW) != 0);
+		row_text(f, x, ry + pad, outline ? w - 2 : w, it.label, val, fg, vfg, (it.flags & UI_ITEM_PREVIEW) != 0);
 	}
 	// Scroll marks: more above / below
 	if (top > 0)
@@ -2567,6 +2602,8 @@ void ui_draw_emergency(const radio_view_t *v, const ui_state_t *s, uint32_t id, 
 	char buf[32];
 	sbuf_t b;
 	gfx_clear(gfx_bpp() == 1 ? ui_col.bg : ui_col.tx);
+	// Night's text is red too, so it needs the pill's black to read on the red
+	color_t fg = ui_theme_is_night() ? ui_col.pill_fg : ui_col.fg;
 	int y = ui_draw_top(v, s, TR("Emergency"), NULL) + 2;
 	const char *word = TR("EMERGENCY");
 	const font_t *big = gfx_text_width(L->large, word) <= w ? L->large : L->medium;
@@ -2574,7 +2611,7 @@ void ui_draw_emergency(const radio_view_t *v, const ui_state_t *s, uint32_t id, 
 		gfx_fill(0, y, w, big->h, ui_col.fg);
 		gfx_text(big, (w - gfx_text_width(big, word)) / 2, y, word, ui_col.bg);
 	} else {
-		gfx_text(big, (w - gfx_text_width(big, word)) / 2, y, word, ui_col.fg);
+		gfx_text(big, (w - gfx_text_width(big, word)) / 2, y, word, fg);
 	}
 	y += big->h + 2;
 	sb_init(&b, buf, sizeof buf);
@@ -2584,13 +2621,13 @@ void ui_draw_emergency(const radio_view_t *v, const ui_state_t *s, uint32_t id, 
 		sb_u32(&b, id, 1);
 	char fit[40];
 	gfx_text_fit(L->medium, buf, w, fit, sizeof fit);
-	gfx_text(L->medium, (w - gfx_text_width(L->medium, fit)) / 2, y, fit, ui_col.fg);
+	gfx_text(L->medium, (w - gfx_text_width(L->medium, fit)) / 2, y, fit, fg);
 	y += L->medium->h;
 	if (name != NULL && name[0] && y + L->small->h <= L->hint_y) {
 		sb_init(&b, buf, sizeof buf);
 		sb_str(&b, "ID ");
 		sb_u32(&b, id, 1);
-		gfx_text(L->small, (w - gfx_text_width(L->small, buf)) / 2, y, buf, ui_col.fg);
+		gfx_text(L->small, (w - gfx_text_width(L->small, buf)) / 2, y, buf, fg);
 	}
 	ui_draw_hint(s->toast != NULL ? s->toast : TR("OK acknowledge  Back hide"), s->toast != NULL);
 }
@@ -2915,6 +2952,7 @@ static void __attribute__((noinline)) draw_quick_tiles(const radio_view_t *v, co
 		vf = lf;
 	if (gh / 3 < lf->h + vf->h)
 		lf = L->tiny;
+	int ex0 = 0, ey0 = 0, ew = 0, eh = 0;	// Night: the outline of the tile being edited
 	for (int i = 0; i < UI_QUICK_TILES; i++) {
 		int cx = i % 3, cy = i / 3;
 		int x0 = w * cx / 3, x1 = w * (cx + 1) / 3 - (cx == 2 ? 1 : 0);
@@ -2926,9 +2964,17 @@ static void __attribute__((noinline)) draw_quick_tiles(const radio_view_t *v, co
 		if (gfx_bpp() == 1 && !ok)
 			fg = ui_col.fg;
 		if (focus) {
-			bg = s->quick_edit ? ui_col.warn : ui_col.focus;
-			fg = gfx_bpp() == 1 ? ui_col.bg : s->quick_edit ? ui_col.pill_dark_fg : ui_col.focus_fg;
+			bool outline = s->quick_edit && ui_theme_is_night();
+			bg = outline ? ui_col.hint_bg : s->quick_edit ? ui_col.warn : ui_col.focus;
+			fg = gfx_bpp() == 1 ? ui_col.bg : outline ? ui_col.warn :
+				s->quick_edit ? ui_col.pill_dark_fg : ui_col.focus_fg;
 			gfx_fill(x0 + 1, y0 + 1, x1 - x0 - 1, y1 - y0 - 1, bg);
+			if (outline) {
+				ex0 = x0;
+				ey0 = y0;
+				ew = x1 - x0 + 1;
+				eh = y1 - y0 + 1;
+			}
 		}
 		gfx_rect(x0, y0, x1 - x0 + 1, y1 - y0 + 1, ui_col.line);
 		gfx_clip(x0 + 1, y0 + 1, x1 - x0 - 1, y1 - y0 - 1);
@@ -2957,6 +3003,8 @@ static void __attribute__((noinline)) draw_quick_tiles(const radio_view_t *v, co
 		gfx_text(tf, vx, vy, fit, fg);
 		gfx_clip_off();
 	}
+	if (ew > 0)	// after the tiles: the next one's frame shares this one's right and bottom edges
+		gfx_rect(ex0, ey0, ew, eh, ui_col.warn);
 	ui_draw_banner(s);
 	if (s->toast != NULL)
 		ui_draw_hint(s->toast, true);

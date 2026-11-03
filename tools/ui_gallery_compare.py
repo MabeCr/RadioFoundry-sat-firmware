@@ -16,7 +16,7 @@
 # row count (the comment folds a tall one).
 #
 # A color page's highlight color and theme shots (<screen>__<color>, uiSim UI_GALLERY_COLORS; <screen>__light and
-# __high_contrast) stay together: when any of them or the page itself changed, the whole set is shown in one row: a
+# __high_contrast, __night) stay together: when any of them or the page itself changed, the whole set is shown in one row: a
 # column per shot, the page first, then its colors in --colors order, then its themes, before above after (unchanged
 # ones marked so). Such a row counts as two toward ROWS_PER_IMAGE.
 import argparse
@@ -27,7 +27,7 @@ import os
 import sys
 
 SCALE = 2
-THEMES = ("light", "high_contrast")    # uiSim's theme shots, after the colors
+THEMES = ("light", "high_contrast", "night")    # uiSim's theme shots, after the colors
 GAP = 24          # between the two screens of a pair, room for the arrow
 PAD = 12          # around the picture
 ROW_HEADER = 20   # the screen's name above each pair

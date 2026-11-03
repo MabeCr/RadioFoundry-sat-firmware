@@ -4756,8 +4756,8 @@ static const int16_t v_backlight[] = { 5, 10, 30, 60, 120, 0 };
 // Dim after / off after (four times as long): both times shown, so that the dim step isn't taken for the time-out
 static const char *const n_backlight[] = { "5s/20s", "10s/40s", "30s/2m", "1m/4m", "2m/8m", TRN("Never") };
 #if CONFIG_UI_COLOR
-static const int16_t v_theme[] = { 0, 1, 2 };
-static const char *const n_theme[] = { TRN("Dark"), TRN("Light"), TRN("High contrast") };
+static const int16_t v_theme[] = { 0, 1, 2, 3 };
+static const char *const n_theme[] = { TRN("Dark"), TRN("Light"), TRN("High contrast"), TRN("Night") };
 static const int16_t v_accent[] = { UI_ACCENT_DEFAULT, UI_ACCENT_RED, UI_ACCENT_ORANGE, UI_ACCENT_YELLOW, UI_ACCENT_TEAL,
 				     UI_ACCENT_BLUE, UI_ACCENT_PURPLE, UI_ACCENT_PINK };
 static const char *const n_accent[] = { TRN("Default"), TRN("Red"), TRN("Orange"), TRN("Yellow"), TRN("Teal"),
@@ -5201,7 +5201,9 @@ static const char *set_why_not(const set_item_t *s)
 	case UI_SET_THEME:
 	case UI_SET_ACCENT:
 	case UI_SET_STRIP:
-		return board.display != NULL && board.display->bpp == 1 ? TR("Colors are for color screens") : NULL;
+		if (board.display != NULL && board.display->bpp == 1)
+			return TR("Colors are for color screens");
+		return s->id != UI_SET_THEME && ui_theme_is_night() ? TR("Night uses its own colors") : NULL;
 	case UI_SET_MIC_GAIN:
 		if (!mic_gain_available())
 			return TR("Mic gain: not in this build");
