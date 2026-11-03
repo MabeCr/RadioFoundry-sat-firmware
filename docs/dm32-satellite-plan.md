@@ -111,24 +111,27 @@ link's SAT command): about 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task stack
 
 #### Does it fit? (estimate, 2026-11-03)
 
-Not measured on this radio yet: the C-SKY compiler can't be built where this was done. Static RAM figures are from
-the ARM build of the same core code, which for 32-bit data is close.
+Not measured for this configuration yet: the C-SKY compiler can't be built where this was done. The baseline is
+upstream's own DM-32UV builds (csky-elf GCC, in its commit messages); the other static RAM figures are from the ARM
+build of the same core code, which for 32-bit data is close.
 
 | Main RAM (211,456 B) | Bytes |
 |---|---:|
-| Free in the default build (`boards/dm32/config.mk`) | about +500 |
+| Free in the default build: 16 B (upstream #318, 2026-11-02; the maximal build 8 B). `config.mk` still says about 0.5 KB | about +16 |
 | The 14 switches turned off above | about +25,000 to +29,000 |
 | Satellite tracking's static RAM | -2,848 |
 | A larger RTOS heap for its task (`boards/dm32/freertos_board.h`, 35 KB with `CONFIG_SAT`) | -2,048 |
 | **Left** | **about +20,000 to +25,000** |
 
-Flash is no concern: the image was about 365 KB of 880 KB, and the satellite code is 27 KB with Spanish's 28 KB gone.
+Flash is no concern: the image was 365 KB of 880 KB when last recorded, about 13 KB of fonts and 31 KB of Spanish
+have gone in since, and the satellite build adds 27 KB and takes Spanish's 31 KB out again.
 
 What can and can't go wrong on the radio:
 
 - Static RAM can't surprise us: if it doesn't fit, the linker refuses to build the image.
-- The heap: the satellite task's 1.6 KB stack comes from it. Built with satellites, the heap is 2 KB larger, and the
-  task starts only if 2 KB would still be spare after it; otherwise the radio runs on and Tools > Satellites says
+- The heap: the satellite task's 1.6 KB stack comes from it. Measured on a DM-32UV after the whole radio-only HIL
+  suite, the heap's least free was 8,664 bytes (upstream #210, 2026-10-27, with a 33 or 34 KB heap), so the task fits with
+  room; still, built with satellites the heap is 2 KB larger, and the task starts only if 2 KB would still be spare after it; otherwise the radio runs on and Tools > Satellites says
   "Not enough memory to work out passes", rather than the heap running out and the radio restarting at every boot.
 - Task stacks: the UI task's is at the static check's limit on the ARM build (the settings record grew 4 bytes for the
   two new settings). The DM-32UV's check has its own numbers.
