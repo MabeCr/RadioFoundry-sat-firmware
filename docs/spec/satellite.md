@@ -8,8 +8,9 @@ rises over the radio's position, where to point the antenna, and how far Doppler
 also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
 [feature-matrix.md](../feature-matrix.md).
 
-Status: the library in `core/sat` and its host test. On the radio only the UTC clock (4.1) runs; nothing else calls
-the library yet, so the linker leaves it out of the image. Section 9 lists what is still to write.
+Status: the library in `core/sat`, its host test, and the debug link's SAT command, which loads an element set and
+runs the model on the radio ([debuglink.md](debuglink.md) 3.24). No screen and no stored data yet. Section 9 lists
+what is still to write.
 
 | Section | Topic |
 |---|---|
@@ -37,6 +38,8 @@ static state is the UTC clock (4.1). The host tests compile it unchanged.
 | `sat_pass.c` | The next pass: rise, highest point, set |
 | `sat_profile.c` | The built-in profiles and the arming state machine |
 | `sat_clock.c` | UTC from NMEA date and time, for the model (4.1) |
+| `sat_track.c` | One tracked satellite: its model, the observer, its profile, and the look and Doppler at a time |
+| `core/debuglink/debuglink_sat.c` | The debug link's SAT command and `sat` view section ([debuglink.md](debuglink.md) 3.24) |
 
 ## 2. Two-line elements
 
@@ -45,7 +48,7 @@ The 69-column NORAD format (two lines, columns fixed). `tle_parse` reads only th
 
 | Rule | Detail |
 |---|---|
-| Line shape | Column 1 is the line number (`1`, `2`), column 2 a space, 69 columns exactly. CR, LF or the string's end after column 69; anything else is `TLE_ERR_LENGTH` |
+| Line shape | Column 1 is the line number (`1`, `2`), column 2 a space, at least 69 columns. A line that ends sooner (a NUL, CR or LF) is `TLE_ERR_LENGTH`; nothing after column 69 is read |
 | Check digit | Column 69 of each line: the sum of the digits in columns 1-68, plus 1 for each `-`, modulo 10. A mismatch is `TLE_ERR_CHECKSUM`. This is what catches a typo in keypad entry |
 | Catalog number | Columns 3-7 on both lines, which must agree (`TLE_ERR_MISMATCH`). Alpha-5: a leading letter stands for 10-33 (A-Z without I and O), so `A0001` is 100001 |
 | Epoch | Columns 19-32: two-digit year (57-99 = 1957-1999, 00-56 = 2000-2056) and the day of year with its fraction, 1.0 = 1 January 00:00 UTC. Kept as Unix seconds (double) |
@@ -203,8 +206,13 @@ function in use, against an empty program:
 | Static RAM | 12 B | The UTC clock. The caller owns `sgp4_t` (376 B), `sat_observer_t` (88 B), `sat_elements_t` (64 B) per stored satellite, `sat_pass_t` (32 B) per listed pass, `sat_arm_t` (16 B) |
 | Stack | about 0.75 KB | `sat_pass_next` down to the soft-float helpers, with `-fstack-usage`; the task that runs it needs that headroom |
 
-The time a run of the model takes on a radio without an FPU is not measured yet. One update a second for live
-tracking and about 1,600 runs per satellite-day for the pass list (5) are the loads to measure against.
+In a firmware image (an STM32F405 radio's default build, LTO, 2026-11-03), `CONFIG_SAT=y` with the debug link adds
+17,920 B of flash and 544 B of RAM: the library, the SAT command and its tracker (`sat_track_t` and the element set's
+two lines as they arrive). The static stack check finds no task deeper than without it.
+
+The time a run of the model takes on a radio without an FPU is not measured yet: the SAT command's BENCH and
+`tests/hil/test_sat.py` measure it. One update a second for live tracking and about 1,600 runs per satellite-day for
+the pass list (5) are the loads to measure against.
 
 ## 8. Testing
 
@@ -220,6 +228,11 @@ tracking and about 1,600 runs per satellite-day for the pass list (5) are the lo
 | Deep-space refusal, decay, minimum elevation, a pass in progress | constructed cases | |
 | Doppler, locators, the arming state machine and the UTC clock, each with the millisecond clock's wrap | hand-worked values | exact |
 
+`tests/host/satLinkTest.c` drives the debug link's SAT command and `sat` view section the same way, on a fake clock:
+the element set in pieces, a typo the check digit catches, looks and passes against the same reference values, the
+bench and the refusals. `tests/hil/test_sat.py` does it on the radio, reading the reference values from
+`tests/host/sat_ref.h`, and records the time a run.
+
 `tools/sat_reference.py` writes the reference values into `tests/host/sat_ref.h`, which is committed so the tests
 don't need Python. It runs python-sgp4 and Skyfield (both MIT) as black boxes; regenerate after changing its element
 sets (`pip install sgp4 skyfield`).
@@ -232,4 +245,4 @@ sets (`pip install sgp4 skyfield`).
 | Stored element sets and profiles | A data flash area and its format; the age of each set shown, with a warning once it is old |
 | Getting element sets in | Keypad entry with the check digits, the host link, and data over audio |
 | The radio's side | A pass list and a live screen (azimuth, elevation, Doppler, arming countdown), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
-| Speed on the radio | The time per model run without an FPU (7) |
+| Speed on the radio | A run of `tests/hil/test_sat.py` on each radio: the time per model run without an FPU (7) |

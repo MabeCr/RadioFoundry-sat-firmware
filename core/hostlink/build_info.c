@@ -42,6 +42,9 @@ const char build_features[] =
 #if CONFIG_APRS_IGATE
 	"APRS_IGATE,"
 #endif
+#if CONFIG_SAT
+	"SAT,"
+#endif
 #if CONFIG_DMR_DATA_CORE
 	"DMR_DATA_CORE,"
 #endif

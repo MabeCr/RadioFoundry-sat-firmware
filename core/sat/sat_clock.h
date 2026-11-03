@@ -20,6 +20,9 @@ typedef struct {
 uint32_t sat_clock_unix_from_nmea(uint32_t ddmmyy, uint32_t hhmmss);
 // A sentence's date and time, received at now_ms. False (nothing changes) when either is unknown or malformed
 bool sat_clock_set_nmea(sat_clock_t *c, uint32_t ddmmyy, uint32_t hhmmss, uint32_t now_ms);
+// Set from a Unix time received at now_ms (the debug link, for a bench without a fix); the next sentence overrides it.
+// False for 0
+bool sat_clock_set_unix(sat_clock_t *c, uint32_t unix_s, uint32_t now_ms);
 // UTC now in Unix seconds; false before the first sentence. The millisecond clock wraps after 49 days: a sentence at
 // least that often keeps it right, and a GPS sends one a second
 bool sat_clock_now(const sat_clock_t *c, uint32_t now_ms, double *unix_s);

@@ -33,6 +33,21 @@ enum {
 	DL_CMD_WATCHDOG		= 0x1D,	// the hardware watchdog's bench tests (CONFIG_WATCHDOG; debuglink_watchdog.c, 3.21)
 	DL_CMD_RX2		= 0x1E,	// the second receiver's SoC: state, the update bridge, restart (debuglink_rx2.c, 3.22)
 	DL_CMD_IDDB		= 0x1F,	// the DMR ID database: its format, records and an ID looked up (debuglink_iddb.c, 3.23)
+	DL_CMD_SAT		= 0x20,	// satellite tracking: element set, observer, clock, look, pass, bench (debuglink_sat.c, 3.24)
+};
+
+// DL_CMD_SAT operations (first payload byte; docs/spec/debuglink.md 3.24). Little endian
+enum {
+	DL_SAT_OP_TLE		= 0,	// line u8 (1, 2), offset u8, text: part of the element set
+	DL_SAT_OP_LOAD		= 1,	// none -> tle u8, sgp4 u8 (the errors, 0 = ok), catalog u32
+	DL_SAT_OP_OBSERVER	= 2,	// lat i32, lon i32 (1e-7 degree), alt i16 (m)
+	DL_SAT_OP_OBSERVER_GPS	= 3,	// none: the GPS fix's position
+	DL_SAT_OP_TIME		= 4,	// unix u32: the clock, until the next NMEA sentence
+	DL_SAT_OP_LOOK		= 5,	// unix u32 (0 now), ms u16 -> az u16, el i16 (0.01 deg), range u32 (m), range rate i32
+					// (mm/s), rx u32, tx u32 (Hz), us u32
+	DL_SAT_OP_PASS		= 6,	// from u32 (0 now), span u16 (s, <= 3600), min el i8 -> found u8, aos u32, tca u32,
+					// los u32, max el i16, aos az u16, los az u16 (0.01 deg), runs u16, us u32
+	DL_SAT_OP_BENCH		= 7,	// runs u16 (<= 1000) -> runs done u16, us u32 (stops after 250 ms)
 };
 
 // DL_CMD_RX2 operations (first payload byte; docs/spec/debuglink.md 3.22). The token is u32 little endian

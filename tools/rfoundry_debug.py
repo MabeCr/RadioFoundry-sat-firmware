@@ -39,6 +39,10 @@
                                                 wram PAGE ADDR HEXBYTES | watch MS MASK [RAMADDR] |
                                                 mod MS HZ STEPS [PAGE REG] |
                                                 music MS HZ AMP [le]
+    rfoundry_debug.py sat [show]                     satellite tracking (CONFIG_SAT): the sat view section
+    rfoundry_debug.py sat load FILE|L1 L2            load a TLE; observer [LAT LON [ALT_M]] (none: the GPS fix);
+                                                time [UNIX] (default: this computer's); look [UNIX]; pass [FROM
+                                                [SPAN_S [MIN_EL]]]; bench [RUNS]: the orbit model's time a run
     rfoundry_debug.py split view                     the split duplex view (role, epoch, offset, buffers, underruns, CACH)
     rfoundry_debug.py split variant N [REG=VAL ...]  the BS framing experiment's variant for the next TX half key-up
                                                 (docs/spec/split-duplex.md 10.1; raw page 4 pairs with N = 255)
@@ -93,6 +97,14 @@ RX2_OP_INFO, RX2_OP_BRIDGE, RX2_OP_RESTART = range(3)
 RX2_TOKEN = 0x47445242              # 'BRDG'
 RX2_FLAGS = {1: "present", 2: "up", 4: "bridge", 8: "restart"}
 IDDB = 0x1F                         # the DMR ID database: format, records, an ID looked up (docs/spec/debuglink.md 3.23)
+SAT = 0x20                          # satellite tracking (CONFIG_SAT; docs/spec/debuglink.md 3.24, docs/spec/satellite.md)
+SAT_OP_TLE, SAT_OP_LOAD, SAT_OP_OBSERVER, SAT_OP_OBSERVER_GPS, SAT_OP_TIME, SAT_OP_LOOK, SAT_OP_PASS, SAT_OP_BENCH = \
+    range(8)
+SAT_TLE_ERRORS = {0: "ok", 1: "a line isn't 69 columns, or the wrong line number", 2: "check digit wrong",
+                  3: "a field doesn't parse", 4: "the two lines name different satellites"}
+SAT_SGP4_ERRORS = {0: "ok", 1: "eccentricity out of range", 2: "mean motion not positive",
+                   3: "semi-latus rectum negative", 4: "decayed", 5: "deep space (period of 225 minutes or more)"}
+SAT_TLE_CHUNK = 35                  # a line goes in two requests (DL_REQ_MAX is 64)
 SNMP = 0x19                         # the SNMP agent (CONFIG_SNMP; docs/spec/debuglink.md 3.17, docs/spec/snmp.md)
 SNMP_OP_SET, SNMP_OP_COMMUNITY, SNMP_OP_TEST_TRAP = range(3)
 SNMP_FIELDS = {"flags": 0, "rf_manager": 1, "rf_gap_s": 2, "trap_port": 3}
@@ -150,7 +162,7 @@ PRESS, LONG, REPEAT, DOWN, UP = range(5)
 
 VIEW_SECTIONS = ["core", "channel", "dmr", "dmr_call", "dmr_stats", "hotspot", "link", "features", "dmr_data",
                  "storage", "dmr_ext", "dmr_data_stats", "roam", "aprs", "aprs_set", "dmr_ip", "net", "snmp", "usrp",
-                 "sfr", "tasks", "crash", "watchdog", "reset", "air", "net_svc", "net_link", "cps"]
+                 "sfr", "tasks", "crash", "watchdog", "reset", "air", "net_svc", "net_link", "cps", "sat"]
 
 OP_CHANNEL_STEP, OP_ZONE_POS, OP_ZONE, OP_VFO, OP_VFO_SET, OP_VFO_STEP, OP_POWER, OP_SQUELCH, OP_BANDWIDTH, \
     OP_TONE, OP_MONITOR, OP_CLEAR_TEMP, OP_REPLY_CANCEL, OP_HOTSPOT_EXIT, OP_DMR_TARGET, OP_DMR_CONTACT, \
@@ -567,6 +579,41 @@ class DebugLink:
     def iddb(self, dmr_id=0):
         """The DMR ID database as the radio sees it, and the text it shows for dmr_id: {format, records, found, text}"""
         return decode_iddb(self.request(IDDB, struct.pack("<I", dmr_id))[1])
+
+    def sat_load(self, line1, line2):
+        """Load a TLE onto the radio (in pieces); (tle error, sgp4 error, catalog number), errors 0 when it loaded"""
+        for n, line in ((1, line1), (2, line2)):
+            text = line.rstrip("\r\n").encode("ascii")
+            if len(text) < 69:
+                raise DebugLinkError(f"TLE line {n} is {len(text)} columns, not 69")
+            for off in range(0, 69, SAT_TLE_CHUNK):
+                self.request(SAT, struct.pack("<BBB", SAT_OP_TLE, n, off) + text[off:min(off + SAT_TLE_CHUNK, 69)])
+        return struct.unpack_from("<BBI", self.request(SAT, bytes([SAT_OP_LOAD]))[1])
+
+    def sat_observer(self, lat, lon, alt_m=0):
+        """The observer, degrees (east positive) and meters; or sat_observer() with no position: the GPS fix's"""
+        self.request(SAT, struct.pack("<Biih", SAT_OP_OBSERVER, round(lat * 1e7), round(lon * 1e7), round(alt_m)))
+
+    def sat_observer_gps(self):
+        self.request(SAT, bytes([SAT_OP_OBSERVER_GPS]))
+
+    def sat_time(self, unix_s=None):
+        """Set the radio's UTC (until its next NMEA sentence): unix seconds, default the host's clock"""
+        self.request(SAT, struct.pack("<BI", SAT_OP_TIME, int(time.time() if unix_s is None else unix_s)))
+
+    def sat_look(self, unix_s=0.0):
+        """Where the satellite is at unix_s (0: the radio's clock now): {az, el, range_km, range_rate, rx_hz, tx_hz, us}"""
+        s = int(unix_s)
+        return decode_sat_look(self.request(SAT, struct.pack("<BIH", SAT_OP_LOOK, s,
+                                                            round((unix_s - s) * 1000) if s else 0))[1])
+
+    def sat_pass(self, from_s=0, span_s=3600, min_el=0):
+        """The first pass rising within span_s (at most 3600) of from_s (0: now): a dict, found False for none"""
+        return decode_sat_pass(self.request(SAT, struct.pack("<BIHb", SAT_OP_PASS, int(from_s), span_s, min_el))[1])
+
+    def sat_bench(self, runs=200):
+        """Time the orbit model on the radio: (runs done, microseconds); it stops after 250 ms"""
+        return struct.unpack_from("<HI", self.request(SAT, struct.pack("<BH", SAT_OP_BENCH, runs))[1])
 
     def version(self):
         return parse_kv(self.request(VERSION)[1].decode("ascii", "replace"))
@@ -1474,6 +1521,64 @@ def decode_chip(r):
             "wrp_sectors": [i for i in range(12) if wrp & (1 << i)], "bor": bor, "user": user}
 
 
+def decode_sat_look(r):
+    """SAT LOOK's reply after the status (debuglink.md 3.24)"""
+    az, el, rng, rr, rx, tx, us = struct.unpack_from("<HhIiIII", r)
+    return {"az": az / 100, "el": el / 100, "range_km": rng / 1000, "range_rate": rr / 1e6, "rx_hz": rx, "tx_hz": tx,
+            "us": us}
+
+
+def decode_sat_pass(r):
+    """SAT PASS's reply after the status (debuglink.md 3.24)"""
+    found, aos, tca, los, el, aaz, laz, runs, us = struct.unpack_from("<BIIIhHHHI", r)
+    return {"found": bool(found), "aos": aos, "tca": tca, "los": los, "max_el": el / 100, "aos_az": aaz / 100,
+            "los_az": laz / 100, "runs": runs, "us": us}
+
+
+def cmd_sat(link, a):
+    """rfoundry_debug.py sat ...: the SAT command (docs/spec/debuglink.md 3.24)"""
+    if a.op == "load":
+        if len(a.args) == 1:
+            lines = [ln for ln in open(a.args[0], encoding="ascii").read().splitlines() if ln[:2] in ("1 ", "2 ")]
+        else:
+            lines = a.args
+        if len(lines) != 2:
+            raise DebugLinkError("sat load: give a file with the two TLE lines, or the two lines")
+        tle, sgp4, norad = link.sat_load(lines[0], lines[1])
+        if tle or sgp4:
+            print(f"not loaded: {SAT_TLE_ERRORS.get(tle, tle) if tle else SAT_SGP4_ERRORS.get(sgp4, sgp4)}")
+            return 1
+        print(f"loaded {norad}")
+    elif a.op == "observer":
+        if not a.args:
+            link.sat_observer_gps()
+        elif len(a.args) in (2, 3):
+            link.sat_observer(*(float(x) for x in a.args))
+        else:
+            raise DebugLinkError("sat observer: LAT LON [ALT_M], or nothing for the GPS fix")
+    elif a.op == "time":
+        link.sat_time(int(a.args[0]) if a.args else None)
+    elif a.op == "look":
+        for k, v in link.sat_look(float(a.args[0]) if a.args else 0.0).items():
+            print(f"{k}={v}")
+    elif a.op == "pass":
+        p = link.sat_pass(int(a.args[0]) if a.args else 0, int(a.args[1]) if len(a.args) > 1 else 3600,
+                          int(a.args[2]) if len(a.args) > 2 else 0)
+        if not p["found"]:
+            print(f"no pass within the span ({p['runs']} runs, {p['us']} us)")
+        else:
+            fmt = lambda t: time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t))
+            print(f"rise {fmt(p['aos'])} az {p['aos_az']:.1f}, peak {fmt(p['tca'])} el {p['max_el']:.1f}, "
+                  f"set {fmt(p['los'])} az {p['los_az']:.1f} UTC ({p['runs']} runs, {p['us']} us)")
+    elif a.op == "bench":
+        runs, us = link.sat_bench(int(a.args[0]) if a.args else 200)
+        print(f"{runs} runs in {us} us: {us / runs:.1f} us a run" if runs else "no runs")
+    else:
+        for k, v in link.view(["sat"]).items():
+            print(f"{k}={v}")
+    return 0
+
+
 def decode_iddb(r):
     """IDDB's reply after the status (debuglink.md 3.23): format is the header's letter ('N', 'n', 'C'), '' for none"""
     fmt, records, found = struct.unpack_from("<BIB", r)
@@ -2059,6 +2164,11 @@ def main(argv=None):
     p = sub.add_parser("iddb", help="the DMR ID database: its format and records, and the text for each ID given "
                        "(docs/spec/debuglink.md 3.23)")
     p.add_argument("ids", nargs="*", type=int)
+    p = sub.add_parser("sat", help="satellite tracking: show, load FILE|L1 L2, observer [LAT LON [ALT]], time [UNIX], "
+                       "look [UNIX], pass [FROM [SPAN [MIN_EL]]], bench [RUNS] (docs/spec/debuglink.md 3.24)")
+    p.add_argument("op", nargs="?", default="show", choices=["show", "load", "observer", "time", "look", "pass",
+                                                             "bench"])
+    p.add_argument("args", nargs="*")
     p = sub.add_parser("split", help="split duplex: view, BS framing experiment variant (docs/spec/split-duplex.md 10.1)")
     p.add_argument("op", choices=["view", "variant"])
     p.add_argument("args", nargs="*", help="variant: N [REG=VAL ...] (hex or decimal)")
@@ -2134,6 +2244,8 @@ def main(argv=None):
                 for i in a.ids:
                     r = link.iddb(i)
                     print(f"{i} {r['text']!r}" if r["found"] else f"{i} -")
+            elif a.cmd == "sat":
+                return cmd_sat(link, a)
             elif a.cmd == "aprobe":
                 return cmd_aprobe(link, a)
             elif a.cmd == "split":

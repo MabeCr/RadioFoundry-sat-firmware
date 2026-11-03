@@ -111,6 +111,7 @@ All multi-byte numbers are little endian. Text is ASCII, lines end with `\n`.
 | `0x1D` | WATCHDOG | operation u8 + arguments (3.21); `CONFIG_WATCHDOG` builds, else status 4 | none (3.21) |
 | `0x1E` | RX2 | operation u8 + arguments (3.22) | flags, or none (3.22) |
 | `0x1F` | IDDB | DMR ID u32 (3.23); `CONFIG_DMR` builds, else status 4 | format u8, records u32, found u8, text (3.23) |
+| `0x20` | SAT | operation u8 + arguments (3.24); `CONFIG_SAT` builds, else status 4 | errors, a look, a pass, or a bench result (3.24) |
 
 ### 3.1 VERSION
 
@@ -339,6 +340,7 @@ short. View 5: the `cps.*` and `cpsf.*` keys moved from `storage` to `cps` (27),
 | 25 | `net_svc` | the radio's UDP services on the USB network link: with mDNS `mdns.state mdns.name mdns.queries mdns.answered mdns.sent mdns.busy mdns.conflicts mdns.bad` (`mdns.md` 5), with TFTP `tftp.state tftp.reads tftp.writes tftp.errors tftp.timeouts tftp.retransmits tftp.last_size tftp.blksize tftp.write_allowed` (`tftp.md` 6); `net_svc.built=0` without either |
 | 26 | `net_link` | the host link's MTUs ([usb-network.md](usb-network.md) 3.2), with the IP gateway: `net.mtu` (the link's, DHCP option 26) `net.air_mtu` (one transmission's) and the drops `net.air_too_big net.frag_needed net.up_too_big`; `CONFIG_NET_PPP` builds `ppp.running ppp.ip_up ppp.lcp ppp.ipcp` (RFC 1661 state numbers, 9 = opened) `ppp.rx_frames ppp.tx_frames ppp.rx_errors ppp.mru ppp.peer_mru` ([ppp.md](ppp.md)); `net_link.built=0` without either |
 | 27 | `cps` | open-firmware CPS (`cps.built openfw_eeprom requests reads commits refused overflows last session pending junk reboots_ignored`; [settings-store.md](settings-store.md), [cps-protocol.md](cps-protocol.md)), with `CONFIG_CPS_FAST` the fast codeplug protocol (`cpsf.state read written commits refused`; [cps-fast.md](cps-fast.md)) |
+| 28 | `sat` | satellite tracking ([satellite.md](satellite.md), 3.24): `sat.built sat.loaded sat.utc_ok`, with the clock `sat.utc` (Unix seconds); with an element set `sat.norad sat.epoch sat.profile` (the built-in profile's name, `-` for none) and with the clock `sat.age_h` (hours since the epoch); `sat.observer`, when set `sat.lat sat.lon` (1e-7 degree) `sat.alt_m`; with all three the satellite now: `sat.az_cdeg sat.el_cdeg` (0.01 degree) `sat.range_m sat.rr_mm_s` (range rate, positive going away) and with a profile `sat.rx_hz sat.tx_hz` (its downlink and uplink with Doppler); always `sat.run_us` (the model's last run, here or in LOOK) `sat.bench_runs sat.bench_us` (the last BENCH). Built without the switch: `sat.built=0` |
 
 Value forms: numbers in decimal (`temp`, `input.*keys` in hex with `0x`), states as lower-case words, tones as
 `type:value` (`ctcss:1000` = 100.0 Hz, `dcs:19` = D023), strings as they are with control characters replaced by
@@ -766,6 +768,30 @@ lookup as a received call's name, without the cut to the screen's name length. `
 `rfoundry_debug.py iddb [ID ...]`, `tools/cps_fast.py`'s `FastLink.iddb()`. `tests/hil/test_iddb.py` compares the
 radio's answers with records read from the database by `tools/iddb_read.py`.
 
+### 3.24 SAT
+
+Satellite tracking on the radio ([satellite.md](satellite.md)): one element set, the observer and the clock in RAM,
+and the orbit model run on request, to compare with reference values and to time it on the radio's CPU. Nothing is
+stored, tuned or keyed. `CONFIG_SAT` builds, else every operation answers `DL_ST_UNAVAILABLE`. Numbers little endian;
+a time of 0 is the radio's clock now.
+
+| Op | Name | Arguments | Reply after the status |
+|---|---|---|---|
+| 0 | TLE | line u8 (1, 2), column offset u8, text | none. A request holds 64 bytes and a line 69: a line goes in two pieces |
+| 1 | LOAD | none | TLE error u8, SGP4 error u8 (`tle_err_t`, `sgp4_err_t`, 0 = loaded), catalog number u32 (0 when not loaded). A failed load keeps the satellite already loaded |
+| 2 | OBSERVER | lat i32, lon i32 (1e-7 degree, east positive), height i16 (m) | none |
+| 3 | OBSERVER_GPS | none | none; status 4 without a GPS fix |
+| 4 | TIME | Unix seconds u32 | none. Sets the clock until the next NMEA sentence ([satellite.md](satellite.md) 4.1): for a bench without a fix |
+| 5 | LOOK | Unix seconds u32, ms u16 | azimuth u16, elevation i16 (0.01 degree), range u32 (m), range rate i32 (mm/s), downlink and uplink with Doppler u32 (Hz, 0 without a profile), the run's us u32 |
+| 6 | PASS | from u32, span u16 (s, 1-3600), lowest peak i8 (degrees) | found u8, rise, peak, set u32 (Unix seconds, 0 when none), peak elevation i16, azimuth at rise and at set u16 (0.01 degree), model runs u16, us u32 |
+| 7 | BENCH | runs u16 (1-1000) | runs done u16, us u32: the model run that many times, or for 250 ms, whichever ends first |
+
+LOOK, PASS and BENCH answer status 4 when no element set is loaded, no observer is set, or (for a time of 0) the
+radio has no clock. They run the model in the host link's task, so PASS's span is held to an hour (about 100 runs)
+and BENCH to 250 ms. `rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT LON [ALT]]|time [UNIX]|look [UNIX]|pass
+[FROM [SPAN [MIN_EL]]]|bench [RUNS]]`. `tests/hil/test_sat.py` compares the radio's looks and passes with
+`tests/host/sat_ref.h` and records the model's time a run.
+
 ## 4. Safety
 
 - PTT: a firmware time-out on every injected PTT (10 s maximum); the host tool refuses longer holds; the radio
@@ -790,6 +816,8 @@ radio's answers with records read from the database by `tools/iddb_read.py`.
   key, the exact length and a CRC-32, loads only into the platform's declared free RAM span, is refused while
   transmitting, and never returns (recover by a power cycle). Off in a release. The stub, not the debug link, is
   what writes flash ([stub-stm32f4.md](stub-stm32f4.md) 6 for the STM32 one's rules).
+- SAT changes only RAM: the tracked satellite, the observer and the clock. It stores, tunes and keys nothing, and
+  bounds each request's work (3.24).
 - CODEPLUG writes only codeplug blocks of the open-firmware image, never the settings ring, the journal, the native
   area, the staging area or the calibration window, through the journal or a staged commit (3.20).
 - The debug link never enters hotspot or CPS mode, and never takes bytes that belong to an MMDVM frame or a CPS

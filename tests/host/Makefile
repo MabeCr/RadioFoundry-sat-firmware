@@ -554,9 +554,18 @@ TESTS   += satTest
 satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
 
+# The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
+# reference values. Without APRS: no GPS to take the observer from
+TESTS   += satLinkTest
+SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC)
+satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/debuglink/debuglink.h \
+	     $(CORE)/debuglink/debuglink_proto.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
+
 run: run-sat
-run-sat: satTest
+run-sat: satTest satLinkTest
 	./satTest
+	./satLinkTest
 .PHONY: run-sat
 
 # The DMR voice call stack (core/dmr/call) against a simulated modem; LC coding cross-checked with sfr.c and dmrData.c

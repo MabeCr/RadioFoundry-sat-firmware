@@ -22,18 +22,22 @@ uint32_t sat_clock_unix_from_nmea(uint32_t ddmmyy, uint32_t hhmmss)
 	return (uint32_t)days * 86400u + h * 3600u + mi * 60u + s;
 }
 
+bool sat_clock_set_unix(sat_clock_t *c, uint32_t unix_s, uint32_t now_ms)
+{
+	if (unix_s == 0)
+		return false;
+	c->seq++;
+	c->base_s = unix_s;
+	c->base_ms = now_ms;
+	c->seq++;
+	return true;
+}
+
 bool sat_clock_set_nmea(sat_clock_t *c, uint32_t ddmmyy, uint32_t hhmmss, uint32_t now_ms)
 {
 	if (ddmmyy == 0 || hhmmss == 0xFFFFFFFFu)
 		return false;
-	uint32_t t = sat_clock_unix_from_nmea(ddmmyy, hhmmss);
-	if (t == 0)
-		return false;
-	c->seq++;
-	c->base_s = t;
-	c->base_ms = now_ms;
-	c->seq++;
-	return true;
+	return sat_clock_set_unix(c, sat_clock_unix_from_nmea(ddmmyy, hhmmss), now_ms);
 }
 
 bool sat_clock_now(const sat_clock_t *c, uint32_t now_ms, double *unix_s)

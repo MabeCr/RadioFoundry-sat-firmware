@@ -168,8 +168,8 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 | 1 | Set up: build, host tests, UI simulator | Host tests and simulator work. Firmware build waits on the toolchain |
 | 2 | UI redesign and Night theme | Night theme merged. Redesign not started |
 | 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Not yet: stored, editable profiles; keying the burst through the radio core |
-| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Library done: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`). Not yet: stored TLEs, the pass list screen, the speed on the radio |
-| 5 | Radio arrives: back up, install, confirm revert to stock | Radio due |
+| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Library done: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`). The debug link loads a TLE and runs the model on the radio, ready for the radio (`rfoundry_debug.py sat`, `tests/hil/test_sat.py`). Not yet: stored TLEs, the pass list screen |
+| 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Radio due |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
 | 7 | Crystal calibration and drift display | Not started |
 | 8 | Keypad TLE entry, then sound transfer | Not started |
