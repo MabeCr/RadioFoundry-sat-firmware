@@ -795,7 +795,14 @@ LOOK, PASS and BENCH answer status 4 when no element set is loaded, no observer 
 radio has no clock. They run the model in the host link's task, so PASS's span is held to an hour (about 100 runs)
 and BENCH to 250 ms. SAVE, DELETE and CLEAR write the flash in the same task: an erase and a program, tens of ms.
 `rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT LON [ALT]]|time [UNIX]|look [UNIX]|pass [FROM [SPAN
-[MIN_EL]]]|bench [RUNS]|save [UP DOWN [TONE [NAME]]]|list|recall SLOT|delete NORAD|clear]`. `tests/hil/test_sat.py` compares the radio's looks and passes with
+[MIN_EL]]]|bench [RUNS]|save [UP DOWN [TONE [NAME]]]|list|recall SLOT|delete NORAD|clear]`.
+
+`rfoundry_debug.py sat update` is the host tool's own loop over these operations, not a command: it downloads the
+element sets (CelesTrak's amateur group, `--url` or `--file` for another source), reads the stored satellites (STORED),
+and for each one with a newer epoch does TLE and LOAD, then SAVE with the stored profile (frequencies, tones, arming,
+name), so a refresh never changes what the satellite is set up to do. `--add NORAD` stores one that isn't stored: with
+the radio's own profile when it has one (the `sat.profile` view key), else by the TLE's name. A set is used only if
+both lines have the right length and check digits. `tests/hil/test_sat.py` compares the radio's looks and passes with
 `tests/host/sat_ref.h` and records the model's time a run.
 
 ## 4. Safety

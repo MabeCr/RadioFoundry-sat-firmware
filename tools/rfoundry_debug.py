@@ -45,6 +45,9 @@
                                                 [SPAN_S [MIN_EL]]]; bench [RUNS]: the orbit model's time a run
     rfoundry_debug.py sat save [UP DOWN [TONE [NAME]]]  store the loaded satellite (MHz, Hz; none: its own profile);
                                                 list; recall SLOT; delete NORAD; clear (erase the whole store)
+    rfoundry_debug.py sat update [--dry-run]         fetch current element sets (CelesTrak's amateur group) and bring the stored
+                                                satellites up to date, keeping their profiles; --file F or --url U for
+                                                another source, --add NORAD to store one more
     rfoundry_debug.py split view                     the split duplex view (role, epoch, offset, buffers, underruns, CACH)
     rfoundry_debug.py split variant N [REG=VAL ...]  the BS framing experiment's variant for the next TX half key-up
                                                 (docs/spec/split-duplex.md 10.1; raw page 4 pairs with N = 255)
@@ -56,6 +59,7 @@ The port is found by its USB ID 1FC9:0094 (the only one present); --port or $RFO
 (pip install pyserial). Exit status 0 on success, 1 on a radio error, 2 on a usage or connection problem.
 """
 import argparse
+import calendar
 import json
 import os
 import socket
@@ -1575,8 +1579,122 @@ def decode_sat_stored(r):
             "arm_tone": arm_tone, "arm_ms": arm_ms, "armed_s": armed_s, "name": r[26:].decode("ascii", "replace")}
 
 
+# Where `sat update` fetches element sets from: CelesTrak's amateur radio group, as three-line sets (a name, then the two
+# TLE lines). AMSAT publishes the same data (https://www.amsat.org/tle/current/nasabare.txt); --url or --file takes either
+SAT_TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle"
+
+
+def tle_checksum(line):
+    """A TLE line's check digit: the digits' sum plus 1 for each '-', modulo 10, over columns 1-68"""
+    return sum(int(c) if c.isdigit() else (1 if c == "-" else 0) for c in line[:68]) % 10
+
+
+def tle_catalog(line):
+    """The catalog number of a TLE line: five digits, or Alpha-5 (a leading letter stands for 10-33, I and O skipped)"""
+    c = line[2]
+    if c.isdigit() or c == " ":
+        lead = int(c) if c.isdigit() else 0
+    else:
+        lead = 10 + (ord(c) - ord("A")) - (c > "I") - (c > "O")
+    return lead * 10000 + int(line[3:7])
+
+
+def tle_epoch(line):
+    """A TLE line 1's epoch as Unix seconds"""
+    yy = int(line[18:20])
+    year = 2000 + yy if yy < 57 else 1900 + yy
+    return calendar.timegm((year, 1, 1, 0, 0, 0)) + (float(line[20:32]) - 1.0) * 86400.0
+
+
+def parse_tles(text):
+    """Every valid element set in text (two lines, or a name line then two): {catalog number: (name, line1, line2)}.
+    A set whose lines are the wrong length, don't check or name different satellites is left out; the newest wins"""
+    lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
+    out = {}
+    for i in range(len(lines) - 1):
+        l1, l2 = lines[i], lines[i + 1]
+        if not (l1.startswith("1 ") and l2.startswith("2 ") and len(l1) == 69 and len(l2) == 69):
+            continue
+        if tle_checksum(l1) != int(l1[68]) or tle_checksum(l2) != int(l2[68]):
+            continue
+        try:
+            norad = tle_catalog(l1)
+            if norad != tle_catalog(l2):
+                continue
+            epoch = tle_epoch(l1)
+        except ValueError:
+            continue
+        name = lines[i - 1] if i > 0 and not lines[i - 1][:2] in ("1 ", "2 ") else ""
+        if norad not in out or epoch > tle_epoch(out[norad][1]):
+            out[norad] = (name.strip(), l1, l2)
+    return out
+
+
+def sat_update(link, tles, add=(), dry_run=False, log=print):
+    """Bring the radio's stored satellites up to date from tles (parse_tles): each stored one with a newer element set
+    gets it, keeping its profile; the catalog numbers in add are stored if they aren't yet. Returns the number of
+    satellites that failed to load (0 when all went well)"""
+    stored = {r["norad"]: (slot, r) for slot, r in link.sat_list()}
+    failed = 0
+    todo = [(n, r) for n, (_, r) in sorted(stored.items(), key=lambda kv: kv[1][0])]
+    todo += [(n, None) for n in add if n not in stored]
+    if not todo:
+        log("no satellites stored: nothing to update (--add NORAD stores one)")
+        return 0
+    for norad, rec in todo:
+        label = (rec["name"] if rec else tles.get(norad, ("",))[0][:11]) or str(norad)
+        if norad not in tles:
+            log(f"{label:11} {norad:6} not in the file: left as it is")
+            continue
+        name, l1, l2 = tles[norad]
+        epoch = tle_epoch(l1)
+        age = (time.time() - epoch) / 86400.0
+        # the radio reports the epoch rounded to the second
+        if rec is not None and rec["elements"] and epoch <= rec["epoch"] + 1.0:
+            log(f"{label:11} {norad:6} already current ({(time.time() - rec['epoch']) / 86400.0:.1f} days old)")
+            continue
+        if dry_run:
+            log(f"{label:11} {norad:6} would update: new set {age:.1f} days old")
+            continue
+        tle, sgp4, loaded = link.sat_load(l1, l2)
+        if tle or sgp4 or loaded != norad:
+            log(f"{label:11} {norad:6} not loaded: " + (SAT_TLE_ERRORS.get(tle, tle) if tle else SAT_SGP4_ERRORS.get(sgp4, sgp4)))
+            failed += 1
+            continue
+        if rec is not None:
+            # Keep the stored profile: its frequencies, tones, arming and name
+            link.sat_save(rec["up_hz"], rec["down_hz"], rec["up_tone"], rec["arm_tone"], rec["arm_ms"], rec["armed_s"],
+                          rec["name"])
+        elif link.view(["sat"]).get("sat.profile", "-") != "-":
+            link.sat_save()         # one the radio knows (the ISS, SO-50, AO-91): its own profile
+        else:
+            link.sat_save(0, 0, 0, 0, 0, 0, name[:11])      # a new one by name: frequencies are set later
+        log(f"{label:11} {norad:6} {'updated' if rec else 'stored'}: new set {age:.1f} days old")
+    return failed
+
+
+def cmd_sat_update(link, a):
+    """rfoundry_debug.py sat update [--file F | --url U] [--add NORAD ...] [--dry-run]"""
+    if a.file:
+        text = open(a.file, encoding="ascii", errors="replace").read()
+    else:
+        import urllib.request
+        try:
+            with urllib.request.urlopen(a.url or SAT_TLE_URL, timeout=20) as r:
+                text = r.read().decode("ascii", "replace")
+        except OSError as e:
+            raise DebugLinkError(f"sat update: can't download element sets ({e}); save the file and use --file")
+    tles = parse_tles(text)
+    if not tles:
+        raise DebugLinkError("sat update: no valid element sets in the data")
+    print(f"{len(tles)} element sets read")
+    return 1 if sat_update(link, tles, tuple(a.add), a.dry_run) else 0
+
+
 def cmd_sat(link, a):
     """rfoundry_debug.py sat ...: the SAT command (docs/spec/debuglink.md 3.24)"""
+    if a.op == "update":
+        return cmd_sat_update(link, a)
     if a.op == "load":
         if len(a.args) == 1:
             lines = [ln for ln in open(a.args[0], encoding="ascii").read().splitlines() if ln[:2] in ("1 ", "2 ")]
@@ -2138,6 +2256,62 @@ def self_test():
     check(mem_allowed(0x14100040, 4, CHIP_HRC7000) and not mem_allowed(0x14100042, 4, CHIP_HRC7000) and
           not mem_allowed(0x14030000, 4, CHIP_HRC7000) and not mem_allowed(0x00010000, 4, CHIP_STM32F4),
           "READ_MEM windows by family")
+    # sat update: parsing, and the update against a fake radio's store
+    def fix(line):
+        return line[:68] + str(tle_checksum(line))
+    iss1 = fix("1 25544U 98067A   26300.51782528  .00016717  00000-0  30144-3 0  999")
+    iss2 = fix("2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.4981536147455")
+    newer1 = fix("1 25544U 98067A   26307.51782528  .00016717  00000-0  30144-3 0  999")
+    so1 = fix("1 27607U 02058C   26301.20512011  .00000825  00000-0  11606-3 0  999")
+    so2 = fix("2 27607  64.5560 140.2232 0048032 102.6391 257.9944 14.7939185426102")
+    rs1 = fix("1 44909U 19096E   26306.40000000  .00000100  00000-0  10000-4 0  999")
+    rs2 = fix("2 44909  82.5200  10.0000 0001000   0.0000  90.0000 12.7000000000010")
+    text = f"ISS (ZARYA)\n{newer1}\n{iss2}\nSO-50\n{so1}\n{so2}\nRS-44\n{rs1}\n{rs2}\n{iss1}\nbad line\n"
+    tl = parse_tles(text)
+    check(sorted(tl) == [25544, 27607, 44909] and tl[25544][0] == "ISS (ZARYA)" and tl[25544][1] == newer1,
+          "TLE parsing: three sets, the newest ISS one, names from the line before")
+    check(tle_catalog("1 A0001U" + " " * 61) == 100001 and tle_catalog("1 J0001U" + " " * 61) == 180001, "Alpha-5 numbers")
+    check(parse_tles(newer1[:30] + "9" + newer1[31:] + "\n" + iss2 + "\n") == {}, "a changed digit fails its check digit")
+    check(abs(tle_epoch(iss1) - (calendar.timegm((2026, 1, 1, 0, 0, 0)) + 299.51782528 * 86400.0)) < 1e-3, "TLE epoch")
+
+    class FakeStore:
+        def __init__(self):
+            self.rows = [{"norad": 25544, "elements": True, "epoch": int(tle_epoch(iss1)), "up_hz": 145990000,
+                          "down_hz": 437800000, "up_tone": 670, "arm_tone": 0, "arm_ms": 0, "armed_s": 0, "name": "ISS"},
+                         {"norad": 27607, "elements": True, "epoch": int(tle_epoch(so1)), "up_hz": 145850000,
+                          "down_hz": 436795000, "up_tone": 670, "arm_tone": 744, "arm_ms": 2000, "armed_s": 600,
+                          "name": "SO-50"},
+                         {"norad": 43017, "elements": False, "epoch": 0, "up_hz": 0, "down_hz": 0, "up_tone": 0,
+                          "arm_tone": 0, "arm_ms": 0, "armed_s": 0, "name": "AO-91"}]
+            self.loaded = None
+            self.saved = []
+
+        def sat_list(self):
+            return list(enumerate(self.rows))
+
+        def sat_load(self, l1, l2):
+            self.loaded = (tle_catalog(l1), l1)
+            return 0, 0, tle_catalog(l1)
+
+        def sat_save(self, *args):
+            self.saved.append((self.loaded[0], args))
+
+        def view(self, sections=None):
+            return {"sat.profile": "-"}
+    fake = FakeStore()
+    lines = []
+    failed = sat_update(fake, tl, add=(44909, 99999), log=lines.append)
+    check(failed == 0 and len(lines) == 5, "sat update: one line a satellite")
+    # The ISS: a newer set, saved with its own profile; SO-50 current; AO-91 not in the file; RS-44 stored by name
+    check(fake.saved[0] == (25544, (145990000, 437800000, 670, 0, 0, 0, "ISS")), "sat update: the ISS keeps its profile")
+    check(any("27607" in ln and "already current" in ln for ln in lines), "sat update: a current set is left")
+    check(any("43017" in ln and "not in the file" in ln for ln in lines), "sat update: a satellite missing from the file is left")
+    check(fake.saved[1] == (44909, (0, 0, 0, 0, 0, 0, "RS-44")), "sat update --add: a new one by its name")
+    check(any("99999" in ln and "not in the file" in ln for ln in lines), "sat update --add: not in the file")
+    fake = FakeStore()
+    lines = []
+    sat_update(fake, tl, dry_run=True, log=lines.append)
+    check(fake.saved == [] and any("would update" in ln for ln in lines), "sat update --dry-run changes nothing")
     print("rfoundry_debug self-test:", "ok" if ok else "FAILED")
     return 0 if ok else 1
 
@@ -2234,10 +2408,17 @@ def main(argv=None):
     p.add_argument("ids", nargs="*", type=int)
     p = sub.add_parser("sat", help="satellite tracking: show, load FILE|L1 L2, observer [LAT LON [ALT]], time [UNIX], "
                        "look [UNIX], pass [FROM [SPAN [MIN_EL]]], bench [RUNS], save [UP_MHZ [DOWN_MHZ [TONE_HZ [NAME]]]], "
-                       "list, recall SLOT, delete NORAD, clear (docs/spec/debuglink.md 3.24)")
+                       "list, recall SLOT, delete NORAD, clear, update [--file F|--url U] [--add NORAD] [--dry-run] "
+                       "(docs/spec/debuglink.md 3.24)")
     p.add_argument("op", nargs="?", default="show", choices=["show", "load", "observer", "time", "look", "pass",
-                                                             "bench", "save", "list", "recall", "delete", "clear"])
+                                                             "bench", "save", "list", "recall", "delete", "clear",
+                                                             "update"])
     p.add_argument("args", nargs="*")
+    p.add_argument("--file", help="update: element sets from this file (a saved CelesTrak or AMSAT download)")
+    p.add_argument("--url", help="update: element sets from this address (default: CelesTrak's amateur group)")
+    p.add_argument("--add", type=int, action="append", default=[], metavar="NORAD",
+                   help="update: also store this satellite (by catalog number) if it isn't stored")
+    p.add_argument("--dry-run", action="store_true", help="update: say what would change, change nothing")
     p = sub.add_parser("split", help="split duplex: view, BS framing experiment variant (docs/spec/split-duplex.md 10.1)")
     p.add_argument("op", choices=["view", "variant"])
     p.add_argument("args", nargs="*", help="variant: N [REG=VAL ...] (hex or decimal)")

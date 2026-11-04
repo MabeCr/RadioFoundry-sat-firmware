@@ -250,7 +250,8 @@ __attribute__((noinline)) static size_t op_save(const uint8_t *req, uint16_t len
 {
 	// none (the satellite's own profile), or up u32, down u32, up tone u16, arm tone u16, arm ms u16, armed s u16 and
 	// a name of up to 11 characters
-	if (len != 1 && (len < 21 || len > 21u + SAT_NAME_MAX - 1u))
+	// 17 bytes of profile, then a name of 0 to 11 characters
+	if (len != 1 && (len < 17 || len > 17u + SAT_NAME_MAX - 1u))
 		return status(out, DL_ST_BAD_ARG);
 	if (!trk.loaded || sat_store_slots() == 0)
 		return status(out, DL_ST_UNAVAILABLE);

@@ -125,9 +125,17 @@ static void test_store(void)
 	memcpy(p + 16, "FOX-1B", 6);
 	CHECK(cmd(req, 23) == 1 && out[0] == DL_ST_OK);
 	CHECK(view_has("sat.stored=2\n"));
-	// A name too long, a profile cut short
-	CHECK(cmd(req, 33) == 1 && out[0] == DL_ST_BAD_ARG);
-	CHECK(cmd(req, 20) == 1 && out[0] == DL_ST_BAD_ARG);
+	// A name too long (12 characters), a profile cut short
+	CHECK(cmd(req, 29) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, 16) == 1 && out[0] == DL_ST_BAD_ARG);
+	// A short name, and none, are fine: the ISS's three characters, and a profile for a satellite with no name yet
+	memcpy(p + 16, "ISS", 3);
+	CHECK(cmd(req, 20) == 1 && out[0] == DL_ST_OK);
+	CHECK(cmd(req, 17) == 1 && out[0] == DL_ST_OK);
+	memcpy(p + 16, "ELEVEN-CHARS", 11);
+	CHECK(cmd(req, 28) == 1 && out[0] == DL_ST_OK);
+	memcpy(p + 16, "FOX-1B", 6);
+	CHECK(cmd(req, 23) == 1 && out[0] == DL_ST_OK);
 
 	// The list
 	req[0] = DL_SAT_OP_STORED;

@@ -302,7 +302,13 @@ hides slightly stale orbit data.
 
 ### Updating orbit data without a computer
 
-TLEs go stale within weeks. The radio should show each TLE's age and warn when it is old.
+TLEs go stale within weeks. The radio shows each TLE's age and warns when it is old (30 days now; about two weeks
+suits FM satellites better, and should become a setting).
+
+Built: `rfoundry_debug.py sat update` downloads CelesTrak's amateur-satellite file and brings the stored satellites up
+to date over the cable, keeping their profiles ([user guide](user/24-satellites.md#keeping-the-orbit-data-current)).
+Next, in order: a Satellites page on the web site with the same job (desktop Chromium, Web Serial), keypad entry, sound
+transfer.
 
 | Option | How it works | Works with | Status |
 |---|---|---|---|

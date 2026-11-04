@@ -21,9 +21,32 @@ pass with Doppler correction is not built yet.
 | Your position | The GPS fix, the computer's, or the fixed position in **Tools > APRS** |
 | The satellites | Loaded over the cable, below. Each needs a TLE: element sets go stale, so load fresh ones every week or two |
 
-## Loading satellites
+## Keeping the orbit data current
 
-With the radio on the cable, `tools/rfoundry_debug.py` loads a satellite's TLE and stores it with its frequencies:
+Plug in the programming cable (the radio on, Home showing) and run one command on your computer:
+
+```
+rfoundry_debug.py sat update
+```
+
+It downloads the current amateur-satellite element sets (CelesTrak's amateur group), and for each satellite stored on
+the radio with a newer set, loads it, keeping that satellite's frequencies, tones and arming. One line per satellite
+says what it did: updated, already current, or not in the download. Nothing needs arming on the radio, and nothing is
+sent that isn't a satellite record.
+
+```
+rfoundry_debug.py sat update --dry-run          say what would change, change nothing
+rfoundry_debug.py sat update --add 44909        also store a satellite that isn't on the radio yet
+rfoundry_debug.py sat update --file amateur.txt use a file you saved (CelesTrak or AMSAT), with no internet connection
+```
+
+A satellite added with `--add` that the radio knows (the ISS, SO-50, AO-91) gets its frequencies and tones. Any other is
+stored by name with no frequencies, so it has passes but no Doppler yet. A low-orbit FM satellite's elements are good
+for about one to two weeks: update before a trip.
+
+## Loading satellites by hand
+
+`tools/rfoundry_debug.py` can also load one satellite's TLE and store it with frequencies you give:
 
 ```
 rfoundry_debug.py sat load iss.tle                  the TLE: a file with its two lines, or the two lines
