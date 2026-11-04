@@ -326,6 +326,12 @@ A phone moves data in and out. It doesn't run Doppler, because the radio does.
 - iPhone: not possible this way, because Safari has no Web Serial. Use sound transfer.
 - Phone as microphone: not recommended. Audio, PTT and data would share one wire.
 - Unknown: whether Web Serial is in stable Chrome for Android, and whether it supports FTDI cables there.
+- Wanted: refreshing TLEs from a phone in the field (an OTG adapter and the cable). The site already has a debug link
+  client over Web Serial (`site/static/js/flasher/link.js`), so the page is a port of `sat update`. First test, with the
+  radio: open the Codeplug Editor in Chrome on the phone, plug the cable in through the OTG adapter and press Connect.
+  If the radio's port appears, the page will work; if not, the fallbacks are a small Android app on the USB-serial
+  library, or a Termux script. Also open: whether the browser may fetch CelesTrak's file (CORS), else the site hosts a
+  daily copy or the page takes a saved file.
 
 ### Satellite profiles and SO-50 auto-arm
 
