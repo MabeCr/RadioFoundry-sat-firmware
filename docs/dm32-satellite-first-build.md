@@ -40,11 +40,11 @@ later number trustworthy.
 
 ```bash
 make BOARD=dm32 BUILD=build/dm32-base 2>&1 | tee build-base.log
-grep -E "FLASH:|RAM:|RAM_LO:" build-base.log
+grep -E "FLASH:|RAM:" build-base.log
 ```
 
-Write down the three linker lines (used / region size / percent). Upstream's last recorded values: the image about
-365 KB, main RAM only about 16 bytes free. If your build leaves several KB more or less free, say so before going on:
+Write down the linker lines (`FLASH:` and `RAM:`; the DM-32UV has one RAM region) (used / region size / percent). Measured 2026-11-05: the image about 587 KB,
+main RAM only 16 bytes free. The satellite build: 454 KB and 23,928 bytes free (done: see the plan). If your build leaves several KB more or less free, say so before going on:
 the compiler or the checkout differs.
 
 ### A4. Build the satellite configuration
@@ -55,7 +55,7 @@ make BOARD=dm32 BUILD=build/dm32-sat \
 	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_SAT=y \
 	CONFIG_NET_USRP=n CONFIG_HOTSPOT=n CONFIG_ZONE_SHARE=n CONFIG_NET_HTTP=n CONFIG_DMR_ROAMING=n \
 	2>&1 | tee build-sat.log
-grep -E "FLASH:|RAM:|RAM_LO:|warning" build-sat.log
+grep -E "FLASH:|RAM:|warning|overflow" build-sat.log
 ```
 
 This is the first compile of the satellite code with the C-SKY compiler. Two things can happen:
@@ -69,7 +69,6 @@ This is the first compile of the satellite code with the C-SKY compiler. Two thi
 | From the linker lines | What to compare | Go if |
 |---|---|---|
 | `RAM:` (main, 211,456 B) | free bytes in the satellite build | at least about 4 KB free (the estimate says 20 KB) |
-| `RAM_LO:` | free bytes in the satellite build against the baseline | not less than 1 KB free, and within 200 B of the baseline (the satellite code puts nothing there) |
 | `FLASH:` | image size | under 880 KB (it will be far under) |
 
 The difference between `build-base.log` and `build-sat.log` is the real cost of the whole configuration, switches
@@ -209,7 +208,7 @@ If the screens come up wrong, send me a screenshot: `tools/rfoundry_debug.py scr
 
 ## What to send me afterwards
 
-- From A3 and A4: the `FLASH:`, `RAM:` and `RAM_LO:` lines of both builds, and the stack-check output.
+- From A3 and A4: the `FLASH:` and `RAM:` lines of both builds, and the stack-check output.
 - From B3 and B5: `tasks.heap_min_free`, and the model's time per run.
 - Anything that didn't pass, with the log.
 

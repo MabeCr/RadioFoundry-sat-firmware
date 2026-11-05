@@ -109,40 +109,40 @@ Satellite tracking as built so far (the library, stored satellites, the pass lis
 link's SAT command): about 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task stack on an ARM build
 ([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM beyond the list's 32 rows.
 
-#### Does it fit? (estimate, 2026-11-03)
+#### Does it fit? (measured, 2026-11-05)
 
-Not measured for this configuration yet: the C-SKY compiler can't be built where this was done. The baseline is
-upstream's own DM-32UV builds (csky-elf GCC, in its commit messages); the other static RAM figures are from the ARM
-build of the same core code, which for 32-bit data is close.
+Yes. Built with csky-elf GCC 14 (`tools/docker/csky-toolchain/run.sh`), the satellite configuration above links with
+23,928 bytes of main RAM to spare. The linker refuses an image that doesn't fit, so this cannot fail on the radio.
 
-| Main RAM (211,456 B) | Bytes |
-|---|---:|
-| Free in the default build: 16 B (upstream #318, 2026-11-02; the maximal build 8 B). `config.mk` still says about 0.5 KB | about +16 |
-| The 14 switches turned off above | about +25,000 to +29,000 |
-| Satellite tracking's static RAM | -2,848 |
-| A larger RTOS heap for its task (`boards/dm32/freertos_board.h`, 35 KB with `CONFIG_SAT`) | -2,048 |
-| **Left** | **about +20,000 to +25,000** |
+| Build | Flash (880 KB) | Main RAM (211,456 B) | RAM free |
+|---|---:|---:|---:|
+| The standard DM-32UV image (satellites off) | 587,392 | 211,440 | 16 |
+| The configuration above, `CONFIG_SAT=y` | 454,232 (50%) | 187,528 (88.7%) | **23,928** |
 
-Flash is no concern: the image was 365 KB of 880 KB when last recorded, about 13 KB of fonts and 31 KB of Spanish
-have gone in since, and the satellite build adds 27 KB and takes Spanish's 31 KB out again.
+The 14 switches turned off free 47 KB of RAM and 160 KB of flash; satellite tracking takes back about 2.8 KB of static
+RAM, the 2 KB of extra heap for its task and 27 KB of flash. The estimate made before the measurement was 20 to 25 KB
+free. The DM-32UV has one RAM region now (`boards/dm32/memory.ld`), so there is no separate `RAM_LO` line.
 
-What can and can't go wrong on the radio:
+The first C-SKY build also found a bug: the standard image, built with satellites *off*, overflowed main RAM by 16
+bytes, because the settings struct (six copies in RAM) and the UI's settings table had grown for the new settings.
+They are now only built with `CONFIG_SAT`, and the standard image is 16 B free again, as upstream's. Any further
+setting added without a switch has the same risk: build the standard DM-32UV image before pushing.
 
-- Static RAM can't surprise us: if it doesn't fit, the linker refuses to build the image.
+The stack check on the C-SKY build passes: every task fits, the UI task with 264 B to spare, the `sat` task 148 B
+(its deepest path ends in a soft-float library function, which the check counts as a flat 64 B), the least free overall
+the idle task's 132 B.
+
+What remains to be seen on the radio:
+
 - The heap: the satellite task's 1.6 KB stack comes from it. Measured on a DM-32UV after the whole radio-only HIL
   suite, the heap's least free was 8,664 bytes (upstream #210, 2026-10-27, with a 33 or 34 KB heap), so the task fits with
-  room; still, built with satellites the heap is 2 KB larger, and the task starts only if 2 KB would still be spare after it; otherwise the radio runs on and Tools > Satellites says
-  "Not enough memory to work out passes", rather than the heap running out and the radio restarting at every boot.
-- Task stacks: the UI task's is at the static check's limit on the ARM build (the settings record grew 4 bytes for the
-  two new settings). The DM-32UV's check has its own numbers.
+  room; still, built with satellites the heap is 2 KB larger, and the task starts only if 2 KB would still be spare
+  after it; otherwise the radio runs on and Tools > Satellites says "Not enough memory to work out passes", rather
+  than the heap running out and the radio restarting at every boot.
+- The real stack use: `tasks.min_free` and `tests/hil/test_task_stacks.py` show the least stack each task ever had free.
 
-At the first build, before installing:
-
-1. `make BOARD=dm32 <the line above>`: the linker's RAM line, the room left.
-2. `make BOARD=dm32 <the line above> stack-check`: every task fits; if the UI task doesn't, give it stack from the RAM
-   left.
-3. On the radio: `pytest tests/hil/test_task_stacks.py` (`tasks.heap_min_free` at least 2 KB) and
-   `tests/hil/test_sat.py` (the model's speed, the screens).
+The checks after installing, on the radio: `pytest tests/hil/test_task_stacks.py` (`tasks.heap_min_free` at least 2 KB)
+and `tests/hil/test_sat.py` (the model's speed, the screens). Steps 1 and 2, the size and the stack check, are done.
 
 #### Further cuts
 
@@ -478,8 +478,8 @@ Other:
 
 | Question | Status |
 |---|---|
-| Does the CK803S have an FPU? | Built without one (`-msoft-float`). Measure SGP4's cost |
-| Flash and RAM left in the image | RAM is the limit, about 0.5 KB in the default build. The configuration above frees about 29 KB on an ARM build; measure it on this radio at its first build |
+| Does the CK803S have an FPU? | Built without one (`-msoft-float`). Measure SGP4's cost: `tests/hil/test_sat.py` on the radio |
+| Flash and RAM left in the image | The standard image has 16 B of main RAM free; the configuration above has 23,928 B free (measured 2026-11-05) |
 | Can the RTC be read and set? | Open. Registers are in [hardware-dm32.md](spec/hardware-dm32.md) 3.3; no driver yet |
 | Does `rigctld` set frequency on this radio? | Written, and sets the VFO simplex. No result recorded on the radio yet |
 | Does the GPS get an outdoor fix? | NMEA arrives on the radio. A fix outdoors is still to check |
