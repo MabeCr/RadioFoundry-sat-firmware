@@ -366,9 +366,12 @@ typedef enum {
 	UI_SET_DMR_ID,		// the radio's own DMR ID in the codeplug, 1..CODEPLUG_DMR_ID_MAX (a set is a codeplug write job)
 	UI_SET_REF_TRIM,	// reference oscillator trim, ppb -10000..+10000 (Settings > Advanced; settings_t.ref_trim_ppb)
 	UI_SET_LANGUAGE,	// the UI's language, i18n.h lang_value: "en" English, 0 never picked (Settings > Display; settings_t.lang)
+#if CONFIG_SAT
 	// Satellite tracking (Settings > Location, CONFIG_SAT; docs/spec/satellite.md 5.1): local time as minutes from UTC
-	// (-720..+840, steps of 15; settings_t.utc_offset_min), the lowest pass listed in degrees (0..60; settings_t.sat_min_el)
+	// (-720..+840, steps of 15; settings_t.utc_offset_min), the lowest pass listed in degrees (0..60; settings_t.sat_min_el).
+	// Only in a build with satellites: the RAM table of the settings has a word for each
 	UI_SET_UTC_OFFSET, UI_SET_SAT_MIN_EL,
+#endif
 	UI_SET_COUNT
 } ui_setting_t;
 
