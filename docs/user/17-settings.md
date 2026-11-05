@@ -93,6 +93,7 @@ Some settings are on the menu before the feature behind them exists, or don't ap
 | Send position | Off, 1 min, 5 min, 15 min | Off | Send your position at this interval | Dimmed without GPS |
 | Answer GPS requests | On, Off | On | Answer LRRP location requests (Find also finds it as "position"). Without GPS the answer is "no fix" | Works |
 | Time zone | UTC-12 to UTC+14, in steps of 15 minutes | UTC | Local time for the satellite screens ([Satellites](24-satellites.md)). Set it again when daylight saving changes. Only in a build with satellite tracking | Untested |
+| Set time | (opens a screen) | | Sets the date and time (UTC), for the satellite screens, and the radio's battery-backed clock where it has one, so it keeps the time while off. A GPS fix corrects it later ([Satellites](24-satellites.md)). Only in a build with satellite tracking | Untested |
 | Lowest pass | 0° to 60°, in steps of 5 | 10° | Satellite passes that peak lower are left off the satellite screens ([Satellites](24-satellites.md)). Only in a build with satellite tracking | Untested |
 
 ### Connections (key 6)

@@ -2832,6 +2832,10 @@ msgstr "Zona horaria"
 msgid "Lowest pass"
 msgstr "Pase mínimo"
 
+#: core/ui/ui_menus.c core/ui/ui_sat.c
+msgid "Set time"
+msgstr "Poner hora"
+
 #: core/ui/ui_menus.c
 msgid "Hotspot allowed"
 msgstr "Hotspot permitido"
@@ -3227,6 +3231,26 @@ msgstr "Pase terminado"
 #: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "Local"
+msgstr "Local"
+
+#: core/ui/ui_sat.c
+msgid "# next field  OK set"
+msgstr "# campo  OK fijar"
+
+#: core/ui/ui_sat.c
+msgid "Not a date"
+msgstr "Fecha no válida"
+
+#: core/ui/ui_sat.c
+msgid "Clock set"
+msgstr "Reloj puesto"
+
+#: core/ui/ui_sat.c
+msgid "Couldn't set the clock"
+msgstr "No se pudo poner el reloj"
 
 #: core/ui/ui_screens.c
 msgid "IDLE"

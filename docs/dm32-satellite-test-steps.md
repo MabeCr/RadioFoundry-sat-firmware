@@ -96,7 +96,9 @@ milliseconds. Under 100 ms (100000 us) is fine; far above that, tell me.
 
 The screens need both. They aren't set yet.
 
-- **Time:** a GPS fix gives it. Indoors: `rfoundry_debug.py sat time` copies this computer's clock to the radio.
+- **Time:** a GPS fix gives it. Or, with no computer: Settings > Location > **Set time** (OK, 7, 5, then the last row):
+  type the UTC date and time, **#** between fields, OK as the minute starts. The radio keeps it while it's off. Or
+  `rfoundry_debug.py sat time` copies this computer's clock to the radio (RAM only, lost at power-off).
 - **Position:** OK, 6, 8 (APRS), then 9 (Position). Row 1 **Source**: pick **Fixed**. Row 2 **Latitude**: OK, type the
   digits (`3 3 7 4 9 0` is 33.7490), OK. Row 3 **Longitude**: OK, digits (`0 8 4 3 8 8 0` is 84.3880), press **Down**
   to make it West, OK. Use your real location. Or go outdoors for a GPS fix instead of both.

@@ -90,4 +90,8 @@ them yet: set the channel yourself for now.
 
 - **Time zone**: your offset from UTC, for the times on these screens. There is no daylight saving rule: change it when
   the clocks change.
+- **Set time**: the date and time in UTC, for when there's no GPS fix. Up and Down (or the knob) change the field,
+  digits type it, **#** moves to the next field, **OK** sets it. Pick the next minute from a phone's clock, and press OK
+  as it reaches :00. The radio keeps it while off (on a radio with a battery-backed clock), so you set it once; a GPS fix
+  corrects it whenever there is one. The "Local" line shows the same time with your Time zone.
 - **Lowest pass**: passes that peak lower are left off (10° at first). A handheld antenna usually needs 20° or more.

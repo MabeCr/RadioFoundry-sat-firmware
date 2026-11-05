@@ -9,6 +9,7 @@
 #if CONFIG_SAT
 #include <string.h>
 #include "ui_nav.h"
+#include "sat/sat_clock.h"
 #include "fmt.h"
 #include "i18n.h"
 
@@ -551,5 +552,142 @@ static void track_draw(void)
 const ui_scr_def_t ui_sat_track_screen = {
 	// Not a field-use screen (P4): OK on a pass of the list, four levels from Home
 	.name = "track", .flags = 0, .draw = track_draw,
+};
+// --- setting the clock (Settings > Location > Set time) ---
+
+enum { CF_YEAR, CF_MONTH, CF_DAY, CF_HOUR, CF_MIN, CF_SEC, CF_COUNT };
+static uint16_t clk[CF_COUNT];		// the fields as shown (UTC)
+static uint8_t clk_sel;			// the field the keys change
+static uint8_t clk_typed;		// digits typed into it so far (0, 1)
+
+static const uint16_t clk_lo[CF_COUNT] = { 2026, 1, 1, 0, 0, 0 };
+static const uint16_t clk_hi[CF_COUNT] = { 2099, 12, 31, 23, 59, 59 };
+
+static void clock_enter(void)
+{
+	status();
+	uint32_t u = st.utc != 0 ? st.utc : sat_clock_from_civil(2026, 1, 1, 0, 0, 0);
+	uint16_t y;
+	uint8_t v[5];
+	sat_clock_civil(u, &y, &v[0], &v[1], &v[2], &v[3], &v[4]);
+	clk[CF_YEAR] = y < clk_lo[CF_YEAR] ? clk_lo[CF_YEAR] : y;
+	for (uint8_t i = 0; i < 5; i++)
+		clk[CF_MONTH + i] = v[i];
+	clk_sel = CF_HOUR;
+	clk_typed = 0;
+}
+
+// "2026-11-06", then "14:07:30": each field apart, the selected one underlined
+static int clock_field(const font_t *f, int x, int y, uint8_t i, const char *sep)
+{
+	char t[8];
+	sbuf_t b;
+	sb_init(&b, t, sizeof t);
+	sb_u32(&b, clk[i], i == CF_YEAR ? 4 : 2);
+	int w = gfx_text_width(f, t);
+	gfx_text(f, x, y, t, i == clk_sel ? ui_col.fg : ui_col.dim);
+	if (i == clk_sel)
+		gfx_fill(x, y + f->h, w, 2, ui_col.fg);
+	x += w;
+	if (sep[0] != '\0') {
+		gfx_text(f, x, y, sep, ui_col.dim);
+		x += gfx_text_width(f, sep);
+	}
+	return x;
+}
+
+static void clock_draw(void)
+{
+	char buf[40];
+	sbuf_t b;
+	status();
+	gfx_clear(ui_col.bg);
+	int y = ui_draw_top(ui_view(), &ui_st, TR("Set time"), "UTC") + 4;
+	const font_t *f = gfx_width() >= 200 ? ui_layout.large : ui_layout.medium;
+	int w = gfx_width();
+	// the two lines, centered
+	int dw = gfx_text_width(f, "2026-11-06"), tw = gfx_text_width(f, "14:07:30");
+	int x = (w - dw) / 2;
+	for (uint8_t i = CF_YEAR; i <= CF_DAY; i++)
+		x = clock_field(f, x, y, i, i == CF_DAY ? "" : "-");
+	y += f->h + 6;
+	x = (w - tw) / 2;
+	for (uint8_t i = CF_HOUR; i <= CF_SEC; i++)
+		x = clock_field(f, x, y, i, i == CF_SEC ? "" : ":");
+	y += f->h + 8;
+	// the same moment in local time, to check it against a watch
+	uint32_t u = sat_clock_from_civil(clk[CF_YEAR], clk[CF_MONTH], clk[CF_DAY], clk[CF_HOUR], clk[CF_MIN], clk[CF_SEC]);
+	if (u != 0 && y + ui_layout.small->h < ui_layout.hint_y) {
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Local"));
+		sb_chr(&b, ' ');
+		sb_hhmm(&b, (uint32_t)((int32_t)u + st.utc_offset_min * 60));
+		sb_str(&b, "  ");
+		sb_utc_offset(&b, st.utc_offset_min);
+		gfx_text(ui_layout.small, (w - gfx_text_width(ui_layout.small, buf)) / 2, y, buf, ui_col.dim);
+	}
+	ui_draw_bottom(&ui_st, TR("# next field  OK set"));
+	ui_draw_banner(&ui_st);
+}
+
+static void clock_step(int d)
+{
+	int v = clk[clk_sel] + d;
+	if (v > clk_hi[clk_sel])
+		v = clk_lo[clk_sel];
+	else if (v < clk_lo[clk_sel])
+		v = clk_hi[clk_sel];
+	clk[clk_sel] = (uint16_t)v;
+	clk_typed = 0;
+}
+
+static bool clock_key(const input_event_t *ev)
+{
+	bool press = ev->gesture == GESTURE_PRESS;
+	bool repeat = ev->gesture == GESTURE_REPEAT;
+	if (ev->action == ACT_ENC_STEP) {
+		clock_step(ev->value > 0 ? 1 : -1);
+	} else if ((press || repeat) && (ev->action == ACT_NAV_UP || ev->action == ACT_NAV_DOWN)) {
+		clock_step(ev->action == ACT_NAV_UP ? 1 : -1);
+	} else if (press && (ev->action == ACT_NAV_RIGHT || ev->action == ACT_CONTEXT)) {	// # for a keypad with no Right
+		clk_sel = (uint8_t)((clk_sel + 1u) % CF_COUNT);
+		clk_typed = 0;
+	} else if (press && ev->action == ACT_NAV_LEFT) {
+		clk_sel = (uint8_t)((clk_sel + CF_COUNT - 1u) % CF_COUNT);
+		clk_typed = 0;
+	} else if (press && ev->action >= ACT_DIGIT_0 && ev->action <= ACT_DIGIT_9) {
+		// Two digits fill a field (the year's last two) and move to the next
+		uint16_t d = (uint16_t)(ev->action - ACT_DIGIT_0);
+		if (clk_typed == 0) {
+			clk[clk_sel] = clk_sel == CF_YEAR ? (uint16_t)(2000u + d) : d;
+			clk_typed = 1;
+		} else {
+			uint16_t v = clk_sel == CF_YEAR ? (uint16_t)(2000u + clk[clk_sel] % 10u * 10u + d) :
+				(uint16_t)(clk[clk_sel] * 10u + d);
+			clk[clk_sel] = v < clk_lo[clk_sel] ? clk_lo[clk_sel] : v > clk_hi[clk_sel] ? clk_hi[clk_sel] : v;
+			clk_typed = 0;
+			if (clk_sel + 1u < CF_COUNT)
+				clk_sel++;
+		}
+	} else if (press && ev->action == ACT_SELECT) {
+		uint32_t u = sat_clock_from_civil(clk[CF_YEAR], clk[CF_MONTH], clk[CF_DAY], clk[CF_HOUR], clk[CF_MIN],
+						  clk[CF_SEC]);
+		if (u == 0) {
+			ui_toast(TR("Not a date"));
+		} else if (ui_svc_sat_clock_set(u)) {
+			ui_toast(TR("Clock set"));
+			ui_pop();
+		} else {
+			ui_toast(TR("Couldn't set the clock"));
+		}
+	} else {
+		return false;
+	}
+	ui_dirty();
+	return true;
+}
+
+const ui_scr_def_t ui_sat_clock_screen = {
+	.name = "set-time", .flags = 0, .key = clock_key, .draw = clock_draw, .enter = clock_enter,
 };
 #endif

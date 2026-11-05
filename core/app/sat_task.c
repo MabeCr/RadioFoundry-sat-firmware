@@ -7,6 +7,7 @@
 #include "config.h"
 #if CONFIG_SAT
 #include "app/sat_task.h"
+#include "hal_rtc.h"
 #include "hal_time.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_svc.h"
@@ -24,6 +25,75 @@
 #define SAT_BUDGET		30	// runs of the model a slice, about 30-100 ms without an FPU
 #define SAT_BUSY_MS		20	// between slices while work remains
 #define SAT_IDLE_MS		1000	// between polls when all is up to date: passes start and end, up satellites move
+
+// --- the battery-backed clock, where the board has one (hal_rtc.h) ---
+// Weak: a board without one leaves them out, and nothing is read or written
+__attribute__((weak)) bool hal_rtc_read(uint16_t *day, uint8_t *h, uint8_t *m, uint8_t *s)
+{
+	(void)day; (void)h; (void)m; (void)s;
+	return false;
+}
+
+__attribute__((weak)) bool hal_rtc_write(uint16_t day, uint8_t h, uint8_t m, uint8_t s)
+{
+	(void)day; (void)h; (void)m; (void)s;
+	return false;
+}
+
+#define RTC_SYNC_MS	600000u	// how often the radio's time is compared with the RTC's
+#define RTC_TOLERANCE_S	2	// a difference this large (GPS corrected the radio's clock) is written over
+
+static volatile bool rtc_dirty;	// the user set the clock: write it at once
+static uint32_t rtc_sync_ms;
+
+void sat_task_rtc_write(void)
+{
+	rtc_dirty = true;
+}
+
+// The radio's time into the RTC
+static bool rtc_store(void)
+{
+	double now;
+	if (!sat_clock_now(&sat_utc, hal_millis(), &now))
+		return false;
+	uint16_t day;
+	uint8_t h, m, s;
+	sat_clock_to_rtc((uint32_t)now, &day, &h, &m, &s);
+	return hal_rtc_write(day, h, m, s);
+}
+
+// The RTC's time, as UTC; false when it has none of ours
+static bool rtc_load(uint32_t *unix_s)
+{
+	uint16_t day;
+	uint8_t h, m, s;
+	return hal_rtc_read(&day, &h, &m, &s) && sat_clock_from_rtc(day, h, m, s, unix_s);
+}
+
+// At start the radio's clock is the RTC's (a GPS fix sets it again within a second of locking). Then: a clock set by
+// hand goes into the RTC at once, and now and then the two are compared, so a GPS-corrected time reaches it too
+static void rtc_tick(bool first)
+{
+	uint32_t t;
+	double now;
+	if (first) {
+		if (rtc_load(&t) && !sat_clock_now(&sat_utc, hal_millis(), &now))
+			sat_clock_set_unix(&sat_utc, t, hal_millis());
+		rtc_sync_ms = hal_millis();
+		return;
+	}
+	if (rtc_dirty) {
+		rtc_dirty = false;
+		rtc_store();
+		rtc_sync_ms = hal_millis();
+	} else if (hal_millis() - rtc_sync_ms >= RTC_SYNC_MS) {
+		rtc_sync_ms = hal_millis();
+		if (sat_clock_now(&sat_utc, hal_millis(), &now) &&
+		    (!rtc_load(&t) || (double)t - now > RTC_TOLERANCE_S || now - (double)t > RTC_TOLERANCE_S))
+			rtc_store();
+	}
+}
 
 static void inputs(sat_svc_in_t *in)
 {
@@ -51,7 +121,9 @@ static void sat_task(void *arg)
 {
 	(void)arg;
 	sat_svc_in_t in;
+	rtc_tick(true);
 	for (;;) {
+		rtc_tick(false);
 		inputs(&in);
 		bool more = sat_svc_poll(&in, SAT_BUDGET);
 		vTaskDelay(pdMS_TO_TICKS(more ? SAT_BUSY_MS : SAT_IDLE_MS));

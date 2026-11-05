@@ -316,6 +316,34 @@ static void test_clock(void)
 	CHECK(sat_clock_unix_from_nmea(0, 0) == 0 && sat_clock_unix_from_nmea(11326, 0) == 0);	// day 0, month 13
 	CHECK(sat_clock_unix_from_nmea(271026, 246000) == 0 && sat_clock_unix_from_nmea(271026, 126000) == 0);
 
+	// The battery-backed clock's registers: a day number offset so another firmware's epoch isn't mistaken for ours
+	uint16_t day, y16;
+	uint8_t h8, m8, s8, mo8, d8;
+	uint32_t u;
+	sat_clock_to_rtc(1793103940u, &day, &h8, &m8, &s8);
+	CHECK(day == 0x8000u + 20753u && h8 == 12 && m8 == 25 && s8 == 40);
+	CHECK(sat_clock_from_rtc(day, h8, m8, s8, &u) && u == 1793103940u);
+	CHECK(!sat_clock_from_rtc(20753, 12, 25, 40, &u));		// the same date counted from 1970: not ours
+	CHECK(!sat_clock_from_rtc(9600, 12, 25, 40, &u));		// from 2000
+	CHECK(!sat_clock_from_rtc(0x8000u + 20000u, 0, 0, 0, &u));	// before 2026
+	CHECK(!sat_clock_from_rtc(day, 24, 0, 0, &u) && !sat_clock_from_rtc(day, 0, 60, 0, &u) && !sat_clock_from_rtc(day, 0, 0, 60, &u));
+	CHECK(!sat_clock_from_rtc(0xFFFFu, 0, 0, 0, &u));
+	for (uint32_t t0 = 1767225600u; t0 < 4000000000u; t0 += 86399u * 37u) {	// every kind of day, to 2096
+		uint16_t yy; uint8_t mo, dd, hh, mm, ss;
+		sat_clock_civil(t0, &yy, &mo, &dd, &hh, &mm, &ss);
+		CHECK(sat_clock_from_civil(yy, mo, dd, hh, mm, ss) == t0);
+		sat_clock_to_rtc(t0, &day, &hh, &mm, &ss);
+		if (t0 < 32766u * 86400u)	// the day number runs to the end of 2059
+			CHECK(sat_clock_from_rtc(day, hh, mm, ss, &u) && u == t0);
+	}
+	sat_clock_civil(1793103940u, &y16, &mo8, &d8, &h8, &m8, &s8);
+	CHECK(y16 == 2026 && mo8 == 10 && d8 == 27 && h8 == 12 && m8 == 25 && s8 == 40);
+	sat_clock_civil(1709251199u, &y16, &mo8, &d8, &h8, &m8, &s8);	// a leap day
+	CHECK(y16 == 2024 && mo8 == 2 && d8 == 29 && h8 == 23 && m8 == 59 && s8 == 59);
+	CHECK(sat_clock_from_civil(2028, 2, 29, 0, 0, 0) != 0 && sat_clock_from_civil(2027, 2, 29, 0, 0, 0) == 0);
+	CHECK(sat_clock_from_civil(2025, 12, 31, 23, 59, 59) == 0 && sat_clock_from_civil(2026, 13, 1, 0, 0, 0) == 0);
+	CHECK(sat_clock_from_civil(2026, 4, 31, 0, 0, 0) == 0 && sat_clock_from_civil(2026, 1, 1, 24, 0, 0) == 0);
+
 	sat_clock_t c = { 0 };
 	double t;
 	CHECK(!sat_clock_now(&c, 1000, &t));

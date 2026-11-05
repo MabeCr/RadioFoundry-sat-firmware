@@ -105,9 +105,9 @@ unit. The model doesn't need their general cases:
 ### 4.1 Time
 
 The model needs UTC to about a second: a second's error moves a low pass by up to half a degree near its peak and its
-70 cm Doppler by up to 100 Hz. The firmware reads no real-time clock yet ([feature-matrix.md](../feature-matrix.md)),
-so `sat_utc` (`sat_clock.c`) takes the date and time of each valid NMEA RMC sentence, from the board's GPS or from a
-phone or PC feeding NMEA over the host link ([aprs.md](aprs.md) 6), and stamps it with the millisecond clock.
+70 cm Doppler by up to 100 Hz. `sat_utc` (`sat_clock.c`) takes the date and time of each valid NMEA RMC sentence, from
+the board's GPS or from a phone or PC feeding NMEA over the host link ([aprs.md](aprs.md) 6), and stamps it with the
+millisecond clock. A board with a battery-backed clock (`hal_rtc.h`) also restores it at start (4.1.1).
 
 | Rule | Detail |
 |---|---|
@@ -119,6 +119,26 @@ phone or PC feeding NMEA over the host link ([aprs.md](aprs.md) 6), and stamps i
 | Without a sentence | `sat_clock_now` is false: no prediction until the first fix |
 
 The millisecond clock wraps after 49 days, harmless while sentences keep coming.
+
+A reader that finds the sequence count odd or changed 50 times in a row gives up (`sat_clock_now` is false for that
+call): the writer runs below some readers, and a reader that spins on a write it preempted would never let it finish.
+
+### 4.1.1 The battery-backed clock
+
+`hal_rtc_read` / `hal_rtc_write` (`hal/hal_rtc.h`) give a board's clock as a 16-bit day number and the time of day. They
+are called from the satellite task only (`core/app/sat_task.c`), so the board code has no locking; a board without a clock
+leaves them out and a weak version says "none".
+
+| Step | Rule |
+|---|---|
+| Day number | Unix days plus `SAT_RTC_DAY_BASE` (0x8000), so it runs to the end of 2059. A clock that another firmware set counts from its own epoch, lands outside 2026..2059 and is taken as never set by this firmware, rather than giving a wrong date |
+| At start | If the radio has no time yet and the RTC holds one of ours, `sat_utc` is set from it. A GPS sentence overrides it within a second of locking |
+| Set by hand | Settings > Location > Set time ([ui.md](ui.md) 2.6) sets `sat_utc` and asks the task to write the RTC, within a second |
+| Kept right | Every 10 minutes the task compares the two; a difference over 2 s (a GPS fix corrected the radio) is written over the RTC. A clock the RTC doesn't have is written |
+| Failure | A clock that doesn't answer costs a few milliseconds (every bus wait is bounded) and the radio runs on without it |
+
+The time is UTC. Writing another firmware's clock back needs that firmware's own epoch, so after installing ours a
+radio's date in the stock firmware is wrong until it is set there again.
 
 ### 4.2 Look angles
 
@@ -317,7 +337,7 @@ sets (`pip install sgp4 skyfield`).
 
 | Piece | Needs |
 |---|---|
-| A real-time clock | Time without a GPS fix: a board's clock read at start (and set from GPS), behind a `hal_` hook. Until then the time comes from NMEA only (4.1) |
+| A real-time clock on other boards | `hal_rtc_read` / `hal_rtc_write` (4.1.1) where the hardware has one. The one written is untested on a radio |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
 | Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler applied to receive and transmit through the core (the screen only shows the corrected frequencies); a short way in (a programmable key) |

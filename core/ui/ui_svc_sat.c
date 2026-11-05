@@ -8,6 +8,7 @@
 #include <string.h>
 #include "ui_svc.h"
 #include "hal_time.h"
+#include "app/sat_task.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_store.h"
 #include "sat/sat_svc.h"
@@ -89,6 +90,14 @@ bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
 	out->aos_az = p.aos_az;
 	out->los_az = p.los_az;
 	out->dir = p.dir;
+	return true;
+}
+
+bool ui_svc_sat_clock_set(uint32_t utc)
+{
+	if (!sat_clock_set_unix(&sat_utc, utc, hal_millis()))
+		return false;
+	sat_task_rtc_write();
 	return true;
 }
 

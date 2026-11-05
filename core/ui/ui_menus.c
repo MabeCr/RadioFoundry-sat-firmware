@@ -38,7 +38,7 @@
 extern const ui_scr_def_t ui_find_screen;
 extern const ui_scr_def_t ui_aprs_screen, ui_aprs_heard_screen, ui_aprs_pos_screen;	// ui_aprs.c
 extern const ui_scr_def_t ui_gps_screen;	// ui_gps.c
-extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen;	// ui_sat.c
+extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen;	// ui_sat.c
 #if CONFIG_DUAL_WATCH
 extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_screen;	// ui_dual.c
 #endif
@@ -4758,7 +4758,7 @@ static const ui_scr_def_t tools_screen = {
 #if CONFIG_UI_SETTINGS
 
 typedef enum { ST_TOGGLE, ST_LIST, ST_NUMBER, ST_ACTION } set_type_t;
-enum { SA_DIAG, SA_FIRMWARE, SA_CODEPLUG, SA_RESET, SA_MY_RADIO, SA_CRASH, SA_LANGUAGE };
+enum { SA_DIAG, SA_FIRMWARE, SA_CODEPLUG, SA_RESET, SA_MY_RADIO, SA_CRASH, SA_LANGUAGE, SA_SET_TIME };
 
 typedef struct {
 	const char *name;
@@ -4977,6 +4977,7 @@ static const set_item_t s_location[] = {
 	// lowest pass it lists
 	NUMBER(TRN("Time zone"), "UTC offset local time clock", UI_SET_UTC_OFFSET, -720, 840, 15, NULL),
 	NUMBER(TRN("Lowest pass"), "satellite elevation horizon", UI_SET_SAT_MIN_EL, 0, 60, 5, GLYPH_DEGREE),
+	ACTION(TRN("Set time"), "clock date utc rtc", SA_SET_TIME),
 #endif
 };
 static const set_item_t s_connections[] = {
@@ -5369,6 +5370,9 @@ static void group_select(uint16_t i, bool hold)
 		case SA_MY_RADIO: ui_push(SCR_DMR_ID, 0); break;
 		case SA_RESET: ui_push(SCR_CONFIRM, 0); break;
 		case SA_LANGUAGE: ui_push(SCR_LANGUAGE, 0); break;
+#if CONFIG_SAT
+		case SA_SET_TIME: ui_push(SCR_SAT_CLOCK, 0); break;
+#endif
 #if CONFIG_CRASH_SCREEN
 		case SA_CRASH: ui_push(SCR_CRASH, 0); break;
 #endif
@@ -5828,6 +5832,7 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_SAT
 	[SCR_SAT] = &ui_sat_screen, [SCR_SAT_PASSES] = &ui_sat_passes_screen, [SCR_SAT_TRACK] = &ui_sat_track_screen,
+	[SCR_SAT_CLOCK] = &ui_sat_clock_screen,
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,

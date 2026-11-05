@@ -202,6 +202,12 @@ DATA_CMD.
 | 0x11 | RTC_CCR: bit 0 interrupt enable, bit 1 run, bit 2 load (self clearing); RadioFoundry writes 0x07 |
 | 0x12 | RTC_LOAD_VSTAT bit 0: set to 0 before loading, 1 after (marks the time valid) |
 
+RadioFoundry's use (`platform/hrc7000/rtc.c`, `hal_rtc.h`): the day number is Unix days + 0x8000 (the satellite clock,
+[satellite.md](satellite.md) 4.1.1), so a clock set by the stock firmware, whose epoch is not known here, reads as not set.
+It reads VSTAT first and the seconds twice; it writes VSTAT = 0, the five load registers, CCR = 0x07, VSTAT = 1. It never
+soft-resets the RTC (that would lose the time). Every wait is bounded to 5 ms. Written from the datasheet, untested on a
+radio until the first boot with it.
+
 Datasheet first-power-up order: reset the RTC I2C interface, soft-reset the RTC (RTC_SOFT_RST_N = 0, wait 25 ms, = 1),
 optionally set the match (alarm) registers, load time, CCR.
 

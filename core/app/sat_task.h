@@ -6,5 +6,7 @@
 
 // After the settings, the APRS position sources and the UI are up
 void sat_task_start(void);
+// The clock was set by hand (the Set time screen): write it to the battery-backed clock, from the task. Any task
+void sat_task_rtc_write(void);
 
 #endif

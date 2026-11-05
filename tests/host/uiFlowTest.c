@@ -589,7 +589,12 @@ static const flow_t flows[] = {
 	{ "S before the position", "sat:nopos", "ok 6 0", "shows=No_position", 3, false },
 	{ "S no room for its task", "sat:nomem", "ok 6 0", "shows=Not_enough_memory", 3, false },
 	{ "S nothing stored", "sat:empty", "ok 6 0", "shows=No_satellites_stored count=0", 3, false },
-	{ "S lowest pass setting", "ok 7 5", "up", "screen=group shows=Lowest_pass shows=10", 1, false },
+	{ "S lowest pass setting", "ok 7 5", "up up", "screen=group shows=Lowest_pass shows=10", 2, false },
+	{ "S set time opens", "ok 7 5 up", "ok", "screen=set-time shows=Set_time shows=UTC", 1, false },
+	{ "S set time by digits", "ok 7 5 up ok", "0 9 3 0 0 0 ok", "toast=Clock_set screen=group", 7, false },
+	{ "S set time refuses a bad date", "ok 7 5 up ok", "ctx ctx ctx 2 6 0 2 3 1 ok", "toast=Not_a_date screen=set-time",
+	  10, false },
+	{ "S set time back leaves it", "ok 7 5 up ok", "back", "screen=group", 1, false },
 	{ "S time zone setting", "ok 7 5", "up up", "screen=group shows=Time_zone shows=UTC-6", 2, false },
 	{ "S next pass on the Tools row", "ok 6", "up", "shows=Satellites shows=ISS_up", 1, false },
 #endif

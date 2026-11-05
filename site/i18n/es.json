@@ -310,6 +310,7 @@
  "screen.satellites_no_time": "Satélites antes de conocer la hora",
  "screen.satellite_passes": "Los pases de un satélite",
  "screen.satellite_track": "Seguimiento de un pase",
+ "screen.satellite_set_time": "Poner el reloj en hora",
  "screen.satellites": "Satélites y sus próximos pases",
  "screen.gps_signal": "Barras de señal GPS",
  "screen.gps_grid": "Localizador de cuadrícula",

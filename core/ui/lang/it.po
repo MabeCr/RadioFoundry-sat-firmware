@@ -2832,6 +2832,10 @@ msgstr "Fuso orario"
 msgid "Lowest pass"
 msgstr "Passaggio min."
 
+#: core/ui/ui_menus.c core/ui/ui_sat.c
+msgid "Set time"
+msgstr "Imposta ora"
+
 #: core/ui/ui_menus.c
 msgid "Hotspot allowed"
 msgstr "Hotspot permesso"
@@ -3227,6 +3231,26 @@ msgstr "Passaggio finito"
 #: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "Local"
+msgstr "Locale"
+
+#: core/ui/ui_sat.c
+msgid "# next field  OK set"
+msgstr "# campo  OK imposta"
+
+#: core/ui/ui_sat.c
+msgid "Not a date"
+msgstr "Data non valida"
+
+#: core/ui/ui_sat.c
+msgid "Clock set"
+msgstr "Orologio impostato"
+
+#: core/ui/ui_sat.c
+msgid "Couldn't set the clock"
+msgstr "Impossibile impostare l'orologio"
 
 #: core/ui/ui_screens.c
 msgid "IDLE"

@@ -234,6 +234,9 @@ bool ui_svc_sat_live(ui_sat_live_t *out);		// false until worked out
 uint8_t ui_svc_sat_path_count(void);			// points so far, UI_SAT_PATH when complete
 bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el);
 #define UI_SAT_PATH	24
+// Set the radio's clock by hand (UTC, Unix seconds): it also goes into the battery-backed clock where the board has one.
+// False: not in this build, or the time is refused
+bool ui_svc_sat_clock_set(uint32_t utc);
 
 // --- Emergency, reset ---
 // Emergency is dmr-ext's: it defines ui_svc_emergency and reports UI_FEAT_EMERGENCY from ui_svc_feat_ext. Until

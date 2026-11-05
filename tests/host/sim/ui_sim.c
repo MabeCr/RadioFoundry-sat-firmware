@@ -1785,7 +1785,7 @@ bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out)
 // Satellites (ui_svc.h): the list and SO-50's passes as the mockups have them, at 14:05 UTC (08:05 at UTC-6, the
 // time zone sim_reset sets)
 #define SAT_SIM_UTC	1793196300u	// 2026-10-28 14:05:00
-static struct { uint8_t state; bool empty, working; uint32_t open; } sat_sim;
+static struct { uint8_t state; bool empty, working; uint32_t open, set_utc, set_ms; } sat_sim;
 static const ui_sat_t sim_sat_rows[] = {
 	{ "ISS", 25544, UI_SAT_UP, 61, 23, 2, 60, SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u },
 	{ "SO-50", 27607, UI_SAT_NEXT, 71, 0, 2, 135, SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u },
@@ -1812,7 +1812,8 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 	out->state = sat_sim.state;
 	out->count = sat_sim.empty ? 0 : SAT_SIM_ROWS;
 	out->store = true;
-	out->utc = sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
+	out->utc = sat_sim.set_utc != 0 ? sat_sim.set_utc + (uint32_t)((hal_millis() - sat_sim.set_ms) / 1000u) :
+		sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
 	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
 	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
 	return true;
@@ -1859,6 +1860,15 @@ bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
 
 // The tracked pass: a path from NW over the top to SE, 71 degrees high (SO-50's first pass), and the satellite at
 // the place of the pass its time says
+bool ui_svc_sat_clock_set(uint32_t utc)
+{
+	sat_sim.set_utc = utc;
+	sat_sim.set_ms = hal_millis();
+	if (sat_sim.state == UI_SAT_NO_TIME)
+		sat_sim.state = UI_SAT_READY;
+	return true;
+}
+
 static uint32_t sat_trk_aos, sat_trk_los;
 
 void ui_svc_sat_track(uint32_t aos, uint32_t los)
