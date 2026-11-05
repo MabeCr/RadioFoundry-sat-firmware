@@ -542,19 +542,23 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 	w.live_at = (uint32_t)in->now;
 	(*used)++;
 	bool ok = sat_look_at(&w.model, &w.obs, in->now, &l);
-	// All the arithmetic first: a write stays a few stores, as short as it can be
-	sat_live_t v = { .ok = ok };
+	// The slow arithmetic (the Doppler) before the write; what is left in it is a few stores and conversions
+	uint32_t rx = 0, tx = 0;
 	if (ok) {
-		v.az = (float)l.az;
-		v.el = (float)l.el;
-		v.range_km = (float)l.range;
-		v.rate_kms = (float)l.range_rate;
-		v.rx_hz = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
-		v.tx_hz = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
-		v.at = (uint32_t)in->now;
+		rx = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
+		tx = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
 	}
 	begin_write();
-	r.live = v;
+	r.live.ok = ok;
+	if (ok) {
+		r.live.az = (float)l.az;
+		r.live.el = (float)l.el;
+		r.live.range_km = (float)l.range;
+		r.live.rate_kms = (float)l.range_rate;
+		r.live.rx_hz = rx;
+		r.live.tx_hz = tx;
+		r.live.at = (uint32_t)in->now;
+	}
 	end_write();
 }
 
