@@ -4,10 +4,15 @@
 
 For the first run of the satellite build on the radio. Nothing here transmits; leave the antenna on and PTT alone. Each
 step says what you should see, and what to send me if you don't. Run the commands from the repository with the
-programming cable plugged in and the radio on, Home showing. Give the port if the tool can't find it
-(`--port /dev/ttyUSB0`); only one program may hold the cable at a time.
+programming cable plugged in and the radio on, Home showing.
 
-`rfoundry_debug.py` below means `python3 tools/rfoundry_debug.py`.
+**The DM-32UV has no USB port of its own, so always name the port.** Find it with `ls /dev/ttyUSB*` (usually
+`/dev/ttyUSB0`) and set it once: `export RFOUNDRY_PORT=/dev/ttyUSB0`. If you get a permission error, join the `dialout`
+group (`sudo usermod -aG dialout $USER`, then log out and in). Only one program may hold the cable at a time, so close
+the web installer's tab first. The tool needs pyserial: `pip install pyserial`.
+
+`rfoundry_debug.py` below means `python3 tools/rfoundry_debug.py`, run from the repository folder (it is not an installed
+command).
 
 Keys from Home: **OK** opens the menu, then **6** is Tools and **7** is Settings.
 
