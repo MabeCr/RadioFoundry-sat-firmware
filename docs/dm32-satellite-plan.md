@@ -478,7 +478,7 @@ Other:
 
 | Question | Status |
 |---|---|
-| Does the CK803S have an FPU? | Built without one (`-msoft-float`). Measure SGP4's cost: `tests/hil/test_sat.py` on the radio |
+| Does the CK803S have an FPU? | Built without one (`-msoft-float`). SGP4 costs 3.76 ms a run on the radio (measured 2026-11-05): far inside one update a second |
 | Flash and RAM left in the image | The standard image has 16 B of main RAM free; the configuration above has 23,928 B free (measured 2026-11-05) |
 | Can the RTC be read and set? | Open. Registers are in [hardware-dm32.md](spec/hardware-dm32.md) 3.3; no driver yet |
 | Does `rigctld` set frequency on this radio? | Written, and sets the VFO simplex. No result recorded on the radio yet |

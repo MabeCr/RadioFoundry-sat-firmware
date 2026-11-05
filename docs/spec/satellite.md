@@ -259,9 +259,11 @@ store, the service and its task (5.1), the screens, the SAT command and its trac
 `sat` task 88 bytes clear and no other task deeper than without it: the debug link's view shows the last LOOK rather
 than running the model under the status page, and the store's scans read a slot in 32-byte pieces.
 
-The time a run of the model takes on a radio without an FPU is not measured yet: the SAT command's BENCH and
-`tests/hil/test_sat.py` measure it. One update a second for live tracking and about 1,600 runs per satellite-day for
-the pass list (5) are the loads to measure against.
+Measured on the DM-32UV's CK803S (168 MHz, no FPU, 2026-11-05, `sat bench` over the debug link): **3.76 ms a run**
+(67 runs in 251,666 us). One update a second for live tracking is under 0.4% of the processor; a pass search of at most
+about 90 runs is 0.3 s, and a day of passes for one satellite (about 1,600 runs) is about 6 s of processor time, which
+the service spreads over slices at the idle priority (5.1). A host build of the same code takes about 1 us a run, and
+an ARM Cortex-M4 with its FPU 13 us.
 
 ## 8. Testing
 
@@ -298,4 +300,4 @@ sets (`pip install sgp4 skyfield`).
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
 | Tracking | The live screen (azimuth, elevation, sky plot, Doppler, arming countdown) and a short way to it (a programmable key: the list is three levels from Home), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
 | Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
-| Speed on the radio | A run of `tests/hil/test_sat.py` on each radio: the time per model run without an FPU (7) |
+| Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The DM-32UV's is measured |
