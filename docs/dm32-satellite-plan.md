@@ -244,14 +244,14 @@ Still open:
 
 ### Satellite screens
 
-
-Checked on the DM-32UV (2026-11-05): the ISS's next pass on the list matched an independent tracker's rise time and
-peak, and three satellites filled in within 6 to 8 seconds of opening the list. The orbit model costs 3.76 ms a run.
 Built: Tools > Satellites (OK 6 0) and a satellite's passes ([ui.md](spec/ui.md) 2.6, [user guide](user/24-satellites.md)),
 from the mockups agreed on 2026-11-03. Decided there: tracking tunes the radio temporarily and puts the channel back
 on leaving; times are local through a Time zone setting (no daylight saving rule); a Lowest pass setting (10° at
 first); Satellites is Tools 0; pass alarms come later; arrows show each pass's way across the sky. Still to build:
 the tracking screen, and a short way to it (the list is three levels from Home, the most a field screen may be).
+
+Checked on the DM-32UV (2026-11-05): the ISS's next pass on the list matched an independent tracker's rise time and
+peak, and three satellites filled in within 6 to 8 seconds of opening the list. The orbit model costs 3.76 ms a run.
 
 ### UI redesign
 
