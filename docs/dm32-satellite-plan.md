@@ -235,9 +235,10 @@ Done: Settings > Display > Theme > Night ([ui.md](spec/ui.md) 8).
 
 Still open:
 
-- Backlight and LEDs, to decide on the radio in the dark: a separate Night brightness, a minimum below today's 10%, and
-  whether the status LEDs can dim or only switch.
-- Check the shades and the dimmest text on the real panel.
+- Backlight: the 10% minimum is fine on the radio, so no separate Night brightness or lower minimum for now.
+- The RX / TX LEDs at the top: two plain on / off pins (hardware-dm32.md 5, 6), so dimming would need PWM. Open: do they
+  bother in the dark? If so, a Night setting could turn them off.
+- Checked on the real panel (2026-11): the disabled rows were too dark, now brighter (`line` 64 to 96); the rest reads well.
 - Spanish and Italian strings need a native speaker's check.
 - Idea: switch to Night automatically after sunset, from GPS position and time.
 
