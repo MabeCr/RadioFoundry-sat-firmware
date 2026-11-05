@@ -118,6 +118,7 @@ Yes. Built with csky-elf GCC 14 (`tools/docker/csky-toolchain/run.sh`), the sate
 |---|---:|---:|---:|
 | The standard DM-32UV image (satellites off) | 587,392 | 211,440 | 16 |
 | The configuration above, `CONFIG_SAT=y` | 454,232 (50%) | 187,528 (88.7%) | **23,928** |
+| The same with the Tracking screen (2026-11-05) | 457,796 (50.8%) | 187,688 (88.8%) | **23,768** |
 
 The 14 switches turned off free 47 KB of RAM and 160 KB of flash; satellite tracking takes back about 2.8 KB of static
 RAM, the 2 KB of extra heap for its task and 27 KB of flash. The estimate made before the measurement was 20 to 25 KB
@@ -247,11 +248,15 @@ Still open:
 Built: Tools > Satellites (OK 6 0) and a satellite's passes ([ui.md](spec/ui.md) 2.6, [user guide](user/24-satellites.md)),
 from the mockups agreed on 2026-11-03. Decided there: tracking tunes the radio temporarily and puts the channel back
 on leaving; times are local through a Time zone setting (no daylight saving rule); a Lowest pass setting (10° at
-first); Satellites is Tools 0; pass alarms come later; arrows show each pass's way across the sky. Still to build:
-the tracking screen, and a short way to it (the list is three levels from Home, the most a field screen may be).
+first); Satellites is Tools 0; pass alarms come later; arrows show each pass's way across the sky. The Tracking screen is built too (OK on a pass, or a long OK on a satellite
+in the list; it is the fifth level, so not field use). Still to build: tuning the radio to the corrected frequencies
+(receive first), the SO-50 arming countdown and key, and a shorter way in such as a programmable key.
 
 Checked on the DM-32UV (2026-11-05): the ISS's next pass on the list matched an independent tracker's rise time and
 peak, and three satellites filled in within 6 to 8 seconds of opening the list. The orbit model costs 3.76 ms a run.
+
+With the Tracking screen the static stack check still passes (least free: the idle task, 132 B; `ui` 264 B, `sat`
+152 B, `host` 924 B), and on the radio `tasks.heap_min_free` stayed 15,416 and the least free stack was `sat` at 272 B.
 
 ### UI redesign
 
