@@ -60,6 +60,11 @@ bool ui_svc_position(ui_position_t *out)
 	return true;
 }
 
+uint8_t ui_svc_gps_state(void)
+{
+	return board_has_gps() ? aprs_gps_state(hal_millis()) : 0;
+}
+
 #if CONFIG_GPS_SKY
 bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out)
 {

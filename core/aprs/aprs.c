@@ -1658,6 +1658,16 @@ bool aprs_gps(aprs_gps_t *out, uint32_t now_ms)
 	return on;
 }
 
+uint8_t aprs_gps_state(uint32_t now_ms)
+{
+	LOCK();
+	uint8_t st = 0;
+	if (!a.gps_off && a.gps_heard && now_ms - a.gps_heard_ms < POS_STALE_MS)
+		st = a.gps.valid && now_ms - a.gps.ms < POS_STALE_MS ? 2u : 1u;
+	UNLOCK();
+	return st;
+}
+
 #if CONFIG_GPS_SKY
 bool aprs_gps_sat(uint8_t i, sky_sat_t *out, bool *used)
 {

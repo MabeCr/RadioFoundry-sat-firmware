@@ -70,6 +70,7 @@ WEAK bool ui_svc_radio_check(uint32_t id) { (void)id; return false; }
 WEAK bool ui_svc_call_alert(uint32_t id) { (void)id; return false; }
 
 WEAK bool ui_svc_position(ui_position_t *out) { (void)out; return false; }
+WEAK uint8_t ui_svc_gps_state(void) { return 0; }
 WEAK bool ui_svc_sat_status(ui_sat_status_t *out) { (void)out; return false; }
 WEAK bool ui_svc_sat_get(uint8_t i, ui_sat_t *out) { (void)i; (void)out; return false; }
 WEAK void ui_svc_sat_refresh(void) {}

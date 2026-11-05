@@ -35,6 +35,7 @@
 //   hotspot:on|off      the host link enters / leaves hotspot mode
 //   sat:notime|nopos|nomem|empty|working   satellites (CONFIG_SAT): no clock yet, no position, no task, nothing stored, SO-50's
 //                       passes still being worked out (until the next reset; see sat_sim)
+//   gps:off|search|fix  the strip's GPS icon: none, a hollow square, a solid one
 //   usbnet:off|on|up    USB a serial port, a network adapter, or a network adapter the computer has brought up
 //   battery:<pct>       the battery reads pct; offfailed: auto power off couldn't switch off
 //   foreign             the codeplug is another firmware's: a channel write asks first (codeplug-foreign)
@@ -394,6 +395,7 @@ static bool hotspot_on;
 hostlink_mode_t hostlink_mode(void) { return hotspot_on ? HOSTLINK_HOTSPOT : HOSTLINK_IDLE; }
 void hostlink_hotspot_exit(void) { hotspot_on = false; }
 static bool usb_net;	// the USB personality (Tools > USB network)
+static uint8_t gps_sim;	// the strip's GPS icon: 0 none, 1 searching, 2 fix (gps:search, gps:fix)
 static bool usb_up;	// the computer has brought the network adapter up (hal_netif_t.up)
 
 // APRS (Tools > APRS, core/ui/ui_aprs.c): a small stand-in for the engine's view and configuration
@@ -1781,6 +1783,7 @@ bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out)
 	*out = sim_sats[i];
 	return true;
 }
+uint8_t ui_svc_gps_state(void) { return gps_sim; }
 #if CONFIG_SAT
 // Satellites (ui_svc.h): the list and SO-50's passes as the mockups have them, at 14:05 UTC (08:05 at UTC-6, the
 // time zone sim_reset sets)
@@ -2085,6 +2088,7 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	view.zone_pos = 2;	// 3 COUNTY DMR
 	n_inbox = 0;
 	hotspot_on = rx_on = usb_net = usb_up = false;
+	gps_sim = 0;
 	board.netif = &sim_netif;
 	aprs_sim_reset();
 	n_edits = 0;
@@ -2732,6 +2736,11 @@ static bool run_token(char *t, char *err, size_t len)
 	if (strcmp(t, "crashtx") == 0 && arg != NULL) {	// crashtx:ok, crashtx:refuse, crashtx:fail (see crash_sim)
 		crash_sim.tx_mode = strcmp(arg, "refuse") == 0 ? CRASH_TX_SIM_REFUSE :
 				    strcmp(arg, "fail") == 0 ? CRASH_TX_SIM_FAIL : CRASH_TX_SIM_OK;
+		return true;
+	}
+	if (strcmp(t, "gps") == 0 && arg != NULL) {
+		gps_sim = strcmp(arg, "fix") == 0 ? 2 : strcmp(arg, "search") == 0 ? 1 : 0;
+		advance(100);
 		return true;
 	}
 	if (strcmp(t, "usbnet") == 0 && arg != NULL) {

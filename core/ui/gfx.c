@@ -620,6 +620,22 @@ void gfx_icon_battery(int x, int y, int w, int h, uint8_t pct, color_t outline, 
 	gfx_fill(x + 2, y + 2, lit, h - 4, fill);
 }
 
+void gfx_icon_gps(int x, int y, int d, bool fix, color_t c)
+{
+	if (d < 5)
+		d = 5;
+	if (fix) {
+		gfx_fill(x + 1, y, d - 2, d, c);
+		gfx_fill(x, y + 1, d, d - 2, c);
+		return;
+	}
+	gfx_hline(x + 1, y, d - 2, c);
+	gfx_hline(x + 1, y + d - 1, d - 2, c);
+	gfx_vline(x, y + 1, d - 2, c);
+	gfx_vline(x + d - 1, y + 1, d - 2, c);
+	gfx_pixel(x + d / 2, y + d / 2, c);	// the dot of a location mark in the middle
+}
+
 void gfx_icon_bars(int x, int y, int w, int h, uint8_t count, uint8_t lit, color_t on, color_t off)
 {
 	if (count == 0)

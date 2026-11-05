@@ -47,6 +47,8 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "home_monitor", "down mondown" },
 	{ "home_plain", "strip:off" },	// Settings > Display > Filled status bar off
 	{ "home_locked", "long:quick 5" },
+	{ "home_gps_search", "gps:search wait:1200" },
+	{ "home_gps_fix", "gps:fix wait:1200" },
 	{ "home_usb_ip", "usbnet:on" },
 	{ "home_usb_ip_up", "usbnet:up" },
 	{ "rx_group", "rx:3101234,91,g,K1ABC_Joe_-_Boston,_MA" },

@@ -291,6 +291,8 @@
  "color.purple": "viola",
  "color.pink": "rosa",
  "screen.home_locked": "Home, tasti bloccati",
+ "screen.home_gps_search": "Home, GPS in ricerca",
+ "screen.home_gps_fix": "Home, GPS agganciato",
  "screen.home_usb_ip": "Home con USB come scheda di rete, in attesa del computer (IP)",
  "screen.home_usb_ip_up": "Home con il computer collegato via rete USB (IP e frecce del collegamento)",
  "screen.home_reply": "Home, risposta al chiamante",

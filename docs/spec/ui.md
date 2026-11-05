@@ -46,7 +46,12 @@ A fixed prefix ahead of a name is lowercase in the middle ("Talk to Ops", "Zone 
 ("1 of 3", a zone's name) are shown as stored. List rows, values, hints, toasts and banners keep sentence case, so the
 row that opens a page can differ from its title: the Settings row "Talk & listen" opens "Talk & Listen".
 A page title is centered on the screen at every display class, moved only as far as it must to clear what shares its
-row (the state pill, the lock, the unread count).
+row (the state pill, the GPS mark, the lock, the unread count).
+
+The status strip's GPS mark (`gfx_icon_gps`, state from `ui_svc_gps_state`): nothing while the GPS is off or not heard from;
+a hollow square with a dot in the warning color while it receives without a fix; a solid square in the receive color
+with a fix (on a filled strip, in the strip's text color). Shape and color both say which (P5). It sits left of the lock
+and the unread count, so it gives way first on a narrow strip.
 
 The hint row is groups separated by two spaces (`"OK open  # more  Back"`). The group for the Back key (it starts with
 "Back") is drawn against the right edge, under the key; the other groups run from the left, and those that don't fit
