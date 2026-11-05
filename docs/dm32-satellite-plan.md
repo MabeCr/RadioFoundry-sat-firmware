@@ -6,10 +6,13 @@ This fork of RadioFoundry adds satellite operation to the DM-32UV: on-radio orbi
 correction, with risk-averse work first. This page holds the plan, the decisions made so far and what is still open.
 It belongs to this fork, not to upstream.
 
-Status as of 2026-11-03: the Night theme is merged. The satellite library (orbit prediction, passes, Doppler, profiles,
-SO-50 arming, UTC from GPS) is written and host-tested, behind `CONFIG_SAT` ([satellite.md](spec/satellite.md)). Nothing
-on the radio uses it yet: no screen, no stored orbit data. The radio has not arrived, and no firmware from this fork
-has been compiled for it.
+Status as of 2026-11-05: the satellite feature is built and running on the radio: the orbit library, the stored
+satellites, Tools > Satellites with passes and Tracking, a battery-backed clock with a Set time screen, a GPS mark in the
+status strip, and a browser page that updates the element sets from a phone ([dev/sat-tle-web-tool.md](dev/sat-tle-web-tool.md)).
+Still to build: Doppler tuning of the radio, the SO-50 arming countdown and key, and pass alarms. What was seen on the
+radio, and what is still untested, is the log in [testing/dm32-satellite-bringup.md](testing/dm32-satellite-bringup.md)
+section 5. The work is on branch `claude/peaceful-ride-m0ie2u` and in
+[pull request 3](https://github.com/MabeCr/RadioFoundry-sat-firmware/pull/3).
 
 Feasibility notes come from public documents unless they name a file in this repository. Anything not tested on the
 radio is untested, however likely it looks.
@@ -187,11 +190,11 @@ The rest measured under 0.5 KB of RAM each: `NET_KISS`, `DMR_CONFIRMED`, `CRASH_
 Back up both flash chips before anything else. They hold this radio's own RX/TX calibration and keys, which no other
 radio's backup can replace. The procedure is [dm32-bringup.md](testing/dm32-bringup.md) section 0.
 
-- [ ] Note the board revision, stock firmware version and vocoder variant when the radio arrives
-- [ ] Back up the 1 MB program flash and the 16 MB data flash, and store copies in two places
-- [ ] Confirm the stock firmware can be reflashed before installing anything else
-- [ ] Use an FTDI cable: CH340 cables can be unreliable ([installing](user/02-installing.md))
-- [ ] Do all transmit testing into a dummy load first
+- [x] Note the board revision, stock firmware version and vocoder variant when the radio arrives
+- [x] Back up the 1 MB program flash and the 16 MB data flash, and store copies in two places
+- [x] Confirm the stock firmware can be reflashed before installing anything else
+- [x] Use an FTDI cable: CH340 cables can be unreliable ([installing](user/02-installing.md))
+- [ ] Do all transmit testing into a dummy load first (nothing transmits yet)
 
 Risk ladder, lowest first: simulator-only work, receive-only features, transmit features. Anything that changes keying,
 power or deviation is checked on a spectrum analyzer before going on the air. Backups never go in this repository
@@ -203,11 +206,11 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 
 | Step | Work | Status |
 |---|---|---|
-| 1 | Set up: build, host tests, UI simulator | Host tests and simulator work. Firmware build waits on the toolchain |
+| 1 | Set up: build, host tests, UI simulator | Done. The firmware builds with the C-SKY Docker image (`tools/docker/csky-toolchain/run.sh`) and in CI |
 | 2 | UI redesign and Night theme | Night theme merged. Redesign not started |
 | 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Profiles and TLEs are stored in data flash (one sector at 0x71B000, 32 satellites), saved and listed over the debug link (`rfoundry_debug.py sat save`, `list`). Not yet: editing on the radio; keying the burst through the radio core |
 | 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Done in the simulator: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`); Tools > Satellites lists the stored satellites' next passes and one satellite's 24 hours of passes, in local time with direction arrows, worked out by a task of its own; Settings > Location > Time zone and Lowest pass. Untested on the radio: `tests/hil/test_sat.py` measures the model's speed there |
-| 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Radio due |
+| 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Done: installed over the standard release, the model costs 3.76 ms a run. `test_sat.py` itself has not been run on Windows |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
 | 7 | Crystal calibration and drift display | Not started |
 | 8 | Keypad TLE entry, then sound transfer | Not started |

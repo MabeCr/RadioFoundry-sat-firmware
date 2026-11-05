@@ -11,8 +11,7 @@ SPDX-FileCopyrightText = "2017 STMicroelectronics"
 SPDX-License-Identifier = "BSD-3-Clause"
 
 [[annotations]]
-path = ["site/templates/**", "site/**/*.json", "site/**/*.png", "site/**/*.svg", "tools/sat-web/**/*.json", "tools/sat-web/**/*.png",
-	"tools/sat-web/**/*.svg", "tools/sat-web/manifest.webmanifest"]
+path = ["site/templates/**", "site/**/*.json", "site/**/*.png", "site/**/*.svg", "tests/data/*.json"]
 SPDX-FileCopyrightText = "2026 The RadioFoundry Authors"
 SPDX-License-Identifier = "MIT"
 

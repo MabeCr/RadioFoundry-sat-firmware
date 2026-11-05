@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 The RadioFoundry Authors
-"""The shared test vectors of the host tool (tools/rfoundry_debug.py) and this page (lib/tle.js, lib/sat.js): the
-Python code works the outcomes out, the JavaScript tests (tle.test.mjs, sat.test.mjs) must agree with them.
-    make_vectors.py          write vectors.json
-    make_vectors.py --check  fail if vectors.json differs from what the Python tool gives now (the tool's rules changed)"""
+"""The test vectors the host tool (tools/rfoundry_debug.py) shares with the satellite element set page
+(https://github.com/MabeCr/sat-tle-tools, docs/dev/sat-tle-web-tool.md): the Python code works the outcomes out, and the
+page's Node tests must agree with them, so the two implementations of the update rules can't drift.
+    tools/sat_vectors.py          write tests/data/sat_update_vectors.json
+    tools/sat_vectors.py --check  fail if that file differs from what the Python tool gives now (the tool's rules changed)
+After a change, copy the file to the page's repository as test/vectors.json."""
 import json
 import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", ".."))
+sys.path.insert(0, HERE)
 import rfoundry_debug as d  # noqa: E402
+VECTORS = os.path.join(HERE, "..", "tests", "data", "sat_update_vectors.json")
 
 
 def fix(line):
@@ -100,12 +103,12 @@ def build():
 
 def main():
     out = json.dumps(build(), indent=1, sort_keys=True) + "\n"
-    path = os.path.join(HERE, "vectors.json")
+    path = VECTORS
     if sys.argv[1:] == ["--check"]:
         if not os.path.exists(path) or open(path).read() != out:
-            print("vectors.json is not what tools/rfoundry_debug.py gives now: run test/make_vectors.py", file=sys.stderr)
+            print("tests/data/sat_update_vectors.json is not what tools/rfoundry_debug.py gives now: run tools/sat_vectors.py", file=sys.stderr)
             return 1
-        print("vectors.json: current")
+        print("sat_update_vectors.json: current")
         return 0
     open(path, "w").write(out)
     print("wrote", path)

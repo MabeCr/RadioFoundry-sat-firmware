@@ -84,6 +84,14 @@ the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the ra
 frequencies corrected for Doppler with how far they are from the nominal ones ("+3.4k"). The radio does not tune to
 them yet: set the channel yourself for now.
 
+## Updating the element sets from a phone
+
+The element sets go stale within a week or two. A browser page loads fresh ones over the programming cable, from a phone
+or a computer, and also sets the radio's clock and shows its diagnostics:
+<https://mabecr.github.io/sat-tle-tools/> (Chrome or Edge; on Android the cable goes on an OTG adapter). It uses the same
+rules as `rfoundry_debug.py sat update` and never changes what a satellite is set up to do. How it works:
+[the page's notes](../dev/sat-tle-web-tool.md).
+
 ## Settings
 
 **Settings > Location** ([Settings](17-settings.md)):

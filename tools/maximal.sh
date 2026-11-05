@@ -4,10 +4,10 @@
 # A board's maximal configuration: every switch on except those it can't do (BOARD_UNSUPPORTED, BOARD_NOT_WRITTEN), its
 # MAXIMAL_SKIP and the bench diagnostics, then the board's MAXIMAL_VARS (boards/<b>/config.mk). It is what tools/ci.sh
 # builds and stack-checks as "maximal"; a radio with little RAM cuts what it must in MAXIMAL_VARS so this fits.
-#   tools/maximal.sh BOARD [make arguments...]   build it:   tools/maximal.sh dm32 stack-check
+#   tools/maximal.sh BOARD [make arguments...]   build it:   tools/maximal.sh <board> stack-check
 #                                                BUILD defaults to build/<board>-maximal
 #   tools/maximal.sh --args BOARD                print the make variables only (tools/ci.sh uses this)
-# In the C-SKY container: tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32
+# In the C-SKY container: tools/docker/csky-toolchain/run.sh tools/maximal.sh <board>
 set -eu
 cd "$(dirname "$0")/.."
 # Switches the maximal configuration leaves off on every board: bench diagnostics, never in a release

@@ -335,20 +335,19 @@ for f in sys.argv[1:]:
 	else
 		skip "web site build: site/requirements.txt not installed (pip install -r site/requirements.txt, or install uv)"
 	fi
+	# The vectors the satellite element set page's tests share with rfoundry_debug.py (docs/dev/sat-tle-web-tool.md)
+	if python3 tools/sat_vectors.py --check > "$OUT/sat-vectors.log" 2>&1; then
+		ok "satellite update vectors: $(tail -1 "$OUT/sat-vectors.log")"
+	else
+		tail -5 "$OUT/sat-vectors.log"
+		bad "satellite update vectors (see $OUT/sat-vectors.log)"
+	fi
 	if command -v node > /dev/null; then
 		if RFOUNDRY_SITE_FIXTURES="$OUT/site-tests" site/tests/run.sh > "$OUT/site-tests.log" 2>&1; then
 			ok "web flasher tests: $(grep -E '^. pass' "$OUT/site-tests.log" | sed 's/^. //') against rfoundry"
 		else
 			tail -30 "$OUT/site-tests.log"
 			bad "web flasher tests (see $OUT/site-tests.log)"
-		fi
-		# The satellite element set page (tools/sat-web): its logic against the host tool's own outcomes (vectors.json)
-		if python3 tools/sat-web/test/make_vectors.py --check > "$OUT/sat-web.log" 2>&1 &&
-			node --test tools/sat-web/test/*.test.mjs >> "$OUT/sat-web.log" 2>&1; then
-			ok "satellite page tests: $(grep -E '^. pass' "$OUT/sat-web.log" | sed 's/^. //')"
-		else
-			tail -30 "$OUT/sat-web.log"
-			bad "satellite page tests (see $OUT/sat-web.log)"
 		fi
 	else
 		skip "web flasher tests: node not installed"

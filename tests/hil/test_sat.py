@@ -14,7 +14,7 @@ import pytest
 from rfoundry_hil import LONG, skip
 
 REF = pathlib.Path(__file__).resolve().parent.parent / "host" / "sat_ref.h"
-# One update a second is the requirement for live tracking (docs/dm32-satellite-plan.md): a run must be far under it
+# One update a second is the requirement for live tracking (docs/dm32-satellite-plan.md, docs/testing/dm32-satellite-bringup.md): a run must be far under it
 RUN_US_MAX = 100000
 
 
