@@ -309,6 +309,7 @@
  "screen.gps_sky": "Grafico del cielo GPS",
  "screen.satellites_no_time": "Satelliti prima di conoscere l'ora",
  "screen.satellite_passes": "I passaggi di un satellite",
+ "screen.satellite_track": "Tracciamento di un passaggio",
  "screen.satellites": "Satelliti e i loro prossimi passaggi",
  "screen.gps_signal": "Barre del segnale GPS",
  "screen.gps_grid": "Localizzatore a griglia",

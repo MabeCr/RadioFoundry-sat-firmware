@@ -705,6 +705,12 @@
     "SAT"
    ]
   },
+  "satellite_track": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
   "satellites_no_time": {
    "group": "tools",
    "needs": [

@@ -309,6 +309,7 @@
  "screen.gps_sky": "GPS sky plot",
  "screen.satellites_no_time": "Satellites before the time is known",
  "screen.satellite_passes": "One satellite's passes",
+ "screen.satellite_track": "Tracking a pass",
  "screen.satellites": "Satellites and their next passes",
  "screen.gps_signal": "GPS signal bars",
  "screen.gps_grid": "Grid locator",
