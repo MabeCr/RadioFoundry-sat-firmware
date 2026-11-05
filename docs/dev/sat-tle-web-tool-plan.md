@@ -2,7 +2,9 @@
 
 # Plan: a web page to update satellite element sets and run diagnostics
 
-Status: plan, nothing built. The goal is a page that runs in a phone's browser with the programming cable on an
+Status: plan, nothing built. This is the owner's own page, in its own folder of this repository (`tools/sat-web/`,
+proposed), published on a static host the owner controls. It is not part of the RadioFoundry site and shares none of its
+build. The goal is a page that runs in a phone's browser with the programming cable on an
 OTG adapter: keep the radio's satellite element sets (TLEs) current, set its clock from the phone, and show the
 diagnostics that today need the host tool ([debug-link.md](debug-link.md), `tools/rfoundry_debug.py`). It must work
 without a computer.
@@ -15,7 +17,10 @@ without a computer.
 | The radio's SAT commands | `docs/spec/debuglink.md` 3.24: TLE, LOAD, SAVE, STORED, DELETE, TIME, LOOK, PASS, BENCH, CLEAR | everything the page needs; no firmware change |
 | The update loop | `tools/rfoundry_debug.py` `sat_update`, `parse_tles`, `tle_checksum`, `tle_epoch`, `tle_catalog` | port to JavaScript, same rules |
 | Diagnostics | debug-link view sections (`tasks`, `sat`, `crash`, `version`) | read-only panels |
-| Site, i18n, tests | `site/` (static, es and it catalogs), `site/tests/*.test.mjs` (Node), `python3 site/build.py --serve` | host the page, test the logic |
+| Test style | `site/tests/*.test.mjs` (Node's built-in test runner, no packages) | the same way for this page's logic |
+
+The page copies the small parts of `link.js` it needs (about 200 lines: the frame, the CRC-16, the serial stream and
+the error texts) instead of importing them, so it stands alone; the code is MIT licensed and keeps its header.
 
 Nothing new is needed in the firmware. Every command is already there and already host-tested.
 
@@ -23,11 +28,13 @@ Nothing new is needed in the firmware. Every command is already there and alread
 
 | Question | Choice | Why |
 |---|---|---|
-| Where it lives | A page of the existing site: `site/templates/satellites.html`, code in `site/static/js/sat/` | The flasher already works from the phone over https. A page of another origin would need its own hosting and Web Serial needs a secure context (https or localhost) |
-| "Local first" | Develop with `python3 site/build.py --serve` on the computer (localhost counts as secure). The phone then uses the published site | A phone can't reach `http://<computer>:8000` with Web Serial (not a secure context). `adb reverse tcp:8000 tcp:8000` makes the phone's localhost the computer's, if a test before publishing is wanted |
+| Where it lives | `tools/sat-web/`: `index.html`, a few ES modules, one stylesheet, a web app manifest and a small service worker. Static files, no build step, no framework | Standalone, so it can be hosted anywhere and nothing of the RadioFoundry site changes |
+| Hosting | The owner's static host: GitHub Pages on the fork (free, https; the owner turns it on in the repository's settings), or Cloudflare Pages or Netlify pointed at the folder | Web Serial needs a secure context (https or localhost), so a phone needs a real https address |
+| "Local first" | `python3 -m http.server` in the folder, opened at `http://localhost:8000` on the computer (localhost counts as secure). The phone can use the same with `adb reverse tcp:8000 tcp:8000`, or the hosted copy | A phone can't use Web Serial on `http://<computer's address>:8000` (not a secure context) |
+| On the phone | Added to the home screen ("install"), which opens it like an app and, with the service worker, offline with the last download kept | The page has to work in a field with no coverage |
 | Data leaving the page | Only the download of the element sets from the source. Nothing about the radio or position is sent anywhere | Privacy; no account, no server of ours |
 | Element set source | CelesTrak's amateur group first (the host tool's default), with a pasted-text and a file option, and the last download kept in the browser | CelesTrak asks clients not to download the same group more often than every two hours; a kept copy is also what works without data coverage |
-| Language | Plain JavaScript modules like the rest of the site; no framework, no build step | Same as `flasher/` and `editor/`; the site has no bundler |
+| Language | Plain JavaScript modules, English only at first; no framework, no build step | Smallest thing that works; translation can come later |
 
 ## 3. The page
 
@@ -52,14 +59,14 @@ tolerance). The page must refuse in the same cases the tool does and say why in 
 
 | Step | Work | Done when |
 |---|---|---|
-| 0. Prove the phone path | No code. On the phone, with the cable on its OTG adapter, open the site's editor page and press Connect | The port chooser lists the cable and the radio answers. **Do this first**: if the phone's browser or the cable's USB chip can't give a serial port, the rest changes (section 5) |
-| 1. The logic, with tests | `site/static/js/sat/tle.js`: parse, check digits, catalog, epoch, name, the "newer" rule. `sat.js`: the SAT command encoders and decoders over `link.js`. Node tests in `site/tests/sat.test.mjs` against the same vectors as `tools/rfoundry_debug.py`'s self-test and the firmware's `satLinkTest.c` | The tests pass, and a TLE the Python tool refuses is refused here with the same reason |
-| 2. A fake radio | Extend `flasher/fake.js` (the site's fake radio) with the SAT commands and a small store | The page runs end to end on the computer with no radio, and in the Node tests |
-| 3. The page: connect, clock, list | Template, `satellites.js`, the i18n strings (en, es, it), a link from Tools | A radio's list shows on the computer; the clock button sets it |
+| 0. Prove the phone path | No code. On the phone, with the cable on its OTG adapter, open the RadioFoundry editor page (only as a connectivity test of the phone, cable and radio) and press Connect | The port chooser lists the cable and the radio answers. **Do this first**: if the phone's browser or the cable's USB chip can't give a serial port, the rest changes (section 5) |
+| 1. The logic, with tests | `tools/sat-web/tle.js`: parse, check digits, catalog, epoch, name, the "newer" rule. `link.js` (copied, trimmed) and `sat.js`: the SAT command encoders and decoders. Node tests in `tools/sat-web/test/` against the same vectors as `tools/rfoundry_debug.py`'s self-test and the firmware's `satLinkTest.c` | The tests pass, and a TLE the Python tool refuses is refused here with the same reason |
+| 2. A fake radio | A small one in `tools/sat-web/test/`: the SAT commands and a store, behind the same stream interface the page uses | The page runs end to end on the computer with no radio, and in the Node tests |
+| 3. The page: connect, clock, list | `index.html`, `app.js`, the stylesheet; laid out for a phone first | A radio's list shows on the computer; the clock button sets it |
 | 4. Update | Source, table, loop, progress, errors | A real update of three satellites on the computer matches what `rfoundry_debug.py sat update` does (same epochs on the radio afterwards) |
 | 5. Diagnostics | The panels and the copy button | The same numbers `rfoundry_debug.py view` prints |
-| 6. The phone | Publish the page to a preview of the site, open it on the phone, repeat 3 to 5 | An update from the phone, then Tools > Satellites on the radio shows the new ages |
-| 7. Polish | Offline copy of the last download, "last updated" per satellite, a staleness warning, the docs (`docs/user/24-satellites.md`, a page of its own on the site), the site tests in CI | CI green; the user guide says how |
+| 6. The phone | Publish to the owner's host, open it on the phone, repeat 3 to 5 | An update from the phone, then Tools > Satellites on the radio shows the new ages |
+| 7. Polish | Home-screen install and the service worker, the offline copy of the last download, "last updated" per satellite, a staleness warning, a short README in the folder and a pointer from `docs/user/24-satellites.md`, the Node tests in CI | CI green; the README says how to host it |
 
 Each step is a commit on the branch; steps 1, 2 and the Node tests need no radio and no phone.
 
@@ -68,7 +75,7 @@ Each step is a commit on the branch; steps 1, 2 and the Node tests need no radio
 | Risk | Detail | Handling |
 |---|---|---|
 | The phone's browser has no Web Serial, or not for this cable | Android Chrome gives serial ports only to some USB serial chips; the cable's chip (FTDI, CH340, CP210x, PL2303) decides. Not verified here | Step 0 answers it before any code. If it fails: another cable, or Chrome's own settings; the fallback is a page that downloads a file and a note to use the computer, which loses the point, so the step matters |
-| The download is blocked by the browser | CelesTrak's CORS headers couldn't be checked from the build machine (the network there refused it) | Test from a browser in step 4. The pasted-text and file options always work; a small proxy would be the last resort and is not wanted (it would be our server) |
+| The download is blocked by the browser | CelesTrak's CORS headers couldn't be checked from the build machine (the network there refused it) | Test from a browser in step 4. The pasted-text and file options always work; a small proxy would be the last resort and is not wanted (it would be a server to run) |
 | The port is busy | One program holds a serial port at a time: the editor tab, the flasher tab or a terminal | The page says so (`browserErrorKey` already maps the errors) and closes its own port when the tab hides |
 | A phone sleeping mid-update | Android may suspend a hidden tab during the loop, and a write to the radio's flash is about 50 ms per satellite | Keep the screen awake (`navigator.wakeLock`) during the loop; every satellite is stored whole or not at all (a record carries a CRC and a generation), so an interrupted update leaves the list valid, with some satellites not yet refreshed |
 | A wrong clock on the phone | The set time button would put the error on the radio | Show both times and the difference before the button; refuse a phone clock before 2026 (the radio's clock does) |
