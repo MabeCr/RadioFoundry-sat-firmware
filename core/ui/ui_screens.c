@@ -112,7 +112,9 @@ void ui_theme_set(uint8_t theme)
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(200, 0, 0);
 		ui_col.dim = RGB565(128, 0, 0);
-		ui_col.line = RGB565(64, 0, 0);
+		// line is also the disabled rows' text: 64 was hard to read on the radio in the dark (2026-11), 96 is a little
+		// brighter and still well under dim (128)
+		ui_col.line = RGB565(96, 0, 0);
 		ui_col.tx = RGB565(255, 0, 0);
 		ui_col.rx = RGB565(0, 128, 40);
 		ui_col.warn = RGB565(176, 96, 0);
