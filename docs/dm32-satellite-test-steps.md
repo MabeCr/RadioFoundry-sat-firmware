@@ -11,6 +11,20 @@ programming cable plugged in and the radio on, Home showing.
 group (`sudo usermod -aG dialout $USER`, then log out and in). Only one program may hold the cable at a time, so close
 the web installer's tab first. The tool needs pyserial: `pip install pyserial`.
 
+**On WSL (Ubuntu inside Windows):** WSL can't see the cable, which is plugged into Windows. Run the tool with Windows'
+Python instead: install Python from python.org (tick "Add python.exe to PATH"), `pip install pyserial` in PowerShell, find
+the cable's port in Device Manager > Ports (COM & LPT, say `COM3`), then from PowerShell, in the repository's folder
+(`cd \\wsl.localhost\Ubuntu\home\<you>\<path>\RadioFoundry-sat-firmware`; if PowerShell won't use that folder, copy the
+`tools` folder to `C:\rf\tools`):
+
+```powershell
+$env:RFOUNDRY_PORT = "COM3"
+python tools\rfoundry_debug.py version
+```
+
+Use `python tools\rfoundry_debug.py` wherever the steps say `rfoundry_debug.py`. Step 12 (pytest) needs more setup on
+Windows: skip it until the rest works.
+
 `rfoundry_debug.py` below means `python3 tools/rfoundry_debug.py`, run from the repository folder (it is not an installed
 command).
 
