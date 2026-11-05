@@ -50,13 +50,12 @@ the compiler or the checkout differs.
 ### A4. Build the satellite configuration
 
 ```bash
-make BOARD=dm32 BUILD=build/dm32-sat \
-	CONFIG_SFR=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n \
-	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_SAT=y \
-	CONFIG_NET_USRP=n CONFIG_HOTSPOT=n CONFIG_ZONE_SHARE=n CONFIG_NET_HTTP=n CONFIG_DMR_ROAMING=n \
-	2>&1 | tee build-sat.log
+tools/maximal.sh dm32 2>&1 | tee build-sat.log        # with Docker: tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32
 grep -E "FLASH:|RAM:|warning|overflow" build-sat.log
 ```
+
+`tools/maximal.sh dm32` builds the board's maximal configuration into `build/dm32-maximal/`: every switch on, then the
+cuts listed in `boards/dm32/config.mk` (`MAXIMAL_VARS`). It is the satellite configuration, and what CI builds.
 
 This is the first compile of the satellite code with the C-SKY compiler. Two things can happen:
 
@@ -75,7 +74,7 @@ The difference between `build-base.log` and `build-sat.log` is the real cost of 
 off and satellites on. Compare:
 
 ```bash
-make BOARD=dm32 BUILD=build/dm32-sat size   # section sizes and the space left before the codec
+make BOARD=dm32 BUILD=build/dm32-maximal size   # section sizes and the space left before the codec
 ```
 
 If main RAM is more than 4 KB short of the estimate, the cheapest ways out are in the plan's "Further cuts" table
@@ -86,7 +85,7 @@ If main RAM is more than 4 KB short of the estimate, the cheapest ways out are i
 The static check bounds every task's stack from the compiled code. It is what the ARM build's one tight spot (the UI
 task) needs checking against the C-SKY compiler's frames.
 
-Run the A4 command again with `stack-check` added as its last word (it reuses the build). Expect `every task fits`. Note the least free (`ui`
+Run the same command again with `stack-check` added as its last word (`tools/maximal.sh dm32 stack-check`; it reuses the build). Expect `every task fits`. Note the least free (`ui`
 was 0 bytes on the ARM build; the check itself keeps a 128 byte margin).
 
 - A task shown `OVER`: STOP. Most likely the UI (`ui`) or the host task (`hostlink_task`). The fix is a larger stack for
@@ -151,8 +150,8 @@ Write down `tasks.heap_min_free` (upstream saw 8,664 bytes on a DM-32UV after a 
 The standard release is a RadioFoundry radio, so rfoundry keeps its codec. Dry run first:
 
 ```bash
-rfoundry flash build/dm32-sat/rfoundry_dm32.bin --board dm32 --dry-run
-rfoundry flash build/dm32-sat/rfoundry_dm32.bin --board dm32
+rfoundry flash build/dm32-maximal/rfoundry_dm32.bin --board dm32 --dry-run
+rfoundry flash build/dm32-maximal/rfoundry_dm32.bin --board dm32
 ```
 
 (Get `rfoundry` from the release page, or `pipx install tools/rfoundry`. See [Installing](user/02-installing.md#advanced-rfoundry-on-the-command-line).) The

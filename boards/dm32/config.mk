@@ -28,3 +28,13 @@ BOARD_UNSUPPORTED += NAND_STORAGE	# the data flash is SPI NOR, GD25Q128 class (d
 # written, unconfirmed"): off by default, and off in ci's maximal configuration too
 BOARD_NOT_WRITTEN += VOX	# no hal_power_t.mic_level hook yet
 BOARD_NOT_WRITTEN += AUDIO_PROBE	# no board.audio_tap yet
+
+# ci's maximal configuration (tools/maximal.sh dm32) also has satellite tracking, which costs this radio about 2.8 KB of
+# RAM and 2 KB more RTOS heap (freertos_board.h), and the default image has 16 B free. So the maximal build cuts what
+# cost the RAM: with these off the satellite build links with about 23.7 KB free (measured 2026-11-05, docs/dm32-satellite-plan.md),
+# keeps the dual watch and APRS receive, and passes the stack check. A feature that needs RAM later cuts from this list
+# or shrinks the heap
+MAXIMAL_VARS := CONFIG_SFR=n CONFIG_SFR_CWID=n CONFIG_SFR_DUALPATH_RX=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n \
+	CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT=n \
+	CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_LANG_DEFAULT_ES=n CONFIG_NET_USRP=n CONFIG_ZONE_SHARE=n \
+	CONFIG_NET_HTTP=n CONFIG_NET_HTTP_GZIP=n CONFIG_NET_WEBCTL=n CONFIG_DMR_ROAMING=n

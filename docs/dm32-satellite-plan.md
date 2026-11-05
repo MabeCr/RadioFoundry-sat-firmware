@@ -27,17 +27,18 @@ radio is untested, however likely it looks.
 
 ## Build configuration
 
-The configuration chosen for satellite use on the DM-32UV:
+The configuration chosen for satellite use on the DM-32UV is the board's **maximal** build: every switch the radio can
+do on, then the cuts in `MAXIMAL_VARS` of `boards/dm32/config.mk` (the fourteen below and their sub-features). It is what
+CI builds and stack-checks on every pull request, so the RAM budget is checked there, not only on a laptop:
 
 ```
-make BOARD=dm32 CONFIG_SFR=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n \
-	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_SAT=y \
-	CONFIG_NET_USRP=n CONFIG_HOTSPOT=n CONFIG_ZONE_SHARE=n CONFIG_NET_HTTP=n CONFIG_DMR_ROAMING=n
+tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32                # build/dm32-maximal/rfoundry_dm32.bin
+tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32 stack-check
 ```
 
-`make -n` accepts this combination and sets the switches as intended. It has not been compiled: that needs
-`csky-elf-gcc` (`tools/build-csky-toolchain.sh`). `tools/ci.sh` builds each switch off on its own, not this mix, so the
-first build is the first test of it.
+The first measurements (below) were made with the same cuts typed by hand, and `SAT` on, with `LANG_IT` and `VIBRATE`
+left off. The maximal build also turns those on (a few KB of flash, little RAM): the numbers move a little and are
+measured again after this change.
 
 | Switch | State | Why |
 |---|---|---|
