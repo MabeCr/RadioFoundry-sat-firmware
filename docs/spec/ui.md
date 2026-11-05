@@ -283,8 +283,8 @@ the results arrive; a list redraws every second.
 | Passes body | its frequencies ("TX 145.850 RX 436.795"), its uplink tone and arming tone |
 | A pass's row | the rise time and the peak elevation, then the arrow, the directions it rises and sets in and its length ("↘ NW→SE 13m", shorter forms where it doesn't fit); a "Tomorrow" line (not focusable) before the first pass of the next local day; "Working…" while the 24 hours aren't all searched |
 | Track title | the satellite's name and "Tracking" |
-| Track plot | a sky plot with north up: the pass's whole path (24 points, worked out by the service), and the satellite as a dot, green above the horizon |
-| Track numbers | the elevation large, the pass's arrow, azimuth with its compass point, the time to the set ("LOS 6:58") or to the rise ("AOS"), the receive and transmit frequencies with Doppler and how far each is from the profile's ("RX 436.79849 +3.4k"), the range. A small panel drops what doesn't fit, from the bottom; a value too wide loses its shift |
+| Track plot | a sky plot with north up: the pass's whole path (24 points, worked out by the service), the pass's arrow beside the middle of the path, and the satellite as a dot, green above the horizon |
+| Track numbers | the elevation large, azimuth with its compass point, the time to the set ("LOS 6:58") or to the rise ("AOS"), the receive and transmit frequencies with Doppler and how far each is from the profile's ("RX 436.79849 +3.4k"), the range. A small panel drops what doesn't fit, from the bottom; a value too wide loses its shift |
 | Tools row 0 | the first satellite on the list with a pass: "ISS 08:32", or "ISS up" while it is overhead |
 
 The arrow is one of eight icon glyphs (`font.h` `GLYPH_DIR_FIRST`, drawn from lines in `gfx.c`): the bearing from

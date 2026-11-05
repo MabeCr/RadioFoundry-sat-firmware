@@ -398,13 +398,28 @@ static void plot(int cx, int cy, int r, const ui_sat_live_t *live)
 	uint16_t az;
 	int8_t el;
 	int px = 0, py = 0;
+	int mx = cx, my = cy;
 	for (uint8_t i = 0; i < n && ui_svc_sat_path(i, &az, &el); i++) {
 		int x, y;
 		sky_xy(cx, cy, r, az, el, &x, &y);
 		if (i > 0)
 			line(px, py, x, y, ui_col.fg);
+		if (i == UI_SAT_PATH / 2) {
+			mx = x;
+			my = y;
+		}
 		px = x;
 		py = y;
+	}
+	if (n > UI_SAT_PATH / 2) {
+		// The pass's way across the sky, beside the middle of its path on the side away from the center
+		char ar[4];
+		sbuf_t ab;
+		sb_init(&ab, ar, sizeof ar);
+		sb_dir_arrow(&ab, trk_dir);
+		const font_t *f = ui_layout.small;
+		int ax = mx + (mx >= cx ? 3 : -3 - f->w), ay = my + (my >= cy ? 1 : -1 - f->h);
+		gfx_text(f, ax, ay, ar, ui_col.fg);
 	}
 	if (live != NULL) {
 		int x, y, d = r >= 40 ? 3 : 2;
@@ -493,9 +508,6 @@ static void track_draw(void)
 		sb_i32(&b, live.el);
 		sb_str(&b, GLYPH_DEGREE);
 		gfx_text(big, x, ty, buf, live.el >= 0 ? ui_col.rx : ui_col.warn);
-		sb_init(&b, buf, sizeof buf);
-		sb_dir_arrow(&b, trk_dir);
-		gfx_text(ui_layout.medium, w - gfx_text_width(ui_layout.medium, buf) - 2, ty, buf, ui_col.fg);
 		ty += big->h + 1;
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, live.az, 1);

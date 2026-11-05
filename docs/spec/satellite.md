@@ -181,6 +181,11 @@ its place between polls. The UI reads the results without waiting (a sequence co
 | Live (`sat_svc_live`) | the tracked satellite's azimuth, elevation, range and range rate once a second, with the receive and transmit frequencies of its profile corrected for Doppler (4.3) |
 | Path (`sat_svc_path_pt`) | 24 points of azimuth and elevation, evenly from the pass's rise to its set, for the sky plot |
 
+A reader never waits for a write: the service's task runs below the UI's, so a UI task spinning on a write it had
+preempted would never let it finish (the watchdog caught this once on the radio: UI task, 3 s). It tries 50 times, then
+gives up for that draw and asks again at the next. The slow arithmetic of a result (Doppler, heading) is done before its
+write, which then holds only stores.
+
 The screen asks for a pass with `sat_svc_track(aos, los)` at every draw. Nothing tells the service the screen has gone, so
 it stops, and drops the results, five seconds after the last request. A new observer or pass starts the path over.
 

@@ -59,6 +59,11 @@ static struct {
 	uint32_t el_at[SAT_SVC_MAX];	// when an up row's elevation was last worked out (UTC seconds)
 } w = { .kind = -1 };
 
+// A reader that finds a write under way (the count odd or changed) tries again a few times, then gives up for now: the
+// service's task runs below the UI's, so a UI task that waited for a write it had preempted would wait forever
+#define SEQ_TRIES	50
+#define SEQ_BUSY(s, tries)	((((s) & 1u) != 0 || (s) != r.seq) && ++(tries) < SEQ_TRIES)
+
 static void begin_write(void) { r.seq++; }
 static void end_write(void) { r.seq++; }
 
@@ -118,77 +123,91 @@ uint8_t sat_svc_count(void)
 bool sat_svc_row(uint8_t i, sat_row_t *out)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	bool ok;
 	do {
 		s = r.seq;
 		ok = i < r.count;
 		if (ok)
 			*out = r.rows[i];
-	} while ((s & 1u) != 0 || s != r.seq);
-	return ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
 }
 
 bool sat_svc_profile(sat_profile_t *out)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	bool ok;
 	do {
 		s = r.seq;
 		ok = r.open_norad != 0 && r.open_found;
 		if (ok)
 			*out = r.open_profile;
-	} while ((s & 1u) != 0 || s != r.seq);
-	return ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
 }
 
 uint8_t sat_svc_passes(sat_pass_row_t *out, uint8_t max, bool *done)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	uint8_t n;
 	do {
 		s = r.seq;
 		n = r.npasses < max ? r.npasses : max;
 		memcpy(out, r.passes, n * sizeof *out);
 		*done = r.passes_done;
-	} while ((s & 1u) != 0 || s != r.seq);
+	} while (SEQ_BUSY(s, tries));
+	if (tries >= SEQ_TRIES) {
+		*done = false;	// busy: nothing yet, the next draw asks again
+		return 0;
+	}
 	return n;
 }
 
 uint8_t sat_svc_pass_count(bool *done)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	uint8_t n;
 	do {
 		s = r.seq;
 		n = r.npasses;
 		*done = r.passes_done;
-	} while ((s & 1u) != 0 || s != r.seq);
+	} while (SEQ_BUSY(s, tries));
+	if (tries >= SEQ_TRIES) {
+		*done = false;	// busy: nothing yet, the next draw asks again
+		return 0;
+	}
 	return n;
 }
 
 bool sat_svc_pass(uint8_t i, sat_pass_row_t *out)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	bool ok;
 	do {
 		s = r.seq;
 		ok = i < r.npasses;
 		if (ok)
 			*out = r.passes[i];
-	} while ((s & 1u) != 0 || s != r.seq);
-	return ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
 }
 
 bool sat_svc_live(sat_live_t *out)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	bool ok;
 	do {
 		s = r.seq;
 		*out = r.live;
 		ok = r.live.ok;
-	} while ((s & 1u) != 0 || s != r.seq);
-	return ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
 }
 
 uint8_t sat_svc_path_count(void)
@@ -199,14 +218,15 @@ uint8_t sat_svc_path_count(void)
 bool sat_svc_path_pt(uint8_t i, sat_path_pt_t *out)
 {
 	uint32_t s;
+	unsigned tries = 0;
 	bool ok;
 	do {
 		s = r.seq;
 		ok = i < r.npath;
 		if (ok)
 			*out = r.path[i];
-	} while ((s & 1u) != 0 || s != r.seq);
-	return ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
 }
 
 // --- the work ---
@@ -294,6 +314,7 @@ static uint16_t heading(float aos_az, float los_az)
 
 static void set_row(uint8_t i, uint8_t state, const sat_pass_t *p)
 {
+	uint16_t dir = p != NULL ? heading(p->aos_az, p->los_az) : 0;	// the slow arithmetic before the write
 	begin_write();
 	sat_row_t *row = &r.rows[i];
 	row->state = state;
@@ -303,7 +324,7 @@ static void set_row(uint8_t i, uint8_t state, const sat_pass_t *p)
 		row->max_el = (int8_t)(p->max_el + 0.5f);
 		row->aos_az = (uint16_t)(p->aos_az + 0.5f) % 360u;
 		row->los_az = (uint16_t)(p->los_az + 0.5f) % 360u;
-		row->dir = heading(p->aos_az, p->los_az);
+		row->dir = dir;
 	}
 	end_write();
 }
@@ -394,6 +415,7 @@ static bool step(const sat_svc_in_t *in, unsigned *used)
 	}
 	// The pass list
 	if (found) {
+		uint16_t dir = heading(p.aos_az, p.los_az);
 		begin_write();
 		sat_pass_row_t *q = &r.passes[r.npasses++];
 		q->aos = (uint32_t)p.aos;
@@ -401,7 +423,7 @@ static bool step(const sat_svc_in_t *in, unsigned *used)
 		q->max_el = (int8_t)(p.max_el + 0.5f);
 		q->aos_az = (uint16_t)(p.aos_az + 0.5f) % 360u;
 		q->los_az = (uint16_t)(p.los_az + 0.5f) % 360u;
-		q->dir = heading(p.aos_az, p.los_az);
+		q->dir = dir;
 		if (r.npasses >= SAT_SVC_PASSES)
 			r.passes_done = true;
 		end_write();
@@ -520,17 +542,19 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 	w.live_at = (uint32_t)in->now;
 	(*used)++;
 	bool ok = sat_look_at(&w.model, &w.obs, in->now, &l);
-	begin_write();
-	r.live.ok = ok;
+	// All the arithmetic first: a write stays a few stores, as short as it can be
+	sat_live_t v = { .ok = ok };
 	if (ok) {
-		r.live.az = (float)l.az;
-		r.live.el = (float)l.el;
-		r.live.range_km = (float)l.range;
-		r.live.rate_kms = (float)l.range_rate;
-		r.live.rx_hz = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
-		r.live.tx_hz = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
-		r.live.at = (uint32_t)in->now;
+		v.az = (float)l.az;
+		v.el = (float)l.el;
+		v.range_km = (float)l.range;
+		v.rate_kms = (float)l.range_rate;
+		v.rx_hz = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
+		v.tx_hz = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
+		v.at = (uint32_t)in->now;
 	}
+	begin_write();
+	r.live = v;
 	end_write();
 }
 
