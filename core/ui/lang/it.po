@@ -3185,8 +3185,8 @@ msgid "This TLE can't be predicted"
 msgstr "Questo TLE non è prevedibile"
 
 #: core/ui/ui_sat.c
-msgid "OK passes  Back"
-msgstr "OK passaggi  Indietro"
+msgid "OK passes  Hold OK track"
+msgstr "OK passaggi  Tieni OK segui"
 
 #: core/ui/ui_sat.c
 msgid "No satellites stored. Load them over the cable: rfoundry_debug.py sat"
@@ -3209,8 +3209,24 @@ msgid "Working"
 msgstr "Calcolo"
 
 #: core/ui/ui_sat.c
+msgid "OK track  Back"
+msgstr "OK segui  Indietro"
+
+#: core/ui/ui_sat.c
 msgid "No pass above the lowest in 24 h (Settings > Location)"
 msgstr "Nessun passaggio sopra il minimo in 24 h (Impostazioni > Posizione)"
+
+#: core/ui/ui_sat.c
+msgid "Tracking"
+msgstr "Tracciamento"
+
+#: core/ui/ui_sat.c
+msgid "Pass over"
+msgstr "Passaggio finito"
+
+#: core/ui/ui_sat.c
+msgid "Rng"
+msgstr "Dist"
 
 #: core/ui/ui_screens.c
 msgid "IDLE"

@@ -145,6 +145,7 @@ static const struct { const char *name, *script; } gallery[] = {
 	// Tools > Satellites (ui_sat.c): the list, one satellite's passes, before the clock is set
 	{ "satellites", "ok 6 0" },
 	{ "satellite_passes", "ok 6 0 2" },
+	{ "satellite_track", "ok 6 0 1 ok" },
 	{ "satellites_no_time", "sat:notime ok 6 0" },
 	{ "settings_location", "ok 7 5 up" },
 #endif

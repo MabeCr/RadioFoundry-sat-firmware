@@ -77,6 +77,10 @@ WEAK void ui_svc_sat_open(uint32_t norad) { (void)norad; }
 WEAK bool ui_svc_sat_profile(ui_sat_profile_t *out) { (void)out; return false; }
 WEAK uint8_t ui_svc_sat_pass_count(bool *done) { *done = true; return 0; }
 WEAK bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out) { (void)i; (void)out; return false; }
+WEAK void ui_svc_sat_track(uint32_t aos, uint32_t los) { (void)aos; (void)los; }
+WEAK bool ui_svc_sat_live(ui_sat_live_t *out) { (void)out; return false; }
+WEAK uint8_t ui_svc_sat_path_count(void) { return 0; }
+WEAK bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el) { (void)i; (void)az; (void)el; return false; }
 WEAK bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out) { (void)i; (void)out; return false; }
 WEAK bool ui_svc_emergency(bool on) { (void)on; return false; }
 WEAK void ui_svc_emergency_dismiss(void) { }

@@ -35,7 +35,7 @@ typedef enum {
 	SCR_CONTACT_EDIT,		// the contact editor (CONFIG_CONTACT_EDIT): a new contact, from ui_target
 	SCR_LANGUAGE,			// Settings > Display > Language: every language, those not built dimmed
 	SCR_CP_FOREIGN,			// another firmware's codeplug: what the first edit does with it (ui_svc_codeplug_answer)
-	SCR_SAT, SCR_SAT_PASSES,	// Tools > Satellites (CONFIG_SAT, ui_sat.c): the list, one satellite's passes
+	SCR_SAT, SCR_SAT_PASSES, SCR_SAT_TRACK,	// Tools > Satellites (CONFIG_SAT, ui_sat.c): the list, its passes, tracking one
 	SCR_COUNT
 } ui_scr_t;
 

@@ -580,6 +580,8 @@ static const flow_t flows[] = {
 	  false },
 	{ "S satellite passes", "ok 6 0", "2", "screen=passes shows=TX_145.850 shows=arm_74.4 shows=Tomorrow shows=NW",
 	  1, false },
+	{ "S track a pass", "ok 6 0 1", "ok", "screen=track shows=Tracking shows=ISS shows=Az shows=RX shows=LOS", 1, false },
+	{ "S tracking back to the passes", "ok 6 0 1 ok", "back", "screen=passes", 1, false },
 	{ "S passes back to the list", "ok 6 0 2", "back", "screen=satellites", 1, false },
 	{ "S no orbit data", "ok 6 0", "6", "screen=satellites toast=No_orbit_data", 1, false },
 	{ "S passes still being worked out", "sat:working ok 6 0", "2", "shows=Working", 1, false },

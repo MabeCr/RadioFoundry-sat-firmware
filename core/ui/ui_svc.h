@@ -222,6 +222,18 @@ bool ui_svc_sat_profile(ui_sat_profile_t *out);	// the opened satellite's freque
 // The opened satellite's passes so far: how many, *done once the 24 hours are searched; one of them
 uint8_t ui_svc_sat_pass_count(bool *done);
 bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out);
+// The tracking screen: the opened satellite's position now and its pass's path across the sky
+typedef struct {
+	uint16_t az;		// degrees
+	int8_t el;		// degrees; below 0 is under the horizon
+	float range_km, rate_kms;	// the range rate is positive while it moves away
+	uint32_t rx_hz, tx_hz;	// the profile's frequencies with Doppler, 0 none
+} ui_sat_live_t;
+void ui_svc_sat_track(uint32_t aos, uint32_t los);	// track that pass of the opened satellite; 0 stops
+bool ui_svc_sat_live(ui_sat_live_t *out);		// false until worked out
+uint8_t ui_svc_sat_path_count(void);			// points so far, UI_SAT_PATH when complete
+bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el);
+#define UI_SAT_PATH	24
 
 // --- Emergency, reset ---
 // Emergency is dmr-ext's: it defines ui_svc_emergency and reports UI_FEAT_EMERGENCY from ui_svc_feat_ext. Until

@@ -1801,6 +1801,8 @@ static const ui_sat_pass_t sim_sat_passes[] = {
 	{ SAT_SIM_UTC + 1276u * 60u, SAT_SIM_UTC + 1283u * 60u, 12, 0, 90, 90 },
 	{ SAT_SIM_UTC + 1433u * 60u, SAT_SIM_UTC + 1443u * 60u, 47, 45, 180, 165 },
 };
+// The ISS's, under way now
+static const ui_sat_pass_t sim_iss_pass = { SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u, 61, 329, 144, 135 };
 #define SAT_SIM_ROWS	(sizeof sim_sat_rows / sizeof sim_sat_rows[0])
 #define SAT_SIM_PASSES	(sizeof sim_sat_passes / sizeof sim_sat_passes[0])
 
@@ -1843,7 +1845,7 @@ bool ui_svc_sat_profile(ui_sat_profile_t *out)
 uint8_t ui_svc_sat_pass_count(bool *done)
 {
 	*done = !sat_sim.working;
-	return sat_sim.open != 27607 ? 0 : sat_sim.working ? 1 : SAT_SIM_PASSES;
+	return sat_sim.open == 25544 ? 1 : sat_sim.open != 27607 ? 0 : sat_sim.working ? 1 : SAT_SIM_PASSES;
 }
 
 bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
@@ -1851,7 +1853,53 @@ bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
 	bool done;
 	if (i >= ui_svc_sat_pass_count(&done))
 		return false;
-	*out = sim_sat_passes[i];
+	*out = sat_sim.open == 25544 ? sim_iss_pass : sim_sat_passes[i];
+	return true;
+}
+
+// The tracked pass: a path from NW over the top to SE, 71 degrees high (SO-50's first pass), and the satellite at
+// the place of the pass its time says
+static uint32_t sat_trk_aos, sat_trk_los;
+
+void ui_svc_sat_track(uint32_t aos, uint32_t los)
+{
+	sat_trk_aos = aos;
+	sat_trk_los = los;
+}
+
+static void sim_sat_at(unsigned i, unsigned n, uint16_t *az, int8_t *el)
+{
+	*az = (uint16_t)((329u + 175u * i / (n - 1u)) % 360u);
+	*el = (int8_t)(4u * 71u * i * (n - 1u - i) / ((n - 1u) * (n - 1u)));
+}
+
+bool ui_svc_sat_live(ui_sat_live_t *out)
+{
+	if (sat_trk_aos == 0)
+		return false;
+	memset(out, 0, sizeof *out);
+	ui_sat_status_t st;
+	ui_svc_sat_status(&st);
+	unsigned f = st.utc <= sat_trk_aos ? 0u : st.utc >= sat_trk_los ? 100u :
+		(st.utc - sat_trk_aos) * 100u / (sat_trk_los - sat_trk_aos);
+	sim_sat_at(f, 101u, &out->az, &out->el);
+	out->range_km = 900.0f - 3.0f * (float)(f < 50u ? f : 100u - f) * 2.0f;
+	out->rate_kms = 6.0f * (float)((int)f - 50) / 50.0f;
+	out->rx_hz = (uint32_t)(436795000.0 * (1.0 - (double)out->rate_kms / 299792.458));
+	out->tx_hz = (uint32_t)(145850000.0 / (1.0 - (double)out->rate_kms / 299792.458));
+	return true;
+}
+
+uint8_t ui_svc_sat_path_count(void)
+{
+	return sat_trk_aos == 0 ? 0 : sat_sim.working ? 8 : UI_SAT_PATH;
+}
+
+bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el)
+{
+	if (i >= ui_svc_sat_path_count())
+		return false;
+	sim_sat_at(i, UI_SAT_PATH, az, el);
 	return true;
 }
 #endif

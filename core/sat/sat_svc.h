@@ -14,6 +14,7 @@
 
 #define SAT_SVC_MAX		32	// satellites listed: a store sector's worth
 #define SAT_SVC_PASSES		8	// passes listed for one satellite
+#define SAT_SVC_PATH		24	// points of a pass's path for the sky plot
 #define SAT_SVC_SPAN_S		(24u * 3600u)	// how far ahead passes are looked for
 #define SAT_SVC_OLD_DAYS	30	// element sets older than this give no passes on the list (sat_row_t.state OLD)
 #define SAT_SVC_MIN_EL_DEFAULT	10	// degrees: the lowest pass listed until the user sets another
@@ -47,6 +48,22 @@ typedef struct {
 	uint16_t dir;		// as sat_row_t.dir
 } sat_pass_row_t;
 
+// The open satellite right now, for the tracking screen (every second or so while a pass is tracked)
+typedef struct {
+	bool ok;		// worked out (else the model failed or nothing is tracked)
+	float az, el;		// degrees; el below 0 is under the horizon
+	float range_km;
+	float rate_kms;		// range rate: positive while it moves away
+	uint32_t rx_hz, tx_hz;	// the profile's downlink and uplink with Doppler, 0 without a profile
+	uint32_t at;		// UTC, Unix seconds, it is for
+} sat_live_t;
+
+// A point of the pass's path across the sky
+typedef struct {
+	uint16_t az;		// degrees
+	int8_t el;		// degrees
+} sat_path_pt_t;
+
 // What a poll works with
 typedef struct {
 	bool time_ok;		// the clock is set (UTC)
@@ -79,6 +96,12 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget);
 uint8_t sat_svc_state(void);	// sat_svc_state_t
 uint8_t sat_svc_count(void);	// rows in the list
 bool sat_svc_row(uint8_t i, sat_row_t *out);
+// Track the opened satellite's pass aos..los (UTC): its position every second and the path across the sky; 0 stops
+void sat_svc_track(uint32_t aos, uint32_t los);
+bool sat_svc_live(sat_live_t *out);
+// The path's points so far (SAT_SVC_PATH once complete, evenly from aos to los) and point i
+uint8_t sat_svc_path_count(void);
+bool sat_svc_path_pt(uint8_t i, sat_path_pt_t *out);
 // The opened satellite's profile (false when none is open or it has gone from the store)
 bool sat_svc_profile(sat_profile_t *out);
 // The opened satellite's passes so far, earliest first, at most max; *done once all 24 hours are searched

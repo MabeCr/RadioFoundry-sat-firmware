@@ -92,11 +92,46 @@ bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
 	return true;
 }
 
+void ui_svc_sat_track(uint32_t aos, uint32_t los)
+{
+	sat_svc_track(aos, los);
+}
+
+bool ui_svc_sat_live(ui_sat_live_t *out)
+{
+	sat_live_t l;
+	if (!sat_svc_live(&l))
+		return false;
+	out->az = (uint16_t)((int)(l.az + 0.5f) % 360);
+	out->el = (int8_t)(l.el < 0.0f ? l.el - 0.5f : l.el + 0.5f);
+	out->range_km = l.range_km;
+	out->rate_kms = l.rate_kms;
+	out->rx_hz = l.rx_hz;
+	out->tx_hz = l.tx_hz;
+	return true;
+}
+
+uint8_t ui_svc_sat_path_count(void)
+{
+	return sat_svc_path_count();
+}
+
+bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el)
+{
+	sat_path_pt_t p;
+	if (!sat_svc_path_pt(i, &p))
+		return false;
+	*az = p.az;
+	*el = p.el;
+	return true;
+}
+
 // UI_SAT_* and sat_row_state_t are the same values (two enums: compared as numbers)
 #define SAME(a, b)	((int)(a) == (int)(b))
 _Static_assert(SAME(UI_SAT_NO_ORBIT, SAT_ROW_NO_ORBIT) && SAME(UI_SAT_WORKING, SAT_ROW_WORKING) &&
 	       SAME(UI_SAT_NEXT, SAT_ROW_NEXT) && SAME(UI_SAT_UP, SAT_ROW_UP) && SAME(UI_SAT_NONE, SAT_ROW_NONE) &&
 	       SAME(UI_SAT_OLD, SAT_ROW_OLD) && SAME(UI_SAT_BAD, SAT_ROW_BAD), "ui_svc.h's satellite states follow sat_svc.h's");
+_Static_assert(UI_SAT_PATH == SAT_SVC_PATH, "the path's points");
 _Static_assert(SAME(UI_SAT_NO_TIME, SAT_SVC_NO_TIME) && SAME(UI_SAT_NO_POSITION, SAT_SVC_NO_POSITION) &&
 	       SAME(UI_SAT_READY, SAT_SVC_READY) && SAME(UI_SAT_NO_MEMORY, SAT_SVC_NO_MEMORY),
 	       "ui_svc.h's satellite service states follow sat_svc.h's");

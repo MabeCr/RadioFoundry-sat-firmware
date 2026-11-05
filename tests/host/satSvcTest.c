@@ -11,6 +11,7 @@
 #include "storage/storage.h"
 #include "sat/sat_store.h"
 #include "sat/sat_svc.h"
+#include "sat/sat_look.h"
 #include "sim/sim_flash.h"
 #include "sat_ref.h"
 
@@ -174,6 +175,31 @@ int main(void)
 	in.now = p0->tca;
 	settle(60);
 	CHECK(row_of(25544, &row) >= 0 && row.state == SAT_ROW_UP && abs(row.el_now - (int)lround(p0->max_el)) <= 1);
+	// Tracking that pass at its highest point: the position there, the path across the sky, the Doppler
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
+	settle(60);
+	sat_live_t live;
+	CHECK(sat_svc_live(&live) && live.at == (uint32_t)in.now && fabs((double)live.el - p0->max_el) < 1.0);
+	CHECK(live.range_km > 300.0f && live.range_km < 3000.0f && fabsf(live.rate_kms) < 1.0f);
+	CHECK(live.rx_hz == sat_doppler_rx_hz(437800000u, live.rate_kms) && live.tx_hz == sat_doppler_tx_hz(145990000u, live.rate_kms));
+	CHECK(sat_svc_path_count() == SAT_SVC_PATH);
+	sat_path_pt_t pt;
+	int top = 0;
+	for (uint8_t i = 0; i < SAT_SVC_PATH && sat_svc_path_pt(i, &pt); i++)
+		top = pt.el > top ? pt.el : top;
+	CHECK(row_of(25544, &row) >= 0);
+	CHECK(sat_svc_path_pt(0, &pt) && pt.el <= 1 && abs((int)pt.az - (int)row.aos_az) <= 1);
+	CHECK(sat_svc_path_pt(SAT_SVC_PATH - 1, &pt) && pt.el <= 1 && abs((int)pt.az - (int)row.los_az) <= 1);
+	CHECK(top >= (int)p0->max_el - 6 && top <= (int)lround(p0->max_el));
+	CHECK(!sat_svc_path_pt(SAT_SVC_PATH, &pt));
+	// Nobody asks again: it stops, and the position stays the last one
+	in.now += 30.0;
+	settle(60);
+	CHECK(sat_svc_live(&live) && live.at == (uint32_t)(in.now - 30.0));
+	in.now -= 30.0;
+	sat_svc_track(0, 0);
+	settle(60);
+	CHECK(sat_svc_path_count() == 0 && !sat_svc_live(&live));
 	// After it: the next one, and the pass list starts at it
 	in.now = p0->los + 1.0;
 	settle(60);

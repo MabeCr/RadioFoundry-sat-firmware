@@ -10,8 +10,9 @@ also keeps a profile per satellite and arms a repeater that needs a wake-up carr
 
 Status: the library in `core/sat` and its host tests; stored satellites (6.3); the debug link's SAT command, which loads
 and stores element sets and runs the model on the radio ([debuglink.md](debuglink.md) 3.24); and Tools > Satellites,
-the satellite list and pass list, worked out by a task of their own (5.1, [ui.md](ui.md) 2.6). Tracking a pass with
-Doppler is not built yet. Section 9 lists what is still to write.
+the satellite list and pass list, worked out by a task of their own (5.1, [ui.md](ui.md) 2.6). The Tracking screen:
+the opened satellite's position every second, the pass's path for a sky plot, and the Doppler-corrected frequencies
+(5.1). Applying Doppler to the radio is not built yet. Section 9 lists what is still to write.
 
 | Section | Topic |
 |---|---|
@@ -39,7 +40,7 @@ static state is the UTC clock (4.1) and the service's results (5.1). The host te
 | `sat_pass.c` | The next pass: rise, highest point, set |
 | `sat_profile.c` | The built-in profiles and the arming state machine |
 | `sat_clock.c` | UTC from NMEA date and time, for the model (4.1) |
-| `sat_svc.c` | The service: every stored satellite's next pass and one satellite's pass list, a slice at a time (5.1) |
+| `sat_svc.c` | The service: every stored satellite's next pass and one satellite's pass list, a slice at a time, and the tracked pass's position and path (5.1) |
 | `core/app/sat_task.c` | The service's task: its inputs (clock, position, setting), a poll, a sleep |
 | `core/ui/ui_svc_sat.c`, `core/ui/ui_sat.c` | What the screens read, and the screens ([ui.md](ui.md) 2.6) |
 | `sat_track.c` | One tracked satellite: its model, the observer, its profile, and the look and Doppler at a time |
@@ -167,6 +168,22 @@ horizon.
 `sat_pass_t` keeps rise, highest point and set as Unix seconds, the highest elevation and the azimuths at rise and set
 (32 bytes).
 
+### 5.1 The service
+
+`sat_svc.c` (`core/app/sat_task.c` polls it) works one piece at a time, in this order: the tracked pass's path, the
+opened satellite's pass list, then each list row's next pass. Each poll does about 30 runs of the model; a piece keeps
+its place between polls. The UI reads the results without waiting (a sequence count around each update).
+
+| Result | What |
+|---|---|
+| Rows | each stored satellite: state, next pass, peak, azimuths, way across the sky; an up satellite's elevation every 2 s |
+| Passes | the opened satellite's passes in the next 24 hours (8 at most) |
+| Live (`sat_svc_live`) | the tracked satellite's azimuth, elevation, range and range rate once a second, with the receive and transmit frequencies of its profile corrected for Doppler (4.3) |
+| Path (`sat_svc_path_pt`) | 24 points of azimuth and elevation, evenly from the pass's rise to its set, for the sky plot |
+
+The screen asks for a pass with `sat_svc_track(aos, los)` at every draw. Nothing tells the service the screen has gone, so
+it stops, and drops the results, five seconds after the last request. A new observer or pass starts the path over.
+
 ## 6. Profiles and repeater arming
 
 ### 6.1 Profiles
@@ -259,7 +276,7 @@ store, the service and its task (5.1), the screens, the SAT command and its trac
 `sat` task 88 bytes clear and no other task deeper than without it: the debug link's view shows the last LOOK rather
 than running the model under the status page, and the store's scans read a slot in 32-byte pieces.
 
-Measured on the DM-32UV's CK803S (168 MHz, no FPU, 2026-11-05, `sat bench` over the debug link): **3.76 ms a run**
+Measured on a CK803S (168 MHz, no FPU, 2026-11-05, `sat bench` over the debug link): **3.76 ms a run**
 (67 runs in 251,666 us). One update a second for live tracking is under 0.4% of the processor; a pass search of at most
 about 90 runs is 0.3 s, and a day of passes for one satellite (about 1,600 runs) is about 6 s of processor time, which
 the service spreads over slices at the idle priority (5.1). A host build of the same code takes about 1 us a run, and
@@ -298,6 +315,6 @@ sets (`pip install sgp4 skyfield`).
 | A real-time clock | Time without a GPS fix: a board's clock read at start (and set from GPS), behind a `hal_` hook. Until then the time comes from NMEA only (4.1) |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
-| Tracking | The live screen (azimuth, elevation, sky plot, Doppler, arming countdown) and a short way to it (a programmable key: the list is three levels from Home), Doppler applied to receive and transmit through the radio core, the arming carrier keyed through it |
+| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler applied to receive and transmit through the core (the screen only shows the corrected frequencies); a short way in (a programmable key) |
 | Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
-| Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The DM-32UV's is measured |
+| Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The CK803S's is measured (7) |

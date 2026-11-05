@@ -78,6 +78,12 @@ The line under the title says the lowest pass, the 24 hours and the time zone th
 (arrow and directions, "NW→SE") and how many minutes it is up. Above the list are its frequencies and tones, and the
 title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
+**OK** on a pass tracks it (or hold **OK** on a satellite in the list to track its next pass). The screen has a sky plot
+with north up and the pass's whole path, the satellite as a dot (green above the horizon), and beside it: the elevation,
+the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the range, and the receive and transmit
+frequencies corrected for Doppler with how far they are from the nominal ones ("+3.4k"). The radio does not tune to
+them yet: set the channel yourself for now.
+
 ## Settings
 
 **Settings > Location** ([Settings](17-settings.md)):

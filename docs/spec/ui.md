@@ -282,15 +282,22 @@ the results arrive; a list redraws every second.
 | Passes title | the satellite's name and its element set's age ("SO-50  TLE 2d") |
 | Passes body | its frequencies ("TX 145.850 RX 436.795"), its uplink tone and arming tone |
 | A pass's row | the rise time and the peak elevation, then the arrow, the directions it rises and sets in and its length ("↘ NW→SE 13m", shorter forms where it doesn't fit); a "Tomorrow" line (not focusable) before the first pass of the next local day; "Working…" while the 24 hours aren't all searched |
+| Track title | the satellite's name and "Tracking" |
+| Track plot | a sky plot with north up: the pass's whole path (24 points, worked out by the service), and the satellite as a dot, green above the horizon |
+| Track numbers | the elevation large, the pass's arrow, azimuth with its compass point, the time to the set ("LOS 6:58") or to the rise ("AOS"), the receive and transmit frequencies with Doppler and how far each is from the profile's ("RX 436.79849 +3.4k"), the range. A small panel drops what doesn't fit, from the bottom; a value too wide loses its shift |
 | Tools row 0 | the first satellite on the list with a pass: "ISS 08:32", or "ISS up" while it is overhead |
 
 The arrow is one of eight icon glyphs (`font.h` `GLYPH_DIR_FIRST`, drawn from lines in `gfx.c`): the bearing from
 where the pass rises to where it sets on a sky plot with north up and east right, to the nearest compass point.
 Times are local: UTC plus the Time zone setting (minutes, -12:00 to +14:00 in steps of 15; no daylight saving rule).
 
-Satellites is a field-use screen, three levels from Home (OK 6 0). Passes is not: looking ahead is planning, and it is
-the fourth level. Tracking a pass (not built yet) is field use and needs a shorter way in than the list, such as a
-programmable key.
+OK on a pass opens Tracking (`track`); a long OK on a satellite in the list opens it on that satellite's next pass (or the
+one under way). Tracking draws the numbers from `ui_svc_sat_live` and `ui_svc_sat_path`, and asks for the pass with
+`ui_svc_sat_track` at every draw: the service has no way to hear the screen close, so it stops five seconds after the
+last request. The position is worked out once a second, so the screen shows the last one for up to a second.
+
+Satellites is a field-use screen, three levels from Home (OK 6 0). Passes and Tracking are not: they are the fourth and
+fifth levels, reached by OK from the list. A shorter way in (a programmable key) is not built.
 
 With `CONFIG_ZONE_SHARE` too, Tools' offered-zone row (otherwise 0) has no number: it is the last row, and its banner
 opens it.
