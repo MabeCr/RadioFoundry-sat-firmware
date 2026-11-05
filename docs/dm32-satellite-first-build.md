@@ -4,7 +4,7 @@
 
 A checklist for the first day with the radio. Part A needs only your computer, Part B needs the radio. Do them in
 order, and stop at any step that says STOP. Nothing here transmits. The plan, the decisions and the estimated RAM
-budget are in [dm32-satellite-plan.md](dm32-satellite-plan.md#does-it-fit-estimate-2026-11-03).
+budget are in [dm32-satellite-plan.md](dm32-satellite-plan.md#does-it-fit-measured-2026-11-05).
 
 The question to answer: does the satellite configuration build, fit in the DM-32UV's RAM, and keep every task's stack
 and the RTOS heap inside their limits? The estimate says about 20 KB of main RAM is left. Part A turns the estimate
