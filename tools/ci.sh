@@ -344,6 +344,14 @@ for f in sys.argv[1:]:
 			tail -30 "$OUT/site-tests.log"
 			bad "web flasher tests (see $OUT/site-tests.log)"
 		fi
+		# The satellite element set page (tools/sat-web): its logic against the host tool's own outcomes (vectors.json)
+		if python3 tools/sat-web/test/make_vectors.py --check > "$OUT/sat-web.log" 2>&1 &&
+			node --test tools/sat-web/test/*.test.mjs >> "$OUT/sat-web.log" 2>&1; then
+			ok "satellite page tests: $(grep -E '^. pass' "$OUT/sat-web.log" | sed 's/^. //')"
+		else
+			tail -30 "$OUT/sat-web.log"
+			bad "satellite page tests (see $OUT/sat-web.log)"
+		fi
 	else
 		skip "web flasher tests: node not installed"
 	fi

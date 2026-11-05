@@ -2,7 +2,9 @@
 
 # Plan: a web page to update satellite element sets and run diagnostics
 
-Status: plan, nothing built. This is the owner's own page, in its own folder of this repository (`tools/sat-web/`,
+Status: steps 0 to 5 are done (step 0 on the owner's phone: the port chooser lists the cable and the radio answers);
+the page is in `tools/sat-web/` ([README](../../tools/sat-web/README.md)). Left: step 6 (host it and try an update from
+the phone) and the rest of step 7. This is the owner's own page, in its own folder of this repository (`tools/sat-web/`,
 proposed), published on a static host the owner controls. It is not part of the RadioFoundry site and shares none of its
 build. The goal is a page that runs in a phone's browser with the programming cable on an
 OTG adapter: keep the radio's satellite element sets (TLEs) current, set its clock from the phone, and show the

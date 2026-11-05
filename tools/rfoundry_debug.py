@@ -1615,7 +1615,7 @@ def parse_tles(text):
         l1, l2 = lines[i], lines[i + 1]
         if not (l1.startswith("1 ") and l2.startswith("2 ") and len(l1) == 69 and len(l2) == 69):
             continue
-        if tle_checksum(l1) != int(l1[68]) or tle_checksum(l2) != int(l2[68]):
+        if not (l1[68].isdigit() and l2[68].isdigit()) or tle_checksum(l1) != int(l1[68]) or tle_checksum(l2) != int(l2[68]):
             continue
         try:
             norad = tle_catalog(l1)
