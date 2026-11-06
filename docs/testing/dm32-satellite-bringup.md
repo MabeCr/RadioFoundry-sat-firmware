@@ -32,10 +32,18 @@ task's `SAT_TASK_STACK` in `core/app/sat_task.c`) and send the stack-check outpu
 
 1. **Back up both flashes first** ([dm32-bringup.md](dm32-bringup.md) section 0): the 1 MB program flash and the 16 MB
    data flash. The data flash holds this radio's factory calibration; keep two copies, and never put a backup in a git tree.
-2. Flash `build/dm32-maximal/rfoundry_dm32.bin` (or the `_codec.bin` that `make` writes when `codecs/` holds the stock file)
-   with the RadioFoundry web installer's custom firmware upload, or `rfoundry flash <file> --board dm32 --dry-run` and
-   then without `--dry-run`. Update mode is **PTT + SK1** held while turning the radio on. Never publish an image that
-   holds the codec.
+2. Get the image, one of two ways:
+   - **From a phone, with no computer.** GitHub Actions builds the satellite configuration on every push to `main` and
+     publishes it as a pre-release: the repository's Releases page, the newest `satellite-<commit>`. Its notes give the
+     commit, the `FLASH:` and `RAM:` lines, the stack check and the SHA-256. Download `rfoundry_dm32_satellite.bin` in
+     the phone's browser.
+   - **From a computer:** `build/dm32-maximal/rfoundry_dm32.bin` (section 1), or the `_codec.bin` that `make` writes when
+     `codecs/` holds the stock file.
+
+   The cloud image has **no codec**: the installer keeps the one already in a RadioFoundry radio and says so before it
+   writes. Give the file to the RadioFoundry web installer's own-firmware upload (it works in a phone's browser), or from
+   a computer run `rfoundry flash <file> --board dm32 --dry-run` and then without `--dry-run`. Update mode is **PTT + SK1**
+   held while turning the radio on. Never publish an image that holds the codec.
 3. It boots to Home, the keys and knob work, FM receives. If it doesn't boot: update mode always works (the bootloader is
    never written): install the standard release again.
 
