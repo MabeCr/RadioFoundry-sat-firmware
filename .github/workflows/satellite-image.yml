@@ -3,8 +3,9 @@
 #
 # The satellite build's firmware image, built in the cloud and published as a GitHub pre-release, so it can be
 # downloaded on a phone and installed from there (docs/testing/dm32-satellite-bringup.md, docs/dev/ci.md). It is the
-# board's maximal configuration (tools/maximal.sh: the satellite build on a radio with little RAM), built with the
-# pinned C-SKY compiler image like ci.yml's firmware job, then stack-checked. The image is CODEC-LESS by construction
+# board's satellite build (tools/satellite.sh: the radio's own defaults, English only, plus tracking and the cuts a radio
+# with little RAM needs; NOT the maximal configuration, which turns every language on), built with the pinned C-SKY
+# compiler image like ci.yml's firmware job, then stack-checked. The image is CODEC-LESS by construction
 # (no codecs/ in a checkout): the installer keeps the codec already in a RadioFoundry radio. A job step fails the run if
 # anything with the codec could be in the output. Each build is a pre-release `satellite-<commit>`; the newest five are
 # kept. Runs only in the fork this fork-specific workflow lives in.
@@ -22,12 +23,13 @@ on:
       - "config/**"
       - "Makefile"
       - "tools/maximal.sh"
+      - "tools/satellite.sh"
       - ".github/workflows/satellite-image.yml"
   workflow_dispatch:
     inputs:
       board:
-        description: The board to build (a boards/ id)
-        default: dm32
+        description: The board to build (a boards/ id); empty for the board that lists SATELLITE_VARS in its config.mk
+        default: ""
 
 concurrency:
   group: satellite-image-${{ github.ref }}
@@ -43,14 +45,28 @@ jobs:
     if: github.repository == 'MabeCr/RadioFoundry-sat-firmware'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      BOARD: ${{ inputs.board || 'dm32' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with:
           submodules: false   # tools/checkout-submodules.sh: the runner image's copies, then the network
       - name: third_party submodules
         run: tools/checkout-submodules.sh
+      - name: Which board
+        env:
+          WANTED: ${{ inputs.board }}
+        run: |
+          set -eu
+          board=$WANTED
+          if [ -z "$board" ]; then   # the board that lists a satellite build of its own (SATELLITE_VARS in config.mk)
+            for d in boards/*/; do
+              b=$(basename "$d")
+              [ -f "$d/board.mk" ] || continue
+              [ -n "$(make -s BOARD="$b" print-satellite-vars 2>/dev/null)" ] && { board=$b; break; }
+            done
+          fi
+          [ -n "$board" ] || { echo "::error::no board lists SATELLITE_VARS: give the board input"; exit 1; }
+          echo "BOARD=$board" >> "$GITHUB_ENV"
+          echo "board: $board"
       - name: Toolchain (platform.toml [toolchain])
         id: tc
         uses: ./.github/actions/toolchain
@@ -61,12 +77,12 @@ jobs:
           registry-user: ${{ vars.RFOUNDRY_CSKY_REGISTRY_USER || github.actor }}
           registry-token: ${{ secrets.RFOUNDRY_CSKY_REGISTRY_TOKEN || github.token }}
 
-      - name: Build the maximal configuration, warnings are failures
+      - name: Build the satellite configuration, warnings are failures
         env:
           RUN: ${{ steps.tc.outputs.run }}   # empty, or the csky-elf image's run.sh
         run: |
           set -eu -o pipefail
-          $RUN tools/maximal.sh "$BOARD" 2>&1 | tee build.log
+          $RUN tools/satellite.sh "$BOARD" 2>&1 | tee build.log
           if grep -qi 'warning:' build.log; then echo "::error::the build has warnings"; grep -i 'warning:' build.log | sort -u | head; exit 1; fi
 
       - name: Static stack check
@@ -74,13 +90,13 @@ jobs:
           RUN: ${{ steps.tc.outputs.run }}
         run: |
           set -eu -o pipefail
-          $RUN tools/maximal.sh "$BOARD" stack-check 2>&1 | tee stack.log
+          $RUN tools/satellite.sh "$BOARD" stack-check 2>&1 | tee stack.log
           grep -qE '^stack check .*: every task fits' stack.log || { echo "::error::a task's stack does not fit"; exit 1; }
 
       - name: Collect the image, and make sure the codec is not in it
         run: |
           set -eu
-          dir=build/$BOARD-maximal
+          dir=build/$BOARD-satellite
           mkdir -p dist
           img=$dir/rfoundry_$BOARD.bin
           [ -f "$img" ] || { echo "::error::$img was not built"; exit 1; }

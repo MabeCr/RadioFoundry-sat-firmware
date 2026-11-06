@@ -12,15 +12,17 @@ Section 5 is a dated log of what was seen by hand, so a reader knows what is sti
 
 ## 1. Build and measure (no radio)
 
-The satellite configuration is the board's maximal build: every switch the radio can do on, then the cuts in
-`MAXIMAL_VARS` of `boards/dm32/config.mk`. CI builds and stack-checks the same thing on every pull request.
+The satellite build is the radio's own defaults (English only, no vibration alerts) plus satellite tracking, then the cuts
+in `SATELLITE_CUTS` of `boards/dm32/config.mk` that make room for its RAM. CI builds and stack-checks it on every push, and
+publishes it ([section 2](#2-install)). The board's *maximal* build (every switch on, Italian included) is a coverage build
+that CI also compiles: never flash it.
 
 | Step | Command | Expect |
 |---|---|---|
 | Compiler | `tools/docker/csky-toolchain/run.sh csky-elf-gcc --version` (or `tools/build-csky-toolchain.sh` once, about 45 minutes, then it installs into `~/toolchains/csky-elf`) | GCC 14 |
 | Build the baseline | `tools/docker/csky-toolchain/run.sh make BOARD=dm32 BUILD=build/dm32-base` | 587 KB of flash, **16 bytes** of RAM free (upstream's number; if yours is several KB off, the compiler or checkout differs: stop and say so) |
-| Build the satellite configuration | `tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32` | no warnings; the numbers in section 5 |
-| Stack check | `tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32 stack-check` | `every task fits`; note the least free of `ui`, `sat` and `host` |
+| Build the satellite configuration | `tools/docker/csky-toolchain/run.sh tools/satellite.sh dm32` | no warnings; the numbers in section 5 |
+| Stack check | `tools/docker/csky-toolchain/run.sh tools/satellite.sh dm32 stack-check` | `every task fits`; note the least free of `ui`, `sat` and `host` |
 | Host tests | `make -C tests/host run-sat` | all four satellite tests print `passed` |
 
 Without Docker, run the same commands without the `run.sh` prefix. The linker prints `FLASH:` and `RAM:` lines: the
@@ -37,7 +39,7 @@ task's `SAT_TASK_STACK` in `core/app/sat_task.c`) and send the stack-check outpu
      publishes it as a pre-release: the repository's Releases page, the newest `satellite-<commit>`. Its notes give the
      commit, the `FLASH:` and `RAM:` lines, the stack check and the SHA-256. Download `rfoundry_dm32_satellite.bin` in
      the phone's browser.
-   - **From a computer:** `build/dm32-maximal/rfoundry_dm32.bin` (section 1), or the `_codec.bin` that `make` writes when
+   - **From a computer:** `build/dm32-satellite/rfoundry_dm32.bin` (section 1), or the `_codec.bin` that `make` writes when
      `codecs/` holds the stock file.
 
    The cloud image has **no codec**: the installer keeps the one already in a RadioFoundry radio and says so before it
@@ -98,7 +100,7 @@ A log by hand, newest last. Nothing here is a support claim.
 | 2026-11-05 | The default image, built with the project's C-SKY Docker image | 587,392 B flash, 211,440 B RAM, **16 B free** |
 | 2026-11-05 | The satellite configuration (typed by hand with the same cuts, `LANG_IT` and `VIBRATE` off) | 454,232 B flash (50%), 187,528 B RAM, **23,928 B free**; stack check: every task fits |
 | 2026-11-05 | The same plus the Tracking screen | 457,796 B flash, 187,688 B RAM, 23,768 B free; stack check: `ui` 264 B, `sat` 152 B, `host` 924 B free |
-| 2026-11-05 | The first run with the maximal build (`tools/maximal.sh`) | not yet measured: it also turns `LANG_IT` and `VIBRATE` on |
+| 2026-11-06 | The first cloud image, built from the maximal configuration | built clean in CI: 506,700 B flash, 187,720 B RAM (23.7 KB free), stack check fits (`sat` 116 B least free). **It came up in Italian**: the maximal build turns the Italian language on as the default. Replaced by the satellite build; do not flash `satellite-797b615` |
 | 2026-11-05 | Flashed over the standard release; `version` and `view --section sat` | `SAT` in features; store ours, 32 slots |
 | 2026-11-05 | `sat bench` | 3.76 ms a run (67 runs in 251.7 ms) |
 | 2026-11-05 | Tasks after use | `heap_min_free` 15,416; least free stack `sat` 272 B on the radio |

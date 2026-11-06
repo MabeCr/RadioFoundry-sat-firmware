@@ -29,12 +29,17 @@ BOARD_UNSUPPORTED += NAND_STORAGE	# the data flash is SPI NOR, GD25Q128 class (d
 BOARD_NOT_WRITTEN += VOX	# no hal_power_t.mic_level hook yet
 BOARD_NOT_WRITTEN += AUDIO_PROBE	# no board.audio_tap yet
 
-# ci's maximal configuration (tools/maximal.sh dm32) also has satellite tracking, which costs this radio about 2.8 KB of
-# RAM and 2 KB more RTOS heap (freertos_board.h), and the default image has 16 B free. So the maximal build cuts what
-# cost the RAM: with these off the satellite build links with about 23.7 KB free (measured 2026-11-05, docs/dm32-satellite-plan.md),
-# keeps the dual watch and APRS receive, and passes the stack check. A feature that needs RAM later cuts from this list
-# or shrinks the heap
-MAXIMAL_VARS := CONFIG_SFR=n CONFIG_SFR_CWID=n CONFIG_SFR_DUALPATH_RX=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n \
+# Satellite tracking costs this radio about 2.8 KB of RAM and 2 KB more RTOS heap (freertos_board.h), and the default image
+# has 16 B free, so a build with it cuts what costs RAM. With these off the satellite build links with about 23.7 KB free
+# (measured 2026-11-05, docs/dm32-satellite-plan.md), keeps the dual watch and APRS receive, and passes the stack check. A
+# feature that needs RAM later cuts from this list or shrinks the heap
+SATELLITE_CUTS := CONFIG_SFR=n CONFIG_SFR_CWID=n CONFIG_SFR_DUALPATH_RX=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n \
 	CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT=n \
 	CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n CONFIG_LANG_DEFAULT_ES=n CONFIG_NET_USRP=n CONFIG_ZONE_SHARE=n \
 	CONFIG_NET_HTTP=n CONFIG_NET_HTTP_GZIP=n CONFIG_NET_WEBCTL=n CONFIG_DMR_ROAMING=n
+# ci's maximal configuration (tools/maximal.sh): every switch on, so every code path is built and linked, with those cuts.
+# It is a coverage build, never an image to flash: it also turns the Italian language on, as the default
+MAXIMAL_VARS := $(SATELLITE_CUTS)
+# The satellite build to flash (tools/satellite.sh, the cloud image): the radio's own defaults (English only, no vibration
+# alerts) plus satellite tracking and the cuts
+SATELLITE_VARS := CONFIG_SAT=y $(SATELLITE_CUTS)
