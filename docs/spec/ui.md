@@ -46,7 +46,12 @@ A fixed prefix ahead of a name is lowercase in the middle ("Talk to Ops", "Zone 
 ("1 of 3", a zone's name) are shown as stored. List rows, values, hints, toasts and banners keep sentence case, so the
 row that opens a page can differ from its title: the Settings row "Talk & listen" opens "Talk & Listen".
 A page title is centered on the screen at every display class, moved only as far as it must to clear what shares its
-row (the state pill, the lock, the unread count).
+row (the state pill, the GPS mark, the lock, the unread count).
+
+The status strip's GPS mark (`gfx_icon_gps`, state from `ui_svc_gps_state`): nothing while the GPS is off or not heard from;
+a hollow square with a dot in the warning color while it receives without a fix; a solid square in the receive color
+with a fix (on a filled strip, in the strip's text color). Shape and color both say which (P5). It sits left of the lock
+and the unread count, so it gives way first on a narrow strip.
 
 The hint row is groups separated by two spaces (`"OK open  # more  Back"`). The group for the Back key (it starts with
 "Back") is drawn against the right edge, under the key; the other groups run from the left, and those that don't fit
@@ -122,6 +127,8 @@ row once, as a typed key does.
 | Offer preview | `zone_offer_preview` | Preview in Zone Share Received: the offered channels, "Not in band" dimmed |
 | Add to zone | `zone_offer_zone` | Import of a one-channel offer: the zone it goes in |
 | Roaming | `roaming` | Tools 8 (7 without diagnostics): roaming on for this zone, roam now, lock to this site ([dmr-roaming.md](dmr-roaming.md) 6.2) |
+| Satellites | `satellites` | Tools 0 (`CONFIG_SAT`): the stored satellites, each with its next pass (2.6) |
+| Passes | `passes` | OK on a satellite in Satellites: its passes over the next 24 hours (2.6) |
 | Freq Trim | `freq-trim` | Settings > Advanced > Freq trim (radio-features.md 6.1): the trim in ppm (-10.0..+10.0) in large type, a slider under it from -10 to +10 (filled from 0 to the value; the -10 / 0 / +10 scale where there's room), then what it moves a carrier by at 440 MHz and at 144 MHz, in Hz ("At 440 MHz" where it fits beside -4400 Hz, else "@ 440 MHz"), and "+ to increase frequency" ("+ to increase freq" where the full line doesn't fit) above the hint where there's room. Up / Right / Down / Left (or the knob, one step a detent) step 0.1 ppm, 0.5 ppm a repeat while held, and are saved at once. A board that applies the trim when it tunes retunes once the value has held still for 400 ms
 (radio-features.md 6.1), so a counter or a hotspot shows each step without a reception dropped at every press. # flips the sign; on 0 it starts a negative entry (a radio without CONTEXT gets a minus by stepping below 0, and typed digits keep it). Digits type the size in tenths as a calculator does (4 5 = 4.5 ppm), keeping the sign; a digit past 10.0 is refused ("Up to 10.0 ppm"); BACK takes the last digit back and with none left drops the entry; OK sets it. OK with nothing typed leaves the page |
 | My Radio | `dmr-id` | Settings > My radio > DMR ID and name: the radio model above the rows DMR ID (`CONFIG_DMR`), Radio name, Boot 1 and Boot 2, from the codeplug. On DMR ID, digits type an ID as the channel editor's Own ID (2.1): the first digit replaces the shown one, a digit that would take it past `CODEPLUG_DMR_ID_MAX` (16776415) is refused, BACK takes the last digit back and with none typed leaves the ID as it was, OK writes it into the codeplug (with nothing typed, leaves it; 0 is refused: "IDs start at 1"). OK on a name row opens Text entry (2.1, `CONFIG_CHANNEL_EDIT`; without it "Typing: not in this build"); OK there writes the radio name (`codeplug_set_radio_name`) or the boot line (`codeplug_set_boot_text`) as a storage job (`ui_svc_name_set`), "Saved" |
@@ -263,6 +270,43 @@ Colors name the system (GPS blue, GLONASS red, Galileo yellow, BeiDou green, QZS
 and the legend says them in words (P5). A monochrome panel draws everything in ink. Without a GPS, or with it off, the
 screen says so and points to Settings > Location. Without `CONFIG_GPS_SKY` the same Tools row opens a page of text
 (fix, satellites, position, altitude).
+
+### 2.6 Satellites
+
+With `CONFIG_SAT`, Tools > Satellites (`satellites`, `ui_sat.c`; Tools 0) lists the stored satellites
+([satellite.md](satellite.md) 6.3) with each one's next pass, and OK opens one's passes over the next 24 hours
+(`passes`). The passes are worked out by the satellite service's task ([satellite.md](satellite.md) 5.1): these screens
+only read its results (`ui_svc_sat_*`), never run the orbit model (the UI's task has no stack for it), and fill in as
+the results arrive; a list redraws every second.
+
+| Part | Shows |
+|---|---|
+| Satellites title | "Satellites" and the local time, once the clock is set |
+| Satellites body | "Above 10°, 24 h, UTC-6": the Lowest pass and Time zone settings (Settings > Location). Before the clock: "Waiting for the time", before a position: "No position", in their place |
+| A satellite's row | its name and number (1-9), then: an arrow for the pass's way across the sky, the rise time and the peak elevation ("↘ 08:32 71°"); "up now 23°" (the elevation now) in the receive color while it is overhead; "…" while worked out; "no pass" (none above the lowest in 24 hours); "TLE 31d" in the warning color when its element set is older than 30 days (not predicted); "no orbit" dimmed for a profile without elements (OK says to load one) |
+| Passes title | the satellite's name and its element set's age ("SO-50  TLE 2d") |
+| Passes body | its frequencies ("TX 145.850 RX 436.795"), its uplink tone and arming tone |
+| A pass's row | the rise time and the peak elevation, then the arrow, the directions it rises and sets in and its length ("↘ NW→SE 13m", shorter forms where it doesn't fit); a "Tomorrow" line (not focusable) before the first pass of the next local day; "Working…" while the 24 hours aren't all searched |
+| Track title | the satellite's name and "Tracking" |
+| Track plot | a sky plot with north up: the pass's whole path (24 points, worked out by the service), the pass's arrow beside the middle of the path, and the satellite as a dot, green above the horizon |
+| Track numbers | the elevation large, azimuth with its compass point, the time to the set ("LOS 6:58") or to the rise ("AOS"), the receive and transmit frequencies with Doppler and how far each is from the profile's ("RX 436.79849 +3.4k"), the range. A small panel drops what doesn't fit, from the bottom; a value too wide loses its shift |
+| Set time | Settings > Location > Set time (`set-time`): UTC as `2026-10-28` over `14:05:02`, the selected field underlined, and the same moment in local time. Up / Down / the knob change the field; digits fill it (two for the year's last two, then the next field); `#` or Right goes to the next field, Left back; OK sets the clock (and the RTC, [satellite.md](satellite.md) 4.1.1), Back leaves it. "Not a date" for a day that month doesn't have. Not field use |
+| Tools row 0 | the first satellite on the list with a pass: "ISS 08:32", or "ISS up" while it is overhead |
+
+The arrow is one of eight icon glyphs (`font.h` `GLYPH_DIR_FIRST`, drawn from lines in `gfx.c`): the bearing from
+where the pass rises to where it sets on a sky plot with north up and east right, to the nearest compass point.
+Times are local: UTC plus the Time zone setting (minutes, -12:00 to +14:00 in steps of 15; no daylight saving rule).
+
+OK on a pass opens Tracking (`track`); a long OK on a satellite in the list opens it on that satellite's next pass (or the
+one under way). Tracking draws the numbers from `ui_svc_sat_live` and `ui_svc_sat_path`, and asks for the pass with
+`ui_svc_sat_track` at every draw: the service has no way to hear the screen close, so it stops five seconds after the
+last request. The position is worked out once a second, so the screen shows the last one for up to a second.
+
+Satellites is a field-use screen, three levels from Home (OK 6 0). Passes and Tracking are not: they are the fourth and
+fifth levels, reached by OK from the list. A shorter way in (a programmable key) is not built.
+
+With `CONFIG_ZONE_SHARE` too, Tools' offered-zone row (otherwise 0) has no number: it is the last row, and its banner
+opens it.
 
 ### 2.4 Contact editor
 

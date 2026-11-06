@@ -47,6 +47,8 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "home_monitor", "down mondown" },
 	{ "home_plain", "strip:off" },	// Settings > Display > Filled status bar off
 	{ "home_locked", "long:quick 5" },
+	{ "home_gps_search", "gps:search wait:1200" },
+	{ "home_gps_fix", "gps:fix wait:1200" },
 	{ "home_usb_ip", "usbnet:on" },
 	{ "home_usb_ip_up", "usbnet:up" },
 	{ "rx_group", "rx:3101234,91,g,K1ABC_Joe_-_Boston,_MA" },
@@ -118,7 +120,11 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "zone_offer", "zoneoffer:3101234 ctx" },
 	{ "zone_offer_preview", "zoneoffer:3101234 ctx 2" },
 	{ "zone_offer_ch", "zoneoffer:3101234,c ctx" },
+#if CONFIG_SAT
+	{ "tools_zone_offer", "zoneoffer:3101234 back ok 6 up" },	// Tools > Zones/Chs Received: the last row, after Satellites
+#else
 	{ "tools_zone_offer", "zoneoffer:3101234 back ok 6 down down down down down down down down down" },	// Tools > Zones/Chs Received
+#endif
 	{ "zone_offer_channel", "zoneoffer:3101234,c ctx 1" },
 	{ "zone_imported", "zoneoffer:3101234 ctx 1 wait:300" },
 #if CONFIG_ZONE_EDIT
@@ -137,6 +143,15 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "gps_sky", "ok 6 2 2" },
 	{ "gps_signal", "ok 6 2 3" },
 	{ "gps_grid", "ok 6 2 4" },
+#if CONFIG_SAT
+	// Tools > Satellites (ui_sat.c): the list, one satellite's passes, before the clock is set
+	{ "satellites", "ok 6 0" },
+	{ "satellite_passes", "ok 6 0 2" },
+	{ "satellite_track", "ok 6 0 1 ok" },
+	{ "satellites_no_time", "sat:notime ok 6 0" },
+	{ "settings_location", "ok 7 5 up up" },
+	{ "satellite_set_time", "ok 7 5 up ok" },
+#endif
 	{ "hotspot_info", "ok 6 3" },
 	{ "diagnostics", "ok 6 7" },
 	{ "roaming", "ok 6 6 1 wait:4000" },
@@ -476,6 +491,9 @@ static const struct { const char *name; unsigned flags; } gallery_color[] = {
 #endif
 	{ "channels", G_COLORS | G_THEMES },	// the focus row in the color
 	{ "settings_display", G_THEMES },
+#if CONFIG_SAT
+	{ "satellites", G_THEMES },	// "up now" in the receive green, an old element set in amber
+#endif
 };
 
 static unsigned gallery_flags(size_t i)

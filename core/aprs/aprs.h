@@ -265,6 +265,8 @@ typedef struct {
 	uint8_t in_view;	// satellites in the table (aprs_gps_sat)
 } aprs_gps_t;
 bool aprs_gps(aprs_gps_t *out, uint32_t now_ms);
+// What the board GPS is doing, for the status strip (cheap: no copy): 0 off or not heard, 1 heard without a fix, 2 a fix
+uint8_t aprs_gps_state(uint32_t now_ms);
 #if CONFIG_GPS_SKY
 // Satellite i of the board GPS's table (0 .. in_view - 1) and whether the fix uses it; false past the end
 bool aprs_gps_sat(uint8_t i, sky_sat_t *out, bool *used);

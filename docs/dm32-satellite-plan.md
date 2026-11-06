@@ -6,8 +6,13 @@ This fork of RadioFoundry adds satellite operation to the DM-32UV: on-radio orbi
 correction, with risk-averse work first. This page holds the plan, the decisions made so far and what is still open.
 It belongs to this fork, not to upstream.
 
-Status as of 2026-11-03: the Night theme is merged. No satellite feature is written. The radio has not arrived, and
-no firmware from this fork has been compiled for it.
+Status as of 2026-11-05: the satellite feature is built and running on the radio: the orbit library, the stored
+satellites, Tools > Satellites with passes and Tracking, a battery-backed clock with a Set time screen, a GPS mark in the
+status strip, and a browser page that updates the element sets from a phone ([dev/sat-tle-web-tool.md](dev/sat-tle-web-tool.md)).
+Still to build: Doppler tuning of the radio, the SO-50 arming countdown and key, and pass alarms. What was seen on the
+radio, and what is still untested, is the log in [testing/dm32-satellite-bringup.md](testing/dm32-satellite-bringup.md)
+section 5. The work is on branch `claude/peaceful-ride-m0ie2u` and in
+[pull request 3](https://github.com/MabeCr/RadioFoundry-sat-firmware/pull/3).
 
 Feasibility notes come from public documents unless they name a file in this repository. Anything not tested on the
 radio is untested, however likely it looks.
@@ -25,27 +30,32 @@ radio is untested, however likely it looks.
 
 ## Build configuration
 
-The configuration chosen for satellite use on the DM-32UV:
+The configuration chosen for satellite use on the DM-32UV is the board's **maximal** build: every switch the radio can
+do on, then the cuts in `MAXIMAL_VARS` of `boards/dm32/config.mk` (the fourteen below and their sub-features). It is what
+CI builds and stack-checks on every pull request, so the RAM budget is checked there, not only on a laptop:
 
 ```
-make BOARD=dm32 CONFIG_SFR=n CONFIG_DMR_PRIVACY=n CONFIG_DMR_TMS=n CONFIG_DMR_ARS=n CONFIG_DMR_LRRP=n \
-	CONFIG_DMR_CONTROL_STATION=n CONFIG_SNMP=n CONFIG_HOTSPOT_SPLIT=n CONFIG_LANG_ES=n
+tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32                # build/dm32-maximal/rfoundry_dm32.bin
+tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32 stack-check
 ```
 
-`make -n` accepts this combination and sets the switches as intended. It has not been compiled: that needs
-`csky-elf-gcc` (`tools/build-csky-toolchain.sh`). `tools/ci.sh` builds each switch off on its own, not this mix, so the
-first build is the first test of it.
+The first measurements (below) were made with the same cuts typed by hand, and `SAT` on, with `LANG_IT` and `VIBRATE`
+left off. The maximal build also turns those on (a few KB of flash, little RAM): the numbers move a little and are
+measured again after this change.
 
 | Switch | State | Why |
 |---|---|---|
 | `SFR` | Off | Not related to satellites, and experimental. `SFR_DUALPATH_RX` and `SFR_CWID` follow it |
 | `DMR_PRIVACY`, `DMR_TMS`, `DMR_ARS`, `DMR_LRRP`, `DMR_CONTROL_STATION`, `SNMP`, `HOTSPOT_SPLIT` | Off | Not needed for this use |
 | `LANG_ES` | Off | English only. `LANG_IT` is already off by default |
+| `NET_USRP`, `HOTSPOT`, `ZONE_SHARE`, `NET_HTTP`, `DMR_ROAMING` | Off | Not needed, and the five largest RAM costs left after dual watch ([Further cuts](#further-cuts)). `HOTSPOT_SPLIT` and MMDVM SFR go with `HOTSPOT`; `NET_WEBCTL` and `NET_HTTP_GZIP` with `NET_HTTP`. `rigctld`, KISS over TCP and APRS-IS stay |
 | `VOX`, `VIBRATE` | Off by default | Not written for this radio. The vibration motor's drive pin isn't known ([hardware-dm32.md](spec/hardware-dm32.md) 6.6) |
 | `USB`, `USB_NETWORK`, `NAND_STORAGE` | Unsupported | The radio has no USB data port and no SPI NAND |
 | `DMR` | **Keep on** | `NET_PPP` needs it on this platform (`platform/hrc7000/config.mk`), and the IP gateway and `rigctld` ride that link |
+| `DUAL_WATCH` | **Keep on** | Two channels on Home, for everyday use outside satellite passes. The largest RAM cost left (5.3 KB, [Further cuts](#further-cuts)), kept by choice |
 | `CRASH_LOG`, `DEBUGLINK`, `FAULT_TRACE`, `WATCHDOG`, `STUB_ENTRY` | **Keep on** | They are what diagnoses and recovers a first build on a new radio |
-| `VFO`, `SUBTONE`, `APRS`, `GPS`, `GPS_SKY`, `UI_COLOR` | **Keep on** | Satellite operation and the Night theme use them. `GPS_SKY` needs both `GPS` and `APRS` |
+| `VFO`, `SUBTONE`, `APRS`, `GPS`, `GPS_SKY`, `UI_COLOR` | **Keep on** | Satellite operation and the Night theme use them. `GPS_SKY` needs both `GPS` and `APRS`. `APRS` also carries the NMEA that sets the clock |
+| `SAT` | **On** | The satellite library. Off by default in the tree until the radio uses it |
 
 Operating note: leave Settings > Power > Battery saver off during a pass. After 10 s idle the receiver listens only in
 100 ms windows.
@@ -60,14 +70,14 @@ are to be confirmed on the radio.
 | CPU | C-SKY CK803S in the HR_C7000, 168 MHz. Built with no FPU (`platform/hrc7000/platform.mk`: `-msoft-float`) | SGP4's doubles run in software. Measure the cost |
 | RAM | 288 KB, 211,456 B of it below the codec's window. **The limit on this radio**: the default build leaves about 0.5 KB (`boards/dm32/config.mk`) | Every new feature must find its RAM. See [RAM budget](#ram-budget) |
 | Program flash | 1 MB, bootloader in the first 48 KB, 880 KB of code space before the codec slot | Less tight than RAM |
-| Data flash | 16 MB SPI. The port writes nothing below 0x700000, where the stock codeplug and calibration live | New stored data needs a region. Free space is unmeasured |
+| Data flash | 16 MB SPI. The port writes nothing below 0x700000, where the stock codeplug and calibration live | Stored satellites use 0x71B000 (one sector), in the gap between the settings journal and the open-firmware flash image. The stock firmware's use of 0x6DC000 and up is undocumented: if the store reports `foreign`, back up and `rfoundry_debug.py sat clear` |
 | RF chip | FD6818, frequency in 10 Hz units (8). FM, AM, FSK, DMR pass-through. No SSB or CW receive | Smooth Doppler steps. No real CW receive |
 | Signal readings | RSSI in 0.5 dB steps, plus noise and SNR | Enough for a pass plot and a stepped sweep |
 | Synthesizer | One, for receive and transmit (8) | No full duplex: no hearing the downlink while transmitting, and no measuring the uplink |
 | Tone generators | Two, plus CTCSS/DCS and a sidetone output | Morse tone with an access tone is unverified |
 | Display | 240x320 TFT drawn with a 16-color palette | UI designs fit 16 colors. Images need a new full-color path |
 | GPS | ATGM336H on a UART at 9600. NMEA arrives on the radio; a fix outdoors is still to check ([dm32-bringup.md](testing/dm32-bringup.md) 12) | Time and position source once confirmed |
-| Clock | RTC with coin-cell backup (3.3) | Time source without a fix |
+| Clock | RTC with coin-cell backup (3.3). No driver reads it yet ([feature-matrix.md](feature-matrix.md)) | Until one does, time comes from GPS (NMEA RMC), so nothing predicts before the first fix ([satellite.md](spec/satellite.md) 4.1). An RTC driver is a prerequisite for prediction indoors |
 | Ports | K1 programming jack (serial). USB-C charges only | All computer and phone links use the K1 cable |
 | Keys | Keypad, two side keys, PTT. PTT shares a wire with the serial line | A speaker-mic and a computer link can't be used together |
 
@@ -76,9 +86,92 @@ vocoder.
 
 ### RAM budget
 
-RAM decides what fits, so each feature below must state its RAM cost. The switches turned off above free some, but how
-much is unmeasured until the first build. `tasks.heap_min_free` shows whether the RTOS heap has room to shrink
-(`tests/hil/test_task_stacks.py`).
+RAM decides what fits, so each feature below must state its RAM cost. `tasks.heap_min_free` shows whether the RTOS heap
+has room to shrink (`tests/hil/test_task_stacks.py`).
+
+The C-SKY compiler isn't built yet, so these figures come from another radio's ARM Cortex-M4 build with the same core
+code (LTO, 2026-11-03). Most of the RAM below is the core's own buffers, so the DM-32UV should be close, but confirm at
+its first build.
+
+| Configuration | Flash | RAM |
+|---|---:|---:|
+| That radio's default | 507,344 B | 178,680 B |
+| The first nine switches off | 434,800 B | 168,528 B |
+| The configuration above: those, the five further cuts, `SAT` on | 375,896 B | 149,064 B |
+| Saved against the default | 131,448 B | 29,616 B |
+
+That configuration builds with no warnings. Its static stack check finds the UI task 16 bytes over its limit (the
+default build has 8 bytes to spare there): leaving features out changed what the link-time optimizer inlined into the
+UI's settings code. The satellite code is not in that task. Two consequences, to check at the first DM-32UV build:
+
+- Run `make BOARD=dm32 <the line above> stack-check`. If the UI task is over, give it more stack from the RAM freed
+  here.
+- The satellite work needs about 0.75 KB of stack wherever it runs. The UI task has none to spare, so give it that
+  room or run the predictions elsewhere.
+
+Satellite tracking as built so far (the library, stored satellites, the pass list screens and their task, the debug
+link's SAT command): about 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task stack on an ARM build
+([satellite.md](spec/satellite.md) 7). Stored satellites cost no RAM beyond the list's 32 rows.
+
+#### Does it fit? (measured, 2026-11-05)
+
+Yes. Built with csky-elf GCC 14 (`tools/docker/csky-toolchain/run.sh`), the satellite configuration above links with
+23,928 bytes of main RAM to spare. The linker refuses an image that doesn't fit, so this cannot fail on the radio.
+
+| Build | Flash (880 KB) | Main RAM (211,456 B) | RAM free |
+|---|---:|---:|---:|
+| The standard DM-32UV image (satellites off) | 587,392 | 211,440 | 16 |
+| The configuration above, `CONFIG_SAT=y` | 454,232 (50%) | 187,528 (88.7%) | **23,928** |
+| The same with the Tracking screen (2026-11-05) | 457,796 (50.8%) | 187,688 (88.8%) | **23,768** |
+
+The 14 switches turned off free 47 KB of RAM and 160 KB of flash; satellite tracking takes back about 2.8 KB of static
+RAM, the 2 KB of extra heap for its task and 27 KB of flash. The estimate made before the measurement was 20 to 25 KB
+free. The DM-32UV has one RAM region now (`boards/dm32/memory.ld`), so there is no separate `RAM_LO` line.
+
+The first C-SKY build also found a bug: the standard image, built with satellites *off*, overflowed main RAM by 16
+bytes, because the settings struct (six copies in RAM) and the UI's settings table had grown for the new settings.
+They are now only built with `CONFIG_SAT`, and the standard image is 16 B free again, as upstream's. Any further
+setting added without a switch has the same risk: build the standard DM-32UV image before pushing.
+
+The stack check on the C-SKY build passes: every task fits, the UI task with 264 B to spare, the `sat` task 148 B
+(its deepest path ends in a soft-float library function, which the check counts as a flat 64 B), the least free overall
+the idle task's 132 B.
+
+What remains to be seen on the radio:
+
+- The heap: the satellite task's 1.6 KB stack comes from it. Measured on a DM-32UV after the whole radio-only HIL
+  suite, the heap's least free was 8,664 bytes (upstream #210, 2026-10-27, with a 33 or 34 KB heap), so the task fits with
+  room; still, built with satellites the heap is 2 KB larger, and the task starts only if 2 KB would still be spare
+  after it; otherwise the radio runs on and Tools > Satellites says "Not enough memory to work out passes", rather
+  than the heap running out and the radio restarting at every boot.
+- The real stack use: `tasks.min_free` and `tests/hil/test_task_stacks.py` show the least stack each task ever had free.
+
+The checks after installing, on the radio: `pytest tests/hil/test_task_stacks.py` (`tasks.heap_min_free` at least 2 KB)
+and `tests/hil/test_sat.py` (the model's speed, the screens). Steps 1 and 2, the size and the stack check, are done.
+
+#### Further cuts
+
+Each switch turned off on top of the first nine switch-offs, one at a time. Decided: keep `APRS_RX` and `DUAL_WATCH`;
+turn off `NET_USRP`, `HOTSPOT`, `ZONE_SHARE`, `NET_HTTP` and `DMR_ROAMING` (in the configuration above). The rest:
+open. Children follow their parent (`NET_HTTP` includes `NET_WEBCTL`; `HOTSPOT` includes split duplex and MMDVM SFR).
+
+| Switch | RAM | Flash | What goes |
+|---|---:|---:|---|
+| `APRS_RX` | 6,984 | 9,344 | APRS receive. Needed for ISS APRS and telemetry capture: keep |
+| `DUAL_WATCH` | 5,304 | 19,432 | Two channels on Home. Useful outside satellite passes: keep |
+| `NET_USRP` | 4,624 | 3,016 | AllStarLink / DVSwitch audio over the IP link: off |
+| `HOTSPOT` | 4,224 | 13,128 | The MMDVM hotspot over the K1 cable: off |
+| `ZONE_SHARE` | 3,928 | 12,504 | Sending and importing zones over DMR: off |
+| `NET_HTTP` | 3,840 | 18,696 | The status web page and web control over PPP: off. `rigctld` stays |
+| `DMR_ROAMING` | 3,136 | 12,068 | DMR repeater roaming: off |
+| `TCP_CONNS=2` | about 1,500 | — | One TCP connection fewer (3 by default on this platform). With the web page gone, `rigctld`, KISS over TCP and the APRS-IS client share them; at 2, only two of those can be connected at once. 1 would leave one |
+| `NET_WEBCTL` alone | 1,000 | 12,992 | Web control; the status page stays |
+| `ZONE_EDIT` | 896 | 4,952 | The zone editor |
+| `MDNS`, `TFTP` | 336, 176 | 6,480, 8,300 | Name lookup and codeplug transfer over the IP link |
+
+The rest measured under 0.5 KB of RAM each: `NET_KISS`, `DMR_CONFIRMED`, `CRASH_REPORT`, `CPS_FAST`, `DMR_SMS`,
+`DMR_EMERGENCY`, `NET_APRSIS`, `TASK_STACKS`, `DMR_SIGNALING`, `CONTACT_EDIT`, `IDDB_COMPACT`, `DTMF`,
+`DMR_UDP_COMPRESS`.
 
 ## Clean room
 
@@ -97,11 +190,11 @@ much is unmeasured until the first build. `tasks.heap_min_free` shows whether th
 Back up both flash chips before anything else. They hold this radio's own RX/TX calibration and keys, which no other
 radio's backup can replace. The procedure is [dm32-bringup.md](testing/dm32-bringup.md) section 0.
 
-- [ ] Note the board revision, stock firmware version and vocoder variant when the radio arrives
-- [ ] Back up the 1 MB program flash and the 16 MB data flash, and store copies in two places
-- [ ] Confirm the stock firmware can be reflashed before installing anything else
-- [ ] Use an FTDI cable: CH340 cables can be unreliable ([installing](user/02-installing.md))
-- [ ] Do all transmit testing into a dummy load first
+- [x] Note the board revision, stock firmware version and vocoder variant when the radio arrives
+- [x] Back up the 1 MB program flash and the 16 MB data flash, and store copies in two places
+- [x] Confirm the stock firmware can be reflashed before installing anything else
+- [x] Use an FTDI cable: CH340 cables can be unreliable ([installing](user/02-installing.md))
+- [ ] Do all transmit testing into a dummy load first (nothing transmits yet)
 
 Risk ladder, lowest first: simulator-only work, receive-only features, transmit features. Anything that changes keying,
 power or deviation is checked on a spectrum analyzer before going on the air. Backups never go in this repository
@@ -113,11 +206,11 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 
 | Step | Work | Status |
 |---|---|---|
-| 1 | Set up: build, host tests, UI simulator | Host tests and simulator work. Firmware build waits on the toolchain |
+| 1 | Set up: build, host tests, UI simulator | Done. The firmware builds with the C-SKY Docker image (`tools/docker/csky-toolchain/run.sh`) and in CI |
 | 2 | UI redesign and Night theme | Night theme merged. Redesign not started |
-| 3 | Satellite profiles with SO-50 auto-arm | Not started |
-| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Not started |
-| 5 | Radio arrives: back up, install, confirm revert to stock | Radio due |
+| 3 | Satellite profiles with SO-50 auto-arm | Library done: built-in profiles and the arming state machine, host-tested. Profiles and TLEs are stored in data flash (one sector at 0x71B000, 32 satellites), saved and listed over the debug link (`rfoundry_debug.py sat save`, `list`). Not yet: editing on the radio; keying the burst through the radio core |
+| 4 | On-radio SGP4 with a pass list, tested against a reference library on a PC | Done in the simulator: SGP4, look angles and passes agree with python-sgp4 and Skyfield (`tests/host/satTest.c`); Tools > Satellites lists the stored satellites' next passes and one satellite's 24 hours of passes, in local time with direction arrows, worked out by a task of its own; Settings > Location > Time zone and Lowest pass. Untested on the radio: `tests/hil/test_sat.py` measures the model's speed there |
+| 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Done: installed over the standard release, the model costs 3.76 ms a run. `test_sat.py` itself has not been run on Windows |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
 | 7 | Crystal calibration and drift display | Not started |
 | 8 | Keypad TLE entry, then sound transfer | Not started |
@@ -147,11 +240,27 @@ Done: Settings > Display > Theme > Night ([ui.md](spec/ui.md) 8).
 
 Still open:
 
-- Backlight and LEDs, to decide on the radio in the dark: a separate Night brightness, a minimum below today's 10%, and
-  whether the status LEDs can dim or only switch.
-- Check the shades and the dimmest text on the real panel.
+- Backlight: the 10% minimum is fine on the radio, so no separate Night brightness or lower minimum for now.
+- The RX / TX LEDs at the top: two plain on / off pins (hardware-dm32.md 5, 6), so dimming would need PWM. Open: do they
+  bother in the dark? If so, a Night setting could turn them off.
+- Checked on the real panel (2026-11): the disabled rows were too dark, now brighter (`line` 64 to 96); the rest reads well.
 - Spanish and Italian strings need a native speaker's check.
 - Idea: switch to Night automatically after sunset, from GPS position and time.
+
+### Satellite screens
+
+Built: Tools > Satellites (OK 6 0) and a satellite's passes ([ui.md](spec/ui.md) 2.6, [user guide](user/24-satellites.md)),
+from the mockups agreed on 2026-11-03. Decided there: tracking tunes the radio temporarily and puts the channel back
+on leaving; times are local through a Time zone setting (no daylight saving rule); a Lowest pass setting (10° at
+first); Satellites is Tools 0; pass alarms come later; arrows show each pass's way across the sky. The Tracking screen is built too (OK on a pass, or a long OK on a satellite
+in the list; it is the fifth level, so not field use). Still to build: tuning the radio to the corrected frequencies
+(receive first), the SO-50 arming countdown and key, and a shorter way in such as a programmable key.
+
+Checked on the DM-32UV (2026-11-05): the ISS's next pass on the list matched an independent tracker's rise time and
+peak, and three satellites filled in within 6 to 8 seconds of opening the list. The orbit model costs 3.76 ms a run.
+
+With the Tracking screen the static stack check still passes (least free: the idle task, 132 B; `ui` 264 B, `sat`
+152 B, `host` 924 B), and on the radio `tasks.heap_min_free` stayed 15,416 and the least free stack was `sat` at 272 B.
 
 ### UI redesign
 
@@ -166,13 +275,16 @@ decided.
 
 The radio computes satellite positions and passes from orbital elements (TLEs), with no PC during operation.
 
-- Algorithm: SGP4. One open-source C version reports about 1 µs per step on a PC. Without an FPU, measure on the radio;
-  one update a second is the requirement.
+- Algorithm: SGP4, near-earth only (every FM satellite), written from the published papers
+  ([satellite.md](spec/satellite.md) 3). Without an FPU, measure on the radio; one update a second is the requirement,
+  and a day of passes for one satellite takes about 1,600 runs.
 - Precision: double precision. Single precision drifts a few meters a day, and up to 5-6 km over a month.
 - Inputs: TLEs (about 140 bytes per satellite), time from the RTC or GPS, position from GPS or a typed grid square.
 - Outputs: pass list with rise, peak and set times, maximum elevation, live azimuth and elevation, range rate for
   Doppler.
-- Test: compare against a reference library on a PC, as a host test.
+- Test: done as a host test against python-sgp4 and Skyfield: positions within 1e-9 km, look angles within 0.004
+  degree, rise and set within 0.6 s.
+- Time: no driver reads the RTC yet, so UTC comes from GPS NMEA (RMC) for now, up to about a second late.
 
 ### Automatic Doppler correction
 
@@ -203,7 +315,13 @@ hides slightly stale orbit data.
 
 ### Updating orbit data without a computer
 
-TLEs go stale within weeks. The radio should show each TLE's age and warn when it is old.
+TLEs go stale within weeks. The radio shows each TLE's age and warns when it is old (30 days now; about two weeks
+suits FM satellites better, and should become a setting).
+
+Built: `rfoundry_debug.py sat update` downloads CelesTrak's amateur-satellite file and brings the stored satellites up
+to date over the cable, keeping their profiles ([user guide](user/24-satellites.md#keeping-the-orbit-data-current)).
+Next, in order: a Satellites page on the web site with the same job (desktop Chromium, Web Serial), keypad entry, sound
+transfer.
 
 | Option | How it works | Works with | Status |
 |---|---|---|---|
@@ -221,6 +339,12 @@ A phone moves data in and out. It doesn't run Doppler, because the radio does.
 - iPhone: not possible this way, because Safari has no Web Serial. Use sound transfer.
 - Phone as microphone: not recommended. Audio, PTT and data would share one wire.
 - Unknown: whether Web Serial is in stable Chrome for Android, and whether it supports FTDI cables there.
+- Wanted: refreshing TLEs from a phone in the field (an OTG adapter and the cable). The site already has a debug link
+  client over Web Serial (`site/static/js/flasher/link.js`), so the page is a port of `sat update`. First test, with the
+  radio: open the Codeplug Editor in Chrome on the phone, plug the cable in through the OTG adapter and press Connect.
+  If the radio's port appears, the page will work; if not, the fallbacks are a small Android app on the USB-serial
+  library, or a Termux script. Also open: whether the browser may fetch CelesTrak's file (CORS), else the site hosts a
+  daily copy or the page takes a saved file.
 
 ### Satellite profiles and SO-50 auto-arm
 
@@ -366,8 +490,9 @@ Other:
 
 | Question | Status |
 |---|---|
-| Does the CK803S have an FPU? | Built without one (`-msoft-float`). Measure SGP4's cost |
-| Flash and RAM left in the image | RAM is the limit, about 0.5 KB in the default build. Measure this configuration at its first build |
+| Does the CK803S have an FPU? | Built without one (`-msoft-float`). SGP4 costs 3.76 ms a run on the radio (measured 2026-11-05): far inside one update a second |
+| Flash and RAM left in the image | The standard image has 16 B of main RAM free; the configuration above has 23,928 B free (measured 2026-11-05) |
+| Can the RTC be read and set? | Open. Registers are in [hardware-dm32.md](spec/hardware-dm32.md) 3.3; no driver yet |
 | Does `rigctld` set frequency on this radio? | Written, and sets the VFO simplex. No result recorded on the radio yet |
 | Does the GPS get an outdoor fix? | NMEA arrives on the radio. A fix outdoors is still to check |
 | Board revision, stock firmware version, vocoder variant | Open: needs the radio |

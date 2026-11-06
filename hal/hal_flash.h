@@ -32,6 +32,10 @@ typedef struct {
 	// docs/spec/tftp.md 4): outside every area above, never written by the open-firmware CPS. 0 size: no staged writes
 	uint32_t staging_addr;
 	uint32_t staging_size;
+	// Stored satellites (CONFIG_SAT, docs/spec/satellite.md 6.3): whole erase units outside every area above, never
+	// written by the open-firmware CPS. 0 size: none (satellites are loaded into RAM only)
+	uint32_t sat_addr;
+	uint32_t sat_size;
 } hal_flash_map_t;
 
 typedef struct {

@@ -24,6 +24,7 @@ tooling and link the specs for behavior; they don't repeat them. Users read [doc
 | 9. Web site | [The web site](website.md) | The generated site, data sources, templates, translating, radio images, error logging |
 | | [The web flasher](web-flasher.md) | The browser installer: modules, backends, backups, restore, version links |
 | | [The Codeplug Editor](codeplug-editor.md) | The browser codeplug editor |
+| | [The satellite element set page](sat-tle-web-tool.md) | A phone-friendly page in its own repository: update TLEs, set the clock, read diagnostics over the cable |
 | | [Translating](translating.md) | Adding a language to the radio and the site: catalogs, build switches, checks |
 
 ## Reference

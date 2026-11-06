@@ -62,8 +62,6 @@
 #
 # Build trees: build/ci/<board>-<config>/ (logs next to them). The exit status is 0 only when nothing failed.
 set -u
-# Switches the maximal configuration leaves off on every board: bench diagnostics, never in a release
-MAXIMAL_SKIP="AUDIO_PROBE"
 cd "$(dirname "$0")/.." || exit 2
 
 QUICK=0
@@ -337,6 +335,13 @@ for f in sys.argv[1:]:
 	else
 		skip "web site build: site/requirements.txt not installed (pip install -r site/requirements.txt, or install uv)"
 	fi
+	# The vectors the satellite element set page's tests share with rfoundry_debug.py (docs/dev/sat-tle-web-tool.md)
+	if python3 tools/sat_vectors.py --check > "$OUT/sat-vectors.log" 2>&1; then
+		ok "satellite update vectors: $(tail -1 "$OUT/sat-vectors.log")"
+	else
+		tail -5 "$OUT/sat-vectors.log"
+		bad "satellite update vectors (see $OUT/sat-vectors.log)"
+	fi
 	if command -v node > /dev/null; then
 		if RFOUNDRY_SITE_FIXTURES="$OUT/site-tests" site/tests/run.sh > "$OUT/site-tests.log" 2>&1; then
 			ok "web flasher tests: $(grep -E '^. pass' "$OUT/site-tests.log" | sed 's/^. //') against rfoundry"
@@ -472,13 +477,9 @@ for bm in boards/*/board.mk boards/*/; do
 		builds "$b"
 	fi
 	features=$(make -s BOARD="$b" print-config 2>/dev/null)
-	all_on=""
-	unsupported=" $(make -s BOARD="$b" print-unsupported 2>/dev/null) $(make -s BOARD="$b" print-not-written 2>/dev/null)"
-	unsupported="$unsupported $(make -s BOARD="$b" print-maximal-skip 2>/dev/null) $MAXIMAL_SKIP "
 	required=" $(make -s BOARD="$b" print-required 2>/dev/null) "
 	for kv in $features; do
 		f=${kv%%=*}
-		case "$unsupported" in *" $f "*) ;; *) all_on="$all_on CONFIG_$f=y" ;; esac
 		[ "$QUICK" = 1 ] && continue
 		case "$required" in *" $f "*) continue ;; esac
 		[ "${kv#*=}" = y ] && build "$b" "no-$f" "CONFIG_$f=n"
@@ -490,7 +491,7 @@ for bm in boards/*/board.mk boards/*/; do
 	fi
 	# Maximal with --quick too: its flash and the stack check's deepest chains are where a pull request runs out first
 	# shellcheck disable=SC2086
-	build "$b" maximal $all_on $(make -s BOARD="$b" print-maximal-vars 2>/dev/null)
+	build "$b" maximal $(tools/maximal.sh --args "$b" 2>/dev/null)
 done
 # Each platform's flash stubs (platform.toml stubs), once, when any board on the platform was built: one image serves
 # every board on it. Built with that platform's compiler (the first board's print-cc), then the stub's own check target

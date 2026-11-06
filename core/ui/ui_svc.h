@@ -170,6 +170,8 @@ typedef struct {
 	uint32_t utc_hms;	// hhmmss, 0xFFFFFFFF unknown
 } ui_position_t;
 bool ui_svc_position(ui_position_t *out);	// false: no GPS on this radio (or off)
+// The status strip's GPS icon: 0 no GPS or off, 1 receiving without a fix, 2 a fix
+uint8_t ui_svc_gps_state(void);
 // One satellite for the GPS screen's sky plot and signal bars
 enum { UI_GNSS_GPS, UI_GNSS_GLONASS, UI_GNSS_GALILEO, UI_GNSS_BEIDOU, UI_GNSS_QZSS, UI_GNSS_COUNT };
 typedef struct {
@@ -181,6 +183,62 @@ typedef struct {
 	bool used;		// in the fix
 } ui_gps_sat_t;
 bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out);	// false past the last
+
+// --- Satellites (Tools > Satellites, CONFIG_SAT; ui_svc_sat.c, docs/spec/ui.md 2.6, docs/spec/satellite.md 5.1). The
+// passes are worked out by another task; these only read what it has so far. Weak stubs: not in this build ---
+enum { UI_SAT_NO_TIME, UI_SAT_NO_POSITION, UI_SAT_READY, UI_SAT_NO_MEMORY };
+typedef struct {
+	uint8_t state;		// UI_SAT_NO_TIME / NO_POSITION / READY / NO_MEMORY (its task couldn't start)
+	uint8_t count;		// satellites stored
+	bool store;		// the radio has a satellite store (else satellites are loaded over the cable, to RAM)
+	uint32_t utc;		// UTC now, Unix seconds (0 without the time)
+	int16_t utc_offset_min;	// the Time zone setting
+	uint8_t min_el;		// the Lowest pass setting
+} ui_sat_status_t;
+// One satellite of the list (state: sat_row_state_t, core/sat/sat_svc.h)
+enum { UI_SAT_NO_ORBIT, UI_SAT_WORKING, UI_SAT_NEXT, UI_SAT_UP, UI_SAT_NONE, UI_SAT_OLD, UI_SAT_BAD };
+typedef struct {
+	char name[12];
+	uint32_t norad;
+	uint8_t state;
+	int8_t max_el, el_now;	// degrees
+	int16_t age_d;		// the element set's age in days
+	uint16_t dir;		// its way across the sky: a bearing, north up and east right
+	uint32_t aos, los;	// the next pass (or the one under way), UTC
+} ui_sat_t;
+typedef struct {
+	uint32_t aos, los;	// UTC
+	int8_t max_el;
+	uint16_t aos_az, los_az, dir;	// degrees
+} ui_sat_pass_t;
+typedef struct {
+	uint32_t up_hz, down_hz;	// 0 none
+	uint16_t up_tone, arm_tone;	// CTCSS Hz x 10, 0 none
+	int16_t age_d;		// the element set's age in days, INT16_MIN without one
+} ui_sat_profile_t;
+bool ui_svc_sat_status(ui_sat_status_t *out);	// false: not in this build
+bool ui_svc_sat_get(uint8_t i, ui_sat_t *out);	// false past the last
+void ui_svc_sat_refresh(void);			// the list opened: work its passes out again from the store
+void ui_svc_sat_open(uint32_t norad);		// that satellite's passes (0: none)
+bool ui_svc_sat_profile(ui_sat_profile_t *out);	// the opened satellite's frequencies and tones
+// The opened satellite's passes so far: how many, *done once the 24 hours are searched; one of them
+uint8_t ui_svc_sat_pass_count(bool *done);
+bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out);
+// The tracking screen: the opened satellite's position now and its pass's path across the sky
+typedef struct {
+	uint16_t az;		// degrees
+	int8_t el;		// degrees; below 0 is under the horizon
+	float range_km, rate_kms;	// the range rate is positive while it moves away
+	uint32_t rx_hz, tx_hz;	// the profile's frequencies with Doppler, 0 none
+} ui_sat_live_t;
+void ui_svc_sat_track(uint32_t aos, uint32_t los);	// track that pass of the opened satellite; 0 stops
+bool ui_svc_sat_live(ui_sat_live_t *out);		// false until worked out
+uint8_t ui_svc_sat_path_count(void);			// points so far, UI_SAT_PATH when complete
+bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el);
+#define UI_SAT_PATH	24
+// Set the radio's clock by hand (UTC, Unix seconds): it also goes into the battery-backed clock where the board has one.
+// False: not in this build, or the time is refused
+bool ui_svc_sat_clock_set(uint32_t utc);
 
 // --- Emergency, reset ---
 // Emergency is dmr-ext's: it defines ui_svc_emergency and reports UI_FEAT_EMERGENCY from ui_svc_feat_ext. Until
@@ -325,6 +383,12 @@ typedef enum {
 	UI_SET_DMR_ID,		// the radio's own DMR ID in the codeplug, 1..CODEPLUG_DMR_ID_MAX (a set is a codeplug write job)
 	UI_SET_REF_TRIM,	// reference oscillator trim, ppb -10000..+10000 (Settings > Advanced; settings_t.ref_trim_ppb)
 	UI_SET_LANGUAGE,	// the UI's language, i18n.h lang_value: "en" English, 0 never picked (Settings > Display; settings_t.lang)
+#if CONFIG_SAT
+	// Satellite tracking (Settings > Location, CONFIG_SAT; docs/spec/satellite.md 5.1): local time as minutes from UTC
+	// (-720..+840, steps of 15; settings_t.utc_offset_min), the lowest pass listed in degrees (0..60; settings_t.sat_min_el).
+	// Only in a build with satellites: the RAM table of the settings has a word for each
+	UI_SET_UTC_OFFSET, UI_SET_SAT_MIN_EL,
+#endif
 	UI_SET_COUNT
 } ui_setting_t;
 

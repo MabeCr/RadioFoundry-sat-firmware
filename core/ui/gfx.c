@@ -377,6 +377,31 @@ static void icon_glyph(const font_t *f, int x, int y, uint8_t c, color_t fg)
 	seg(cx + head, back, cx, tip, t, fg);
 }
 
+// A compass arrow (font.h GLYPH_DIR_FIRST + point, 0 north .. 7 north-west, clockwise), in the box of the font's capital
+// H: a shaft through the middle and a head of two strokes at the tip
+static void dir_glyph(const font_t *f, int x, int y, uint8_t point, color_t fg)
+{
+	static const int8_t dx[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+	static const int8_t dy[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+	int top = 0, rows = f->ascent;
+	if (font_glyph(f, 'H', &top, &rows) == NULL || rows == 0) {
+		top = 1;
+		rows = f->ascent - 1;
+	}
+	int t = f->w >= 8 ? 2 : 1;		// bolder than the share icon's: it has to read at a glance
+	int side = f->w < rows ? f->w : rows;	// the whole cell's width: an arrow has to read at a glance
+	int cx = x + (f->w - t) / 2, cy = y + top + (rows - t) / 2;
+	int h = side / 2, k = side / 2 - (side >= 8 ? 1 : 0);
+	if ((point & 1u) != 0)		// a diagonal: its legs shorter, so it is about as long as the straight ones
+		h = h * 8 / 10, k = k * 8 / 10;
+	int tx = cx + dx[point] * h, ty = cy + dy[point] * h;
+	seg(cx - dx[point] * h, cy - dy[point] * h, tx, ty, t, fg);
+	uint8_t a = (uint8_t)((point + 3u) & 7u), b = (uint8_t)((point + 5u) & 7u);	// the head, back from the tip
+	int ka = (a & 1u) ? k * 8 / 10 : k, kb = (b & 1u) ? k * 8 / 10 : k;
+	seg(tx, ty, tx + dx[a] * ka, ty + dy[a] * ka, t, fg);
+	seg(tx, ty, tx + dx[b] * kb, ty + dy[b] * kb, t, fg);
+}
+
 // Extra glyphs a font lacks, drawn from primitives inside the cell at x, y
 static void fallback_glyph(const font_t *f, int x, int y, uint8_t c, color_t fg)
 {
@@ -408,6 +433,10 @@ static void fallback_glyph(const font_t *f, int x, int y, uint8_t c, color_t fg)
 	case 0x84:
 	case 0x85:
 		icon_glyph(f, x, y, c, fg);
+		break;
+	case GLYPH_DIR_FIRST: case GLYPH_DIR_FIRST + 1: case GLYPH_DIR_FIRST + 2: case GLYPH_DIR_FIRST + 3:
+	case GLYPH_DIR_FIRST + 4: case GLYPH_DIR_FIRST + 5: case GLYPH_DIR_FIRST + 6: case GLYPH_DIR_FIRST + 7:
+		dir_glyph(f, x, y, (uint8_t)(c - GLYPH_DIR_FIRST), fg);
 		break;
 	default:	// not drawable: a box
 		gfx_rect(x + 1, y + 1, f->w - 2, f->ascent - 1, fg);
@@ -589,6 +618,22 @@ void gfx_icon_battery(int x, int y, int w, int h, uint8_t pct, color_t outline, 
 	if (pct > 0 && lit == 0)
 		lit = 1;
 	gfx_fill(x + 2, y + 2, lit, h - 4, fill);
+}
+
+void gfx_icon_gps(int x, int y, int d, bool fix, color_t c)
+{
+	if (d < 5)
+		d = 5;
+	if (fix) {
+		gfx_fill(x + 1, y, d - 2, d, c);
+		gfx_fill(x, y + 1, d, d - 2, c);
+		return;
+	}
+	gfx_hline(x + 1, y, d - 2, c);
+	gfx_hline(x + 1, y + d - 1, d - 2, c);
+	gfx_vline(x, y + 1, d - 2, c);
+	gfx_vline(x + d - 1, y + 1, d - 2, c);
+	gfx_pixel(x + d / 2, y + d / 2, c);	// the dot of a location mark in the middle
 }
 
 void gfx_icon_bars(int x, int y, int w, int h, uint8_t count, uint8_t lit, color_t on, color_t off)

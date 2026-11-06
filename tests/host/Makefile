@@ -448,24 +448,27 @@ i18nTestDefault: i18nTest.c $(I18N) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/
 # the long-press rules; uiSim renders screens to PNG (make ui-gallery: docs/ux/screens/, contact sheets in
 # docs/ux/screens/sheets/). Built without the __attribute__ override above so the weak service stubs
 # (ui_svc_stub.c) give way to the simulator's.
-UIAPP   := $(UI) $(CORE)/ui/ui_app.c $(CORE)/ui/ui_menus.c $(CORE)/ui/ui_find.c $(CORE)/ui/ui_aprs.c $(CORE)/ui/ui_gps.c $(CORE)/ui/ui_dual.c $(CORE)/radio/tones.c \
+UIAPP   := $(UI) $(CORE)/ui/ui_app.c $(CORE)/ui/ui_menus.c $(CORE)/ui/ui_find.c $(CORE)/ui/ui_aprs.c $(CORE)/ui/ui_gps.c $(CORE)/ui/ui_dual.c \
+           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
            $(CORE)/codeplug/codeplug_talk.c $(CORE)/codeplug/zone_edit.c $(CORE)/codeplug/zone_shift.c $(CORE)/radio/radio_am.c \
            $(CORE)/radio/radio_bcast.c sim/ui_sim.c sim/ui_png.c
 # The About page's data header, as the firmware build makes it (tools/gen_about.py; the STM32F4 list stands in)
 ABOUT_H := out/gen/rfoundry_about.h
 $(shell python3 $(ROOT)/tools/gen_about.py $(ROOT)/AUTHORS $(ROOT)/platform/stm32f4/THIRD_PARTY $(ABOUT_H) >/dev/null)
 UIFLAGS := -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wshadow -g $(COVFLAGS) $(SANFLAGS) -I$(CORE) -I$(ROOT)/hal -I. -Iout/gen \
-           '-DGFX_FB_BYTES=(320u*320u*2u)' -DGFX_MAX_ROWS=320 -DCONFIG_FONT_XL=1 -DFONT_BOTH -DGFX_INDEXED=1 -DGFX_FIT_TRACE
+           '-DGFX_FB_BYTES=(320u*320u*2u)' -DGFX_MAX_ROWS=320 -DCONFIG_FONT_XL=1 -DFONT_BOTH -DGFX_INDEXED=1 -DGFX_FIT_TRACE \
+           -DCONFIG_SAT=1
 UIDEPS  := $(UIAPP) $(ABOUT_H) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/ui/fonts/*.inc sim/ui_sim.h)
 TESTS   += uiFlowTest uiFlowTestNoColor uiSim
 
 uiFlowTest: uiFlowTest.c $(UIDEPS)
 	$(CC) $(UIFLAGS) -o $@ uiFlowTest.c $(UIAPP) -lz
 
-# The same flows built as a radio with only a monochrome screen builds them (CONFIG_UI_COLOR=n): no color rows; and
-# without a translation (CONFIG_LANG_ES=n): the Language screen dims Spanish
+# The same flows built as a radio with only a monochrome screen builds them (CONFIG_UI_COLOR=n): no color rows;
+# without a translation (CONFIG_LANG_ES=n): the Language screen dims Spanish; and without satellites (CONFIG_SAT=n), the
+# default: Tools has no row 0
 uiFlowTestNoColor: uiFlowTest.c $(UIDEPS)
-	$(CC) $(UIFLAGS) -DCONFIG_UI_COLOR=0 -DCONFIG_LANG_ES=0 -o $@ uiFlowTest.c $(UIAPP) -lz
+	$(CC) $(UIFLAGS) -DCONFIG_UI_COLOR=0 -DCONFIG_LANG_ES=0 -UCONFIG_SAT -DCONFIG_SAT=0 -o $@ uiFlowTest.c $(UIAPP) -lz
 
 uiSim: uiSim.c $(UIDEPS)
 	$(CC) $(UIFLAGS) -o $@ uiSim.c $(UIAPP) -lz
@@ -545,6 +548,45 @@ run-ambe: ambeFecTest ambeVoiceTest micGainTest refTrimTest
 	./micGainTest
 	./refTrimTest
 .PHONY: run-ambe
+
+# Satellite tracking (core/sat, docs/spec/satellite.md 8): TLEs, SGP4 against python-sgp4, look angles and passes
+# against Skyfield (sat_ref.h, made by tools/sat_reference.py), Doppler, locators, repeater arming. -Wdouble-promotion
+# as the firmware builds it: the model is double precision, and a float slipping in costs digits
+# The library without the store and the service, which need core/storage (satStoreTest, satSvcTest)
+SAT_SRC := $(filter-out %/sat_store.c %/sat_svc.c,$(sort $(wildcard $(CORE)/sat/*.c)))
+TESTS   += satTest
+satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
+
+# The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
+# reference values. Without APRS: no GPS to take the observer from
+TESTS   += satLinkTest
+SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
+	   $(CORE)/storage/storage.c sim/sim_flash.c
+satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/debuglink/debuglink.h \
+	     $(CORE)/debuglink/debuglink_proto.h sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
+
+# Stored satellites (core/sat/sat_store.c) on the simulated flash, with power cuts
+TESTS   += satStoreTest
+SATSTORE := satStoreTest.c $(CORE)/sat/sat_store.c $(CORE)/sat/sat_tle.c $(CORE)/sat/sgp4.c $(CORE)/sat/sat_math.c \
+	    $(CORE)/sat/sat_profile.c $(CORE)/storage/storage.c sim/sim_flash.c
+satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(SATSTORE) -lm
+
+# The satellite service (core/sat/sat_svc.c): the list's next passes and a pass list, in slices, on the simulated flash
+TESTS   += satSvcTest
+SATSVC  := satSvcTest.c $(CORE)/sat/sat_svc.c $(SAT_SRC) $(CORE)/sat/sat_store.c $(CORE)/storage/storage.c sim/sim_flash.c
+satSvcTest: $(SATSVC) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(sort $(SATSVC)) -lm
+
+run: run-sat
+run-sat: satTest satLinkTest satStoreTest satSvcTest
+	./satTest
+	./satLinkTest
+	./satStoreTest
+	./satSvcTest
+.PHONY: run-sat
 
 # The DMR voice call stack (core/dmr/call) against a simulated modem; LC coding cross-checked with sfr.c and dmrData.c
 CALL    := dmrCallTest.c sim/dmr_sim_modem.c $(CORE)/dmr/call/dmr_call.c $(CORE)/dmr/call/dmr_lc.c $(CORE)/dmr/sfr.c $(DATA) $(FRAME) \

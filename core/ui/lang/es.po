@@ -748,7 +748,7 @@ msgstr "0-9 elegir  Atrás"
 msgid "Heard"
 msgstr "Oídas"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_screens.c
 msgid "Back"
 msgstr "Atrás"
 
@@ -2524,6 +2524,10 @@ msgstr "Repetidor de 1 frec"
 msgid "Diagnostics"
 msgstr "Diagnóstico"
 
+#: core/ui/ui_menus.c core/ui/ui_sat.c
+msgid "Satellites"
+msgstr "Satélites"
+
 #: core/ui/ui_menus.c
 msgid "Zones/Chs Received"
 msgstr "Zonas/Can recibidos"
@@ -2539,6 +2543,10 @@ msgstr "Red"
 #: core/ui/ui_menus.c
 msgid "Serial"
 msgstr "Serie"
+
+#: core/ui/ui_menus.c
+msgid "up"
+msgstr "arriba"
 
 #: core/ui/ui_menus.c
 msgid "Never"
@@ -2815,6 +2823,18 @@ msgstr "Enviar posición"
 #: core/ui/ui_menus.c
 msgid "Answer GPS requests"
 msgstr "Responder pet. GPS"
+
+#: core/ui/ui_menus.c
+msgid "Time zone"
+msgstr "Zona horaria"
+
+#: core/ui/ui_menus.c
+msgid "Lowest pass"
+msgstr "Pase mínimo"
+
+#: core/ui/ui_menus.c core/ui/ui_sat.c
+msgid "Set time"
+msgstr "Poner hora"
 
 #: core/ui/ui_menus.c
 msgid "Hotspot allowed"
@@ -3127,6 +3147,110 @@ msgstr "¿Codeplug de otro firmware? Crear nuevo borra contactos, indicativo e I
 #: core/ui/ui_menus.c
 msgid "Old codeplug"
 msgstr "Codeplug anterior"
+
+#: core/ui/ui_sat.c
+msgid "Waiting for the time: passes need UTC from a GPS fix"
+msgstr "Esperando la hora: los pases necesitan UTC de un fijo GPS"
+
+#: core/ui/ui_sat.c
+msgid "Not enough memory to work out passes"
+msgstr "Sin memoria para calcular los pases"
+
+#: core/ui/ui_sat.c
+msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
+msgstr "Sin posición: un fijo GPS, o una fija en Herramientas > APRS"
+
+#: core/ui/ui_sat.c
+msgid "Above"
+msgstr "Sobre"
+
+#: core/ui/ui_sat.c
+msgid "no orbit"
+msgstr "sin órbita"
+
+#: core/ui/ui_sat.c
+msgid "bad orbit"
+msgstr "órbita mala"
+
+#: core/ui/ui_sat.c
+msgid "no pass"
+msgstr "sin pase"
+
+#: core/ui/ui_sat.c
+msgid "up now"
+msgstr "arriba"
+
+#: core/ui/ui_sat.c
+msgid "No orbit data: load its TLE over the cable"
+msgstr "Sin datos de órbita: cargue su TLE por el cable"
+
+#: core/ui/ui_sat.c
+msgid "This TLE can't be predicted"
+msgstr "Este TLE no se puede predecir"
+
+#: core/ui/ui_sat.c
+msgid "OK passes  Hold OK track"
+msgstr "OK pases  Mant. OK seguir"
+
+#: core/ui/ui_sat.c
+msgid "No satellites stored. Load them over the cable: rfoundry_debug.py sat"
+msgstr "No hay satélites guardados. Cárguelos por el cable: rfoundry_debug.py sat"
+
+#: core/ui/ui_sat.c core/ui/ui_screens.c
+msgid "Tone"
+msgstr "Tono"
+
+#: core/ui/ui_sat.c
+msgid "arm"
+msgstr "armar"
+
+#: core/ui/ui_sat.c
+msgid "Tomorrow"
+msgstr "Mañana"
+
+#: core/ui/ui_sat.c
+msgid "Working"
+msgstr "Calculando"
+
+#: core/ui/ui_sat.c
+msgid "OK track  Back"
+msgstr "OK seguir  Atrás"
+
+#: core/ui/ui_sat.c
+msgid "No pass above the lowest in 24 h (Settings > Location)"
+msgstr "Ningún pase sobre el mínimo en 24 h (Ajustes > Ubicación)"
+
+#: core/ui/ui_sat.c
+msgid "Tracking"
+msgstr "Seguimiento"
+
+#: core/ui/ui_sat.c
+msgid "Pass over"
+msgstr "Pase terminado"
+
+#: core/ui/ui_sat.c
+msgid "Rng"
+msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "Local"
+msgstr "Local"
+
+#: core/ui/ui_sat.c
+msgid "# next field  OK set"
+msgstr "# campo  OK fijar"
+
+#: core/ui/ui_sat.c
+msgid "Not a date"
+msgstr "Fecha no válida"
+
+#: core/ui/ui_sat.c
+msgid "Clock set"
+msgstr "Reloj puesto"
+
+#: core/ui/ui_sat.c
+msgid "Couldn't set the clock"
+msgstr "No se pudo poner el reloj"
 
 #: core/ui/ui_screens.c
 msgid "IDLE"
@@ -3555,10 +3679,6 @@ msgstr "Sin llamadas aún"
 #: core/ui/ui_screens.c
 msgid "{Squelch|SQL}"
 msgstr "{Squelch|SQL}"
-
-#: core/ui/ui_screens.c
-msgid "Tone"
-msgstr "Tono"
 
 #: core/ui/ui_screens.c
 msgid "{Monitor|MON}"

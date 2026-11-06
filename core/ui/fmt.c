@@ -195,6 +195,33 @@ void sb_compass(sbuf_t *b, uint16_t bearing)
 	sb_str(b, points[((bearing % 360u) * 2u + 45u) / 90u % 8u]);
 }
 
+void sb_dir_arrow(sbuf_t *b, uint16_t bearing)
+{
+	sb_chr(b, (char)(GLYPH_DIR_FIRST + ((bearing % 360u) * 2u + 45u) / 90u % 8u));
+}
+
+void sb_hhmm(sbuf_t *b, uint32_t seconds)
+{
+	seconds %= 86400u;
+	sb_u32(b, seconds / 3600u, 2);
+	sb_chr(b, ':');
+	sb_u32(b, seconds / 60u % 60u, 2);
+}
+
+void sb_utc_offset(sbuf_t *b, int32_t minutes)
+{
+	sb_str(b, "UTC");
+	if (minutes == 0)
+		return;
+	sb_chr(b, minutes < 0 ? '-' : '+');
+	uint32_t m = (uint32_t)(minutes < 0 ? -minutes : minutes);
+	sb_u32(b, m / 60u, 1);
+	if (m % 60u) {
+		sb_chr(b, ':');
+		sb_u32(b, m % 60u, 2);
+	}
+}
+
 void sb_range(sbuf_t *b, uint32_t meters, uint16_t bearing)
 {
 	if (meters < 1000u) {

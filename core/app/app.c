@@ -16,6 +16,7 @@
 //   host            3   512   core/hostlink: the host port (USB CDC or a UART): MMDVM hotspot, CPS
 //   usb             3   256   drivers/usb: TinyUSB device stack (tud_task)
 //   ui              2   -     core/ui: chosen there (keep it at or below 2 and within about 1024 words)
+//   sat             0   384   core/app/sat_task.c (CONFIG_SAT): satellite passes, in slices, between the idle task's turns
 //   idle            0   128   FreeRTOS
 // The radio task is above input so a PTT edge is acted on as soon as it is queued; input is above the UI so a busy
 // redraw never delays a key scan.
@@ -43,6 +44,9 @@
 #endif
 #if CONFIG_CPS_FAST
 #include "cps/cps_fast.h"
+#endif
+#if CONFIG_SAT
+#include "app/sat_task.h"
 #endif
 #include "FreeRTOS.h"
 #include "task.h"
@@ -120,6 +124,9 @@ static void startup_task(void *arg)
 	radio_core_start();
 	input_start();
 	ui_start();
+#if CONFIG_SAT
+	sat_task_start();		// the satellite list's passes (core/sat/sat_svc.c), worked out while nothing else runs
+#endif
 #if CONFIG_HOSTLINK
 	// The two fields read in place: a settings copy here would stay on this task's stack under the radio core's
 	// set-up above, its deepest path (stack-check.md)

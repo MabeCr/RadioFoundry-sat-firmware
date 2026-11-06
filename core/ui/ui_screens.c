@@ -112,7 +112,9 @@ void ui_theme_set(uint8_t theme)
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(200, 0, 0);
 		ui_col.dim = RGB565(128, 0, 0);
-		ui_col.line = RGB565(64, 0, 0);
+		// line is also the disabled rows' text: 64 was hard to read on the radio in the dark (2026-11), 96 is a little
+		// brighter and still well under dim (128)
+		ui_col.line = RGB565(96, 0, 0);
 		ui_col.tx = RGB565(255, 0, 0);
 		ui_col.rx = RGB565(0, 128, 40);
 		ui_col.warn = RGB565(176, 96, 0);
@@ -399,6 +401,14 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		rx -= lw + f->w / 2;
 		gfx_fill(rx, iy + ih / 2, lw, ih - ih / 2, swarn);		// body
 		gfx_rect(rx + 1, iy, lw - 2, ih / 2 + 1, swarn);		// shackle
+	}
+	// GPS: solid in the receive color with a fix, a hollow square in the warning color while it searches (P5: shape and
+	// color), nothing when it is off or the radio has none
+	uint8_t gps = ui_svc_gps_state();
+	if (gps != 0) {
+		int gd = ih < 5 ? 5 : ih;
+		rx -= gd + f->w / 2;
+		gfx_icon_gps(rx, ty + f->ascent - gd, gd, gps == 2, gps == 2 ? (filled ? sfg : ui_col.rx) : swarn);
 	}
 
 	if (merged) {
@@ -2554,6 +2564,8 @@ void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l
 		color_t vfg = (it.flags & UI_ITEM_DIM) && gfx_bpp() != 1 ? ui_col.line : ui_col.dim;
 		if (it.flags & UI_ITEM_TEMP)
 			vfg = ui_col.warn;
+		if ((it.flags & UI_ITEM_LIVE) && gfx_bpp() != 1)
+			vfg = ui_col.rx;
 		// Night outlines the row being edited, as a warning banner is drawn: a filled row would be a bright bar
 		bool outline = false;
 		if (focus) {

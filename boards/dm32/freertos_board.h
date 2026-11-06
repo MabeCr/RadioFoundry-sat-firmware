@@ -10,6 +10,12 @@
 // 1 KB for a moment (core/ui/ui_svc_zone.c). 33 KB keeps about 4.7 KB spare at the most, twice the 2 KB
 // tests/hil/test_task_stacks.py asks for, and gives the rest to main RAM (the air MTU's 64-burst lists took the last
 // 1 KB from 34). The debug link's tasks view reports the least free since start (tasks.heap_min_free)
+// Satellite tracking's task (CONFIG_SAT, core/app/sat_task.c) takes 1.6 KB more: its RAM comes from the features the
+// satellite build turns off (docs/dm32-satellite-plan.md, RAM budget)
+#if defined(CONFIG_SAT) && CONFIG_SAT
+#define configTOTAL_HEAP_SIZE	(35 * 1024)
+#else
 #define configTOTAL_HEAP_SIZE	(33 * 1024)
+#endif
 
 #endif

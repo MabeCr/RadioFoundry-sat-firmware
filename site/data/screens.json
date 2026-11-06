@@ -92,6 +92,18 @@
    "group": "home",
    "needs": []
   },
+  "home_gps_search": {
+   "group": "home",
+   "needs": [
+    "GPS"
+   ]
+  },
+  "home_gps_fix": {
+   "group": "home",
+   "needs": [
+    "GPS"
+   ]
+  },
   "home_usb_ip": {
    "group": "home",
    "needs": [
@@ -693,6 +705,36 @@
     "GPS_SKY"
    ]
   },
+  "satellites": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellite_passes": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellite_track": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellite_set_time": {
+   "group": "settings",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellites_no_time": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
   "diagnostics": {
    "group": "tools",
    "needs": [
@@ -706,6 +748,12 @@
    ]
   },
   "settings_display": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
+  "settings_location": {
    "group": "settings",
    "needs": [
     "UI_SETTINGS"

@@ -70,6 +70,19 @@ WEAK bool ui_svc_radio_check(uint32_t id) { (void)id; return false; }
 WEAK bool ui_svc_call_alert(uint32_t id) { (void)id; return false; }
 
 WEAK bool ui_svc_position(ui_position_t *out) { (void)out; return false; }
+WEAK uint8_t ui_svc_gps_state(void) { return 0; }
+WEAK bool ui_svc_sat_status(ui_sat_status_t *out) { (void)out; return false; }
+WEAK bool ui_svc_sat_get(uint8_t i, ui_sat_t *out) { (void)i; (void)out; return false; }
+WEAK void ui_svc_sat_refresh(void) {}
+WEAK void ui_svc_sat_open(uint32_t norad) { (void)norad; }
+WEAK bool ui_svc_sat_profile(ui_sat_profile_t *out) { (void)out; return false; }
+WEAK uint8_t ui_svc_sat_pass_count(bool *done) { *done = true; return 0; }
+WEAK bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out) { (void)i; (void)out; return false; }
+WEAK void ui_svc_sat_track(uint32_t aos, uint32_t los) { (void)aos; (void)los; }
+WEAK bool ui_svc_sat_live(ui_sat_live_t *out) { (void)out; return false; }
+WEAK bool ui_svc_sat_clock_set(uint32_t utc) { (void)utc; return false; }
+WEAK uint8_t ui_svc_sat_path_count(void) { return 0; }
+WEAK bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el) { (void)i; (void)az; (void)el; return false; }
 WEAK bool ui_svc_gps_sat(uint8_t i, ui_gps_sat_t *out) { (void)i; (void)out; return false; }
 WEAK bool ui_svc_emergency(bool on) { (void)on; return false; }
 WEAK void ui_svc_emergency_dismiss(void) { }
@@ -107,6 +120,9 @@ static int32_t settings[UI_SET_COUNT] = {
 	[UI_SET_VIBRATE] = 1, [UI_SET_VOLUME] = RADIO_VOLUME_DEFAULT, [UI_SET_DUAL_DELAY_MS] = RADIO_DUAL_DELAY_MS,
 	[UI_SET_BCAST_STEP] = 200,
 	[UI_SET_NOISE_REDUCTION] = 1,
+#if CONFIG_SAT
+	[UI_SET_SAT_MIN_EL] = 10,
+#endif
 };
 // (ui_svc_storage.c keeps the ones settings_t has fields for: these are the defaults of the rest, and the UI's
 // stand-ins in a build without the store)

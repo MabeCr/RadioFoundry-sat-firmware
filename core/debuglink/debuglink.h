@@ -47,6 +47,7 @@ enum {
 	DL_VIEW_NET_SVC,	// mDNS and TFTP (were in DL_VIEW_NET until view version 4)
 	DL_VIEW_NET_LINK,	// the MTUs and the PPP link (PPP was in DL_VIEW_HOTSPOT until view version 4)
 	DL_VIEW_CPS,		// the CPS shims' counters (were in DL_VIEW_STORAGE until view version 5)
+	DL_VIEW_SAT,		// satellite tracking: element set, clock, observer, the satellite now, bench (debuglink_sat.c)
 	DL_VIEW_COUNT
 };
 #define DL_VIEW_VERSION		5	// bumped when a key changes meaning or goes away (new keys don't bump it)
@@ -146,6 +147,11 @@ size_t debuglink_cmd_iddb(const uint8_t *req, uint16_t len, uint8_t *out, size_t
 void debuglink_view_watchdog(dl_text_t *t);
 size_t debuglink_cmd_watchdog(const uint8_t *req, uint16_t len, uint8_t *out, size_t cap);
 void debuglink_watchdog_service(void);
+
+// Satellite tracking (debuglink_sat.c, docs/spec/debuglink.md 3.24): the sat section and DL_CMD_SAT. Without
+// CONFIG_SAT: "sat.built=0", unavailable
+void debuglink_view_sat(dl_text_t *t);
+size_t debuglink_cmd_sat(const uint8_t *req, uint16_t len, uint8_t *out, size_t cap);
 
 // The debug link's own counters: frames answered, bad CRC, too long, timed out (debuglink.c)
 #define DL_LINK_COUNTERS	4

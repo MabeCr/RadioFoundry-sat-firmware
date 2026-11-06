@@ -81,6 +81,7 @@ is `tools/bringup.py list --radio <id>`.
 | `aprs_rx` | pass (seed) | not recorded | not recorded | not written | not written | not recorded |
 | `aprs_igate` | not recorded | off | not recorded | not written | not written | off |
 | `gps_sky` | not recorded | not recorded | ✕ | not recorded | not recorded | not recorded |
+| `sat` | off | off | off | off | off | off |
 | `usb` | ✕ | pass (seed) | ✕ | ✕ | not recorded | not recorded |
 | `hostlink` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `hotspot` | pass (seed) | pass (seed) | pass (seed) | pass (seed) | not recorded | not recorded |
@@ -243,6 +244,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `APRS_RX` | ● | ● | ● | … | … | ● |
 | `APRS_IGATE` | ● | ○ | ● | … | … | ○ |
 | `GPS_SKY` | ● | ● | ✕ | ● | ● | ● |
+| `SAT` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● |
@@ -303,6 +305,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | APRS: AFSK positions, status, messages; DMR positions; KISS TNC | `APRS` | 26,568 | 26,628 | Includes APRS receive, KISS over TCP and APRS-IS where built. MD-380: AFSK TX needs the tone path (not written), DMR positions work |
 | APRS receive: demodulator, station list, digipeater | `APRS_RX` | 8,892 | — | DM-1701: FM receive audio on the I2S stream, squelch gated ([aprs](spec/aprs.md) 5.3). MD-380: not written |
 | GPS screen: sky plot, signal bars, grid locator (Tools > Position) | `GPS_SKY` | — | 5,244 | Needs GPS and APRS. 176 B of RAM. MD-380 measured 2026-10-29 (LTO) |
+| Satellite tracking: SGP4, passes, Doppler, profiles, repeater arming | `SAT` | 26,792 | — | Off by default. Tools > Satellites (the pass lists), stored satellites, the debug link's SAT command; tracking not built yet. DM-1701 figure with LTO and the debug link: 2,848 B of RAM and the `sat` task's 1.5 KB stack (2026-11-03; [satellite](spec/satellite.md) 7). Stored satellites need a satellite area in the board's flash map: DM-32UV only so far |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB

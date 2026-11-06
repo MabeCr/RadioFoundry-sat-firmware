@@ -53,6 +53,14 @@ uint32_t ui_svc_feat_storage(void)
 	return UI_FEAT_SAVE_CHANNEL | UI_FEAT_FACTORY_RESET;
 }
 
+#if CONFIG_SAT
+// UTC-12:00 .. UTC+14:00, in minutes (clamp16 is unsigned)
+static int32_t utc_offset_clamp(int32_t v)
+{
+	return v < -720 ? -720 : v > 840 ? 840 : v;
+}
+#endif
+
 static uint16_t clamp16(int32_t v, int32_t lo, int32_t hi)
 {
 	return (uint16_t)(v < lo ? lo : v > hi ? hi : v);
@@ -178,6 +186,14 @@ int32_t ui_svc_setting_get(uint8_t id)
 	case UI_SET_REF_TRIM:
 		settings_read(&st);
 		return ref_trim_clamp(st.ref_trim_ppb);
+#if CONFIG_SAT
+	case UI_SET_UTC_OFFSET:
+		settings_read(&st);
+		return utc_offset_clamp(st.utc_offset_min);
+	case UI_SET_SAT_MIN_EL:
+		settings_read(&st);
+		return st.sat_min_el == 0 ? ui_svc_ram_get(id) : clamp16(st.sat_min_el - 1, 0, 90);
+#endif
 	case UI_SET_VFO_STEP:
 		settings_read(&st);
 		return st.vfo_step_hz >= 1000u && st.vfo_step_hz <= 1000000u ? (int32_t)(st.vfo_step_hz / 10u) : 0;
@@ -420,6 +436,18 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 		st->ref_trim_ppb = ref_trim_clamp(value);
 		settings_end(hal_millis());
 		return true;
+#if CONFIG_SAT
+	case UI_SET_UTC_OFFSET:
+		st = settings_begin();
+		st->utc_offset_min = (int16_t)(utc_offset_clamp(value) / 15 * 15);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_MIN_EL:
+		st = settings_begin();
+		st->sat_min_el = (uint8_t)(clamp16(value, 0, 90) + 1);
+		settings_end(hal_millis());
+		return true;
+#endif
 	case UI_SET_MIC_GAIN:
 	case UI_SET_AUTO_LOCK_S:
 	case UI_SET_LONG_PRESS_MS:

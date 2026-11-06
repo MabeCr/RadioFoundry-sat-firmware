@@ -38,6 +38,7 @@
 extern const ui_scr_def_t ui_find_screen;
 extern const ui_scr_def_t ui_aprs_screen, ui_aprs_heard_screen, ui_aprs_pos_screen;	// ui_aprs.c
 extern const ui_scr_def_t ui_gps_screen;	// ui_gps.c
+extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen;	// ui_sat.c
 #if CONFIG_DUAL_WATCH
 extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_screen;	// ui_dual.c
 #endif
@@ -4566,8 +4567,9 @@ void ui_crash_tick(uint32_t now_ms)
 
 // Every tool keeps its number on every radio and build, so a key path (OK 6 7: Diagnostics; tests/hil/test_ui.py and the
 // user guide) is the same everywhere. The one a radio may not have (Battery) is last, so no radio has a gap; a build
-// without diagnostics skips 7
-enum { T_SCAN, T_POSITION, T_HOTSPOT, T_USB_NET, T_SFR, T_ROAM, T_DIAG, T_APRS, T_BATTERY, T_ZONE_OFFER, T_COUNT };
+// without diagnostics skips 7. Satellites (CONFIG_SAT) is 0; with it built, an offered zone has no number (its banner
+// opens it, and it is the last row)
+enum { T_SCAN, T_POSITION, T_HOTSPOT, T_USB_NET, T_SFR, T_ROAM, T_DIAG, T_APRS, T_BATTERY, T_SAT, T_ZONE_OFFER, T_COUNT };
 
 // A tool this build or radio doesn't have is left out of the list (Battery, Supply on a radio that measures its DC
 // input instead, is left out where the radio measures neither)
@@ -4578,7 +4580,7 @@ static bool tool_shown(uint16_t i)
 		return offer_waiting();	// 0 on the keypad: only while another radio's zone waits
 #endif
 	return (i != T_DIAG || CONFIG_DIAG) && (i != T_BATTERY || board_volts() != BOARD_VOLTS_NONE) &&
-	       i != T_ZONE_OFFER;
+	       (i != T_SAT || CONFIG_SAT) && i != T_ZONE_OFFER;
 }
 
 // The hint names the last number ("1-9 open"): the highest tool this radio has. Built in the language in use on each
@@ -4597,7 +4599,7 @@ static uint16_t tools_count(void)
 	}
 	sbuf_t b;
 	sb_init(&b, tools_hint, sizeof tools_hint);
-	sb_str(&b, "1-");
+	sb_str(&b, CONFIG_SAT ? "0-" : "1-");			// Satellites is 0
 	sb_chr(&b, (char)('0' + (last < 9 ? last : 9)));	// "1-9": the zone offer's 0 isn't named
 	sb_str(&b, TR(" open  Back"));
 	return n;
@@ -4617,13 +4619,14 @@ static void tools_item(uint16_t row, ui_item_t *it)
 {
 	static const char *const names[] = { TRN("Scan"), TRN("Position"), TRN("Hotspot"), TRN("USB network"),
 					     TRN("Single-freq repeater"), TRN("Roaming"), TRN("Diagnostics"), "APRS",
-					     TRN("Battery"), TRN("Zones/Chs Received") };
+					     TRN("Battery"), TRN("Satellites"), TRN("Zones/Chs Received") };
 	uint16_t i = tools_row(row);
 	if (i >= T_COUNT)
 		return;
 	str_copy(it->label, sizeof it->label, i == T_BATTERY && board_volts() == BOARD_VOLTS_SUPPLY ? TR("Supply") :
 		 tr(names[i]));
-	item_num(it, (uint16_t)(i + 1u));	// the tool's own number, not its row (see the enum)
+	if (i != T_ZONE_OFFER || !CONFIG_SAT)
+		item_num(it, i == T_ZONE_OFFER ? 10u : (uint16_t)(i + 1u));	// the tool's own number, not its row (the enum)
 	sbuf_t b;
 	sb_init(&b, it->value, sizeof it->value);
 	switch (i) {
@@ -4679,6 +4682,29 @@ static void tools_item(uint16_t row, ui_item_t *it)
 		if (!CONFIG_APRS)
 			it->flags |= UI_ITEM_DIM;
 		break;
+#if CONFIG_SAT
+	case T_SAT: {
+		// The next pass of the first satellite on the list that has one: "ISS 08:32", "ISS up"
+		ui_sat_status_t s;
+		ui_sat_t sat;
+		if (!ui_svc_sat_status(&s) || s.state != UI_SAT_READY)
+			break;
+		for (uint8_t k = 0; ui_svc_sat_get(k, &sat); k++) {
+			if (sat.state != UI_SAT_NEXT && sat.state != UI_SAT_UP)
+				continue;
+			sb_str(&b, TEXT_ALT_OPEN);
+			sb_str(&b, sat.name);
+			sb_chr(&b, ' ');
+			if (sat.state == UI_SAT_UP)
+				sb_str(&b, TR("up"));
+			else
+				sb_hhmm(&b, (uint32_t)((int32_t)sat.aos + s.utc_offset_min * 60));
+			sb_str(&b, TEXT_ALT_NEXT TEXT_ALT_CLOSE);
+			break;
+		}
+		break;
+	}
+#endif
 #if CONFIG_ZONE_SHARE
 	case T_ZONE_OFFER: {
 		ui_zone_offer_t o;
@@ -4716,6 +4742,7 @@ static void tools_select(uint16_t row, bool hold)
 	case T_ROAM: ui_push(SCR_ROAM, 0); break;
 	case T_APRS: ui_push(SCR_APRS, 0); break;
 	case T_ZONE_OFFER: ui_push(SCR_OFFER, 0); break;
+	case T_SAT: ui_push(SCR_SAT, 0); break;
 	default: break;
 	}
 }
@@ -4731,7 +4758,7 @@ static const ui_scr_def_t tools_screen = {
 #if CONFIG_UI_SETTINGS
 
 typedef enum { ST_TOGGLE, ST_LIST, ST_NUMBER, ST_ACTION } set_type_t;
-enum { SA_DIAG, SA_FIRMWARE, SA_CODEPLUG, SA_RESET, SA_MY_RADIO, SA_CRASH, SA_LANGUAGE };
+enum { SA_DIAG, SA_FIRMWARE, SA_CODEPLUG, SA_RESET, SA_MY_RADIO, SA_CRASH, SA_LANGUAGE, SA_SET_TIME };
 
 typedef struct {
 	const char *name;
@@ -4945,6 +4972,13 @@ static const set_item_t s_location[] = {
 	LIST(TRN("Position format"), NULL, UI_SET_POS_FORMAT, v_posfmt, n_posfmt),
 	LIST(TRN("Send position"), "APRS", UI_SET_POS_SEND_S, v_possend, n_possend),
 	TOGGLE(TRN("Answer GPS requests"), "LRRP position location", UI_SET_POS_REPLY),
+#if CONFIG_SAT
+	// Satellite tracking (Tools > Satellites, docs/spec/satellite.md 5.1): local time for its pass times, and the
+	// lowest pass it lists
+	NUMBER(TRN("Time zone"), "UTC offset local time clock", UI_SET_UTC_OFFSET, -720, 840, 15, NULL),
+	NUMBER(TRN("Lowest pass"), "satellite elevation horizon", UI_SET_SAT_MIN_EL, 0, 60, 5, GLYPH_DEGREE),
+	ACTION(TRN("Set time"), "clock date utc rtc", SA_SET_TIME),
+#endif
 };
 static const set_item_t s_connections[] = {
 	TOGGLE(TRN("Hotspot allowed"), "MMDVM", UI_SET_HOTSPOT_AUTO),
@@ -5160,6 +5194,12 @@ static void set_value_text(const set_item_t *s, int32_t v, char *out, size_t len
 			break;
 		}
 #endif
+#if CONFIG_SAT
+		if (s->id == UI_SET_UTC_OFFSET) {
+			sb_utc_offset(&b, v);
+			break;
+		}
+#endif
 		sb_i32(&b, v);
 		if (s->unit != NULL)
 			sb_str(&b, s->unit);
@@ -5330,6 +5370,9 @@ static void group_select(uint16_t i, bool hold)
 		case SA_MY_RADIO: ui_push(SCR_DMR_ID, 0); break;
 		case SA_RESET: ui_push(SCR_CONFIRM, 0); break;
 		case SA_LANGUAGE: ui_push(SCR_LANGUAGE, 0); break;
+#if CONFIG_SAT
+		case SA_SET_TIME: ui_push(SCR_SAT_CLOCK, 0); break;
+#endif
 #if CONFIG_CRASH_SCREEN
 		case SA_CRASH: ui_push(SCR_CRASH, 0); break;
 #endif
@@ -5786,6 +5829,10 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_GPS_SKY
 	[SCR_GPS] = &ui_gps_screen,
+#endif
+#if CONFIG_SAT
+	[SCR_SAT] = &ui_sat_screen, [SCR_SAT_PASSES] = &ui_sat_passes_screen, [SCR_SAT_TRACK] = &ui_sat_track_screen,
+	[SCR_SAT_CLOCK] = &ui_sat_clock_screen,
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,
