@@ -2870,7 +2870,8 @@ static bool run_token(char *t, char *err, size_t len)
 	return press(t, false, err, len);
 }
 
-const char *const sim_themes[SIM_THEME_COUNT] = { "dark", "light", "high_contrast", "night", "terminal" };	// ui_theme_set's order
+const char *const sim_themes[SIM_THEME_COUNT] = { "dark", "light", "high_contrast", "night", "terminal", "orange", "terminal_inverse",
+								  "orange_inverse" };	// ui_theme_set's order
 
 int sim_theme_find(const char *name)
 {

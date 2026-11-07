@@ -34,7 +34,7 @@ void sim_reset(const sim_geom_t *g, sim_map_t map);
 bool sim_run(const char *script, char *err, size_t err_len);
 // Color themes (Settings > Display), as ui_theme_set numbers them: "dark", "light", "high_contrast", "night", "terminal"; theme: in a
 // script. sim_theme_find: the number, or -1
-#define SIM_THEME_COUNT	5
+#define SIM_THEME_COUNT	8
 extern const char *const sim_themes[SIM_THEME_COUNT];
 int sim_theme_find(const char *name);
 // A highlight color by its gallery name (red, light_blue, ...; color: in a script): UI_ACCENT_*, or -1

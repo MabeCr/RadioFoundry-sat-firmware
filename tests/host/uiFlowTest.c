@@ -810,7 +810,15 @@ static const flow_t flows_k[] = {
 	{ "S theme terminal (color screens)", "", "ok 7 2 down down ok ok ok ok", "set7=4", 9, false },
 	{ "S theme terminal: the highlight color can be set", "", "ok 7 2 down down ok ok ok ok down ok", "set61=1", 11, false },
 	{ "S theme terminal: the filled status bar can be set", "", "ok 7 2 down down ok ok ok ok down down ok", "set62=0", 12, false },
-	{ "S theme wraps from terminal to dark", "", "ok 7 2 down down ok ok ok ok ok", "set7=0", 10, false },
+	{ "S theme orange", "", "ok 7 2 down down ok ok ok ok ok", "set7=5", 10, false },
+	{ "S theme terminal inverse", "", "ok 7 2 down down ok ok ok ok ok ok", "set7=6", 11, false },
+	{ "S theme orange inverse", "", "ok 7 2 down down ok ok ok ok ok ok ok", "set7=7", 12, false },
+	{ "S theme orange: the highlight color can be set", "", "ok 7 2 down down ok ok ok ok ok down ok", "set61=1", 12, false },
+	{ "S theme terminal inverse: the highlight color doesn't apply", "", "ok 7 2 down down ok ok ok ok ok ok down ok",
+	  "toast=This_theme_uses set61=0", 13, false },
+	{ "S theme orange inverse: the filled status bar doesn't apply", "", "ok 7 2 down down ok ok ok ok ok ok ok down down ok",
+	  "toast=This_theme_uses set62=1", 15, false },
+	{ "S theme wraps from orange inverse to dark", "", "ok 7 2 down down ok ok ok ok ok ok ok ok", "set7=0", 13, false },
 	{ "S highlight color red (the first after Default)", "", "ok 7 2 down down down ok", "set61=1", 7, false },
 	{ "S filled status bar off (on by default)", "", "ok 7 2 down down down down ok", "set62=0", 8, false },
 #else
@@ -1430,6 +1438,35 @@ static bool terminal_bad(color_t c)
 	return lo >= 200 || (b > 175 && c != RGB565(0, 255, 255));
 }
 
+// The new phosphor and inverse themes: no white anywhere (the inverse themes' pills carry the background's color)
+static bool white_bad(color_t c)
+{
+	unsigned r = ((c >> 11) & 0x1Fu) << 3, g = ((c >> 5) & 0x3Fu) << 2, b = (c & 0x1Fu) << 3;
+	unsigned lo = r < g ? (r < b ? r : b) : (g < b ? g : b);
+	return lo >= 200;
+}
+
+static void orange_checks(void)
+{
+	theme_palette_check("orange", white_bad);
+	mono_checks("orange");
+	theme_palette_check("terminal_inverse", white_bad);
+	theme_palette_check("orange_inverse", white_bad);
+	// An inverse theme has a light background, so the strip stays plain whatever the highlight color and Filled hold,
+	// and its text is black on it
+	const sim_geom_t *g = sim_geom_find("240x320");
+	char err[160];
+	for (const char *th = "terminal_inverse"; th; th = !strcmp(th, "terminal_inverse") ? "orange_inverse" : NULL) {
+		char script[80];
+		sim_reset(g, SIM_MAP_K);
+		snprintf(script, sizeof script, "theme:%s color:red", th);
+		if (!sim_run(script, err, sizeof err) || gfx_get_pixel(gfx_width() / 2, 1) != ui_col.bg || ui_col.fg != RGB565(0, 0, 0)) {
+			printf("FAIL %s: the strip isn't plain, or the text isn't black\n", th);
+			fails++;
+		}
+	}
+}
+
 static void night_checks(void)
 {
 	theme_palette_check("night", night_bad);
@@ -1484,6 +1521,7 @@ int main(void)
 #if CONFIG_UI_COLOR
 	night_checks();
 	terminal_checks();
+	orange_checks();
 #endif
 	call_screen_checks();
 	vfo_split_dmr_checks();

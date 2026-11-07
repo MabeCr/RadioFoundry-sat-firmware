@@ -33,13 +33,18 @@ static void accent_apply(void)
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
-	if (ui_theme == 3 || (ui_theme == 4 && ui_accent == UI_ACCENT_DEFAULT)) {
+	if (ui_theme >= 6) {
+		// The inverse themes: a light background with black text, so the focus is a black bar in the background's color
+		ui_col.focus_fg = ui_col.bg;
+		return;
+	}
+	if (ui_theme == 3 || ((ui_theme == 4 || ui_theme == 5) && ui_accent == UI_ACCENT_DEFAULT)) {
 		// Night: the highlight color is ignored, its choices are all too bright or the wrong hue, and the strip is
-		// never filled (ui_draw_top). Terminal with Default keeps its own green. The focus is a dark bar with
-		// brighter text, not reverse video: a bright row would outshine the screen (Night), or leave the one hue
-		// (Terminal). A Terminal highlight color other than Default is the user's choice and applies like on the
-		// dark theme
-		ui_col.focus_fg = ui_theme == 3 ? RGB565(255, 0, 0) : RGB565(170, 255, 170);
+		// never filled (ui_draw_top). Terminal and Orange with Default keep their own hue. The focus is a dark bar
+		// with brighter text, not reverse video: a bright row would outshine the screen (Night), or leave the one hue
+		// (Terminal, Orange). A highlight color other than Default is the user's choice and applies like on the dark
+		// theme
+		ui_col.focus_fg = ui_theme == 3 ? RGB565(255, 0, 0) : ui_theme == 4 ? RGB565(170, 255, 170) : RGB565(255, 208, 140);
 		return;
 	}
 	static const color_t acc[UI_ACCENT_COUNT] = {
@@ -140,6 +145,36 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(0, 72, 0);
 		ui_col.hint_bg = RGB565(0, 36, 0);
 		ui_col.priv = RGB565(0, 230, 150);
+	} else if (theme == 5) {
+		// Orange: the same idea in amber phosphor. Green marks receive and red transmit, which orange text would hide;
+		// yellow warns. TX is a red pill (P5)
+		ui_col.bg = RGB565(0, 0, 0);
+		ui_col.fg = RGB565(255, 153, 0);
+		ui_col.dim = RGB565(200, 110, 0);
+		ui_col.line = RGB565(130, 70, 0);	// also the disabled rows' text
+		ui_col.tx = RGB565(255, 64, 64);
+		ui_col.rx = RGB565(64, 255, 64);
+		ui_col.warn = RGB565(255, 230, 0);
+		ui_col.idle = RGB565(230, 130, 0);
+		ui_col.focus = RGB565(80, 40, 0);
+		ui_col.hint_bg = RGB565(40, 20, 0);
+		ui_col.priv = RGB565(0, 220, 200);
+	} else if (theme == 6 || theme == 7) {
+		// Terminal Inverse and Orange Inverse: the phosphor color as the background, black text. The meaning colors
+		// are dark shades that read on it (red transmit, blue or green receive, brown or blue warnings), and their
+		// pills carry text in the background's color
+		bool green = theme == 6;
+		ui_col.bg = green ? RGB565(51, 255, 51) : RGB565(255, 153, 0);
+		ui_col.fg = RGB565(0, 0, 0);
+		ui_col.dim = green ? RGB565(0, 96, 0) : RGB565(112, 56, 0);
+		ui_col.line = green ? RGB565(0, 140, 0) : RGB565(160, 84, 0);
+		ui_col.tx = RGB565(176, 0, 0);
+		ui_col.rx = green ? RGB565(0, 0, 176) : RGB565(0, 96, 0);
+		ui_col.warn = green ? RGB565(136, 64, 0) : RGB565(0, 0, 160);
+		ui_col.idle = green ? RGB565(0, 110, 0) : RGB565(128, 64, 0);
+		ui_col.focus = RGB565(0, 0, 0);
+		ui_col.hint_bg = green ? RGB565(0, 190, 0) : RGB565(214, 126, 0);
+		ui_col.priv = green ? RGB565(0, 90, 90) : RGB565(0, 64, 112);
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);
@@ -153,8 +188,10 @@ void ui_theme_set(uint8_t theme)
 		ui_col.hint_bg = RGB565(32, 32, 32);
 		ui_col.priv = RGB565(64, 140, 255);
 	}
-	ui_col.pill_fg = theme == 3 || theme == 4 ? RGB565(0, 0, 0) : RGB565(255, 255, 255);	// no white at night or in Terminal
-	ui_col.pill_dark_fg = RGB565(0, 0, 0);
+	// No white at night or in the phosphor themes. The inverse themes' pills are dark shades, so their text is the light
+	// background's color (pill_dark_fg is the text on the light pills and tiles of the other themes)
+	ui_col.pill_fg = theme >= 6 ? ui_col.bg : theme >= 3 ? RGB565(0, 0, 0) : RGB565(255, 255, 255);
+	ui_col.pill_dark_fg = theme >= 6 ? ui_col.bg : RGB565(0, 0, 0);
 	accent_apply();
 }
 
@@ -163,16 +200,29 @@ bool ui_theme_is_night(void)
 	return ui_theme == 3 && gfx_bpp() != 1;	// a monochrome panel keeps the stored theme but draws ink on paper
 }
 
+// Terminal and Orange: a phosphor theme that takes a highlight color
 bool ui_theme_is_terminal(void)
 {
-	return ui_theme == 4 && gfx_bpp() != 1;
+	return (ui_theme == 4 || ui_theme == 5) && gfx_bpp() != 1;
 }
 
-// Night and Terminal: a theme with its own colors, near one hue on black. The highlight color and the filled strip don't
-// apply, the strip is plain, and an edited row or tile and a toast are outlines, not blocks of light
+// The inverse themes (Terminal Inverse, Orange Inverse): a light background, so the highlight color doesn't apply
+bool ui_theme_is_inverse(void)
+{
+	return ui_theme >= 6 && gfx_bpp() != 1;
+}
+
+// The theme number, for the few drawings that pick colors by theme (the satellite sky plot)
+uint8_t ui_theme_number(void)
+{
+	return gfx_bpp() != 1 ? ui_theme : 0;
+}
+
+// Night, Terminal and Orange: a theme with its own colors, near one hue on black. The strip is plain, and an edited row
+// or tile and a toast are outlines, not blocks of light
 bool ui_theme_is_mono(void)
 {
-	return (ui_theme == 3 || ui_theme == 4) && gfx_bpp() != 1;
+	return (ui_theme >= 3 && ui_theme <= 5) && gfx_bpp() != 1;
 }
 
 void ui_accent_set(uint8_t accent)
@@ -352,7 +402,7 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 	// it (accent_apply); the idle pill turns inverse on it, RX / TX / NO TX keep their colors and words (P5)
 	// Night never fills; Terminal fills only with a highlight color, as its Default has no strip color of its own
 	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_night() &&
-		      !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
+		      !ui_theme_is_inverse() && !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
 	if (filled && st == RS_IDLE) {
