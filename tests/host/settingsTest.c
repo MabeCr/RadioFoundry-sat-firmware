@@ -647,6 +647,11 @@ static void test_crash_bits(void)
 	CHECK(settings_theme(&s) == 4 && settings_crash_contact(&s) == 7 && settings_updown_home(&s) == 1);
 	settings_set_theme(&s, 0);
 	CHECK(settings_theme(&s) == 0 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 7);
+	// Orange and the two inverse themes fill the eight values: each reads back with the other fields intact
+	for (uint8_t th = 0; th <= 7; th++) {
+		settings_set_theme(&s, th);
+		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 7);
+	}
 }
 
 // The last dual watch B in beeps bits 1-7 and mic_gain bits 4-7: every code reads back, beeps and the mic gain stay

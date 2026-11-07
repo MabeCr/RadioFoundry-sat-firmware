@@ -305,7 +305,7 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 // 0, and shows the dark theme
 #define SETTINGS_SMALL_MASK	0x03u
 #define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
-#define SETTINGS_THEME_MAX	4u
+#define SETTINGS_THEME_MAX	7u
 static inline uint8_t settings_theme(const settings_t *s)
 {
 	return (uint8_t)((s->theme & 3u) | ((s->updown_home & SETTINGS_THEME_HIGH) ? 4u : 0u));

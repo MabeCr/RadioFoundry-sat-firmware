@@ -174,8 +174,10 @@ extern ui_colors_t ui_col;
 // Color theme on color displays (Settings > Display): 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal. After ui_layout_init
 void ui_theme_set(uint8_t theme);
 bool ui_theme_is_night(void);
-bool ui_theme_is_terminal(void);
-bool ui_theme_is_mono(void);		// night or terminal: a theme of its own colors in one hue
+bool ui_theme_is_terminal(void);	// terminal or orange: a phosphor theme that takes a highlight color
+bool ui_theme_is_inverse(void);		// terminal inverse or orange inverse
+uint8_t ui_theme_number(void);
+bool ui_theme_is_mono(void);		// night, terminal or orange: a theme of its own colors in one hue on black
 // Color displays (Settings > Display): the highlight color (UI_ACCENT_*, ui_svc.h) for list and tile focus and Home's
 // channel number, and whether the status strip is filled with it. Both re-apply the theme's colors
 void ui_accent_set(uint8_t accent);

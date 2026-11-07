@@ -2573,16 +2573,24 @@ msgid "Terminal"
 msgstr "Terminale"
 
 #: core/ui/ui_menus.c
+msgid "Orange"
+msgstr "Arancio"
+
+#: core/ui/ui_menus.c
+msgid "Terminal Inverse"
+msgstr "Terminale invertito"
+
+#: core/ui/ui_menus.c
+msgid "Orange Inverse"
+msgstr "Arancio invertito"
+
+#: core/ui/ui_menus.c
 msgid "Default"
 msgstr "Predefinito"
 
 #: core/ui/ui_menus.c
 msgid "Red"
 msgstr "Rosso"
-
-#: core/ui/ui_menus.c
-msgid "Orange"
-msgstr "Arancio"
 
 #: core/ui/ui_menus.c
 msgid "Yellow"
@@ -2979,6 +2987,10 @@ msgstr "I colori sono per schermi a colori"
 #: core/ui/ui_menus.c
 msgid "Night uses its own colors"
 msgstr "Notte usa i propri colori"
+
+#: core/ui/ui_menus.c
+msgid "This theme uses its own colors"
+msgstr "Questo tema usa i propri colori"
 
 #: core/ui/ui_menus.c
 msgid "Mic gain: not in this build"

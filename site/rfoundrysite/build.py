@@ -285,7 +285,7 @@ class Site:
 	def screen_caption(self, lang, name):
 		page, _, color = name.partition("__")
 		cap = self.t(lang, "screen." + page)
-		if color in ("light", "high_contrast", "night", "terminal"):	# a theme page in another theme (uiSim G_THEMES)
+		if color in ("light", "high_contrast", "night", "terminal", "orange", "terminal_inverse", "orange_inverse"):	# a theme page in another theme (uiSim G_THEMES)
 			return self.t(lang, "screen.in_theme", screen=cap, theme=self.t(lang, "theme." + color))
 		return self.t(lang, "screen.in_color", screen=cap, color=self.t(lang, "color." + color)) if color else cap
 
