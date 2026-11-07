@@ -44,6 +44,12 @@ static color_t sys_color(uint8_t sys)
 	static const color_t night[UI_GNSS_COUNT] = {
 		RGB565(0xFF, 0, 0), RGB565(0xC8, 0, 0), RGB565(0x98, 0, 0), RGB565(0x70, 0, 0), RGB565(0x50, 0, 0),
 	};
+	// Terminal: greens, with yellow, cyan and orange for the others; the legend tells the systems apart
+	static const color_t term[UI_GNSS_COUNT] = {
+		RGB565(51, 255, 51), RGB565(255, 255, 0), RGB565(0, 255, 255), RGB565(0, 176, 0), RGB565(255, 140, 0),
+	};
+	if (ui_theme_is_terminal())
+		return term[sys];
 	if (ui_theme_is_night())
 		return night[sys];
 	bool light_bg = ((ui_col.bg >> 5) & 0x3Fu) > 0x20u;

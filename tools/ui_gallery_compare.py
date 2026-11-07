@@ -27,7 +27,7 @@ import os
 import sys
 
 SCALE = 2
-THEMES = ("light", "high_contrast", "night")    # uiSim's theme shots, after the colors
+THEMES = ("light", "high_contrast", "night", "terminal")    # uiSim's theme shots, after the colors
 GAP = 24          # between the two screens of a pair, room for the arrow
 PAD = 12          # around the picture
 ROW_HEADER = 20   # the screen's name above each pair

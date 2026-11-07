@@ -2569,6 +2569,10 @@ msgid "Night"
 msgstr "Noche"
 
 #: core/ui/ui_menus.c
+msgid "Terminal"
+msgstr "Terminal"
+
+#: core/ui/ui_menus.c
 msgid "Default"
 msgstr "Predet."
 
@@ -2975,6 +2979,10 @@ msgstr "Colores solo en pantallas color"
 #: core/ui/ui_menus.c
 msgid "Night uses its own colors"
 msgstr "Noche usa sus propios colores"
+
+#: core/ui/ui_menus.c
+msgid "Terminal uses its own colors"
+msgstr "Terminal usa sus propios colores"
 
 #: core/ui/ui_menus.c
 msgid "Mic gain: not in this build"

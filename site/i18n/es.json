@@ -283,6 +283,7 @@
  "theme.light": "claro",
  "theme.high_contrast": "de alto contraste",
  "theme.night": "nocturno",
+ "theme.terminal": "terminal",
  "color.red": "rojo",
  "color.orange": "naranja",
  "color.yellow": "amarillo",
