@@ -2569,6 +2569,10 @@ msgid "Night"
 msgstr "Noche"
 
 #: core/ui/ui_menus.c
+msgid "Terminal"
+msgstr "Terminal"
+
+#: core/ui/ui_menus.c
 msgid "Default"
 msgstr "Predet."
 
