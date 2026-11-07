@@ -33,10 +33,12 @@ static void accent_apply(void)
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
-	if (ui_theme == 3 || ui_theme == 4) {
-		// Night and Terminal: the highlight color is ignored, its choices are all too bright or the wrong hue, and the
-		// strip is never filled (ui_draw_top). The focus is a dark bar with brighter text, not reverse video: a bright
-		// row would outshine the screen (Night), or leave the one hue (Terminal)
+	if (ui_theme == 3 || (ui_theme == 4 && ui_accent == UI_ACCENT_DEFAULT)) {
+		// Night: the highlight color is ignored, its choices are all too bright or the wrong hue, and the strip is
+		// never filled (ui_draw_top). Terminal with Default keeps its own green. The focus is a dark bar with
+		// brighter text, not reverse video: a bright row would outshine the screen (Night), or leave the one hue
+		// (Terminal). A Terminal highlight color other than Default is the user's choice and applies like on the
+		// dark theme
 		ui_col.focus_fg = ui_theme == 3 ? RGB565(255, 0, 0) : RGB565(170, 255, 170);
 		return;
 	}
@@ -348,7 +350,9 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		pfg = ui_col.pill_dark_fg;
 	// A filled strip (Settings > Display) draws on its own background in black, warnings in a dark shade that reads on
 	// it (accent_apply); the idle pill turns inverse on it, RX / TX / NO TX keep their colors and words (P5)
-	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_mono();
+	// Night never fills; Terminal fills only with a highlight color, as its Default has no strip color of its own
+	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_night() &&
+		      !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
 	if (filled && st == RS_IDLE) {

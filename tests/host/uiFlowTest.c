@@ -808,8 +808,8 @@ static const flow_t flows_k[] = {
 	{ "S theme night: the highlight color doesn't apply", "", "ok 7 2 down down ok ok ok down ok", "toast=Night_uses set61=0", 10, false },
 	{ "S theme night: the filled status bar doesn't apply", "", "ok 7 2 down down ok ok ok down down ok", "toast=Night_uses set62=1", 11, false },
 	{ "S theme terminal (color screens)", "", "ok 7 2 down down ok ok ok ok", "set7=4", 9, false },
-	{ "S theme terminal: the highlight color doesn't apply", "", "ok 7 2 down down ok ok ok ok down ok", "toast=Terminal_uses set61=0", 11, false },
-	{ "S theme terminal: the filled status bar doesn't apply", "", "ok 7 2 down down ok ok ok ok down down ok", "toast=Terminal_uses set62=1", 12, false },
+	{ "S theme terminal: the highlight color can be set", "", "ok 7 2 down down ok ok ok ok down ok", "set61=1", 11, false },
+	{ "S theme terminal: the filled status bar can be set", "", "ok 7 2 down down ok ok ok ok down down ok", "set62=0", 12, false },
 	{ "S theme wraps from terminal to dark", "", "ok 7 2 down down ok ok ok ok ok", "set7=0", 10, false },
 	{ "S highlight color red (the first after Default)", "", "ok 7 2 down down down ok", "set61=1", 7, false },
 	{ "S filled status bar off (on by default)", "", "ok 7 2 down down down down ok", "set62=0", 8, false },
@@ -1369,9 +1369,9 @@ static void mono_checks(const char *theme)
 		       count_color(ui_col.hint_bg, 0));
 		fails++;
 	}
-	// A toast is an outline around a dark center too, in the text color: amber is for warnings
+	// A toast (here a refused trim) is an outline around a dark center too, in the text color: amber is for warnings
 	sim_reset(g, SIM_MAP_K);
-	snprintf(script, sizeof script, "theme:%s ok 7 2 down down down ok", theme);
+	snprintf(script, sizeof script, "theme:%s trim ok 7 0 up ok 1 0 1", theme);
 	if (!sim_run(script, err, sizeof err) ||
 	    gfx_get_pixel(0, gfx_height() - 1) != ui_col.fg || gfx_get_pixel(1, gfx_height() - 2) != ui_col.hint_bg) {
 		printf("FAIL %s: the toast isn't an outline\n", theme);
@@ -1440,6 +1440,20 @@ static void terminal_checks(void)
 {
 	theme_palette_check("terminal", terminal_bad);
 	mono_checks("terminal");
+	// Unlike Night, Terminal takes a highlight color: the strip fills with it, and Filled status bar off turns that off
+	const sim_geom_t *g = sim_geom_find("240x320");
+	char err[160];
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:terminal color:red", err, sizeof err) || gfx_get_pixel(gfx_width() / 2, 1) != ui_col.strip_bg ||
+	    ui_col.strip_bg == ui_col.bg) {
+		printf("FAIL terminal: the highlight color doesn't fill the strip\n");
+		fails++;
+	}
+	sim_reset(g, SIM_MAP_K);
+	if (!sim_run("theme:terminal color:red strip:off", err, sizeof err) || gfx_get_pixel(gfx_width() / 2, 1) != ui_col.bg) {
+		printf("FAIL terminal: Filled status bar off still fills the strip\n");
+		fails++;
+	}
 }
 #endif
 

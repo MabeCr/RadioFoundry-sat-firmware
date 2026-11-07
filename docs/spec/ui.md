@@ -653,9 +653,11 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
   no green, which would hide the RX pill. Gallery: `home_dmr*`, `home_plain`, `channels*` (section 7).
 - Terminal theme (`ui_theme_set` 4) emulates a green phosphor screen. It is for looks, not night vision, so it is
   brighter than Night: green text, lines and focus bar on black, yellow for receive, a red pill with black text for
-  transmit, orange for warnings (yellow is receive's). It follows Night's structure: Highlight color and Filled status
-  bar don't apply (their rows are dimmed), the strip is plain, an edited row or tile and a toast are outlines, and no
-  white is drawn. `ui_theme_is_mono()` covers both themes. The theme value 4 doesn't fit `theme` bits 0-1, so its high
+  transmit, orange for warnings (yellow is receive's). Unlike Night it takes the user's Highlight color:
+  with Default the focus is a dark green bar and the strip is plain (Default has no strip color of its own); any other
+  color applies as on the dark theme, to the focus, the channel number and, with Filled status bar on, the strip. An
+  edited row or tile and a toast are outlines as in Night, and no white is drawn with Default. `ui_theme_is_mono()`
+  covers both themes; `ui_theme_is_night()` alone dims the two rows. The theme value 4 doesn't fit `theme` bits 0-1, so its high
   bit is kept in `updown_home` bit 7 ([settings-store.md](settings-store.md)).
 - Night theme (`ui_theme_set` 3) protects night vision: a black background, pure reds for text and lines, dim green
   only for receive, dim amber only for warnings, nothing blue or white. TX is the brightest red, in a pill with black

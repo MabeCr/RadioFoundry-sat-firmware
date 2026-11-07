@@ -5243,9 +5243,9 @@ static const char *set_why_not(const set_item_t *s)
 	case UI_SET_STRIP:
 		if (board.display != NULL && board.display->bpp == 1)
 			return TR("Colors are for color screens");
-		if (s->id == UI_SET_THEME || !ui_theme_is_mono())
+		if (s->id == UI_SET_THEME || !ui_theme_is_night())
 			return NULL;
-		return ui_theme_is_night() ? TR("Night uses its own colors") : TR("Terminal uses its own colors");
+		return TR("Night uses its own colors");
 	case UI_SET_MIC_GAIN:
 		if (!mic_gain_available())
 			return TR("Mic gain: not in this build");

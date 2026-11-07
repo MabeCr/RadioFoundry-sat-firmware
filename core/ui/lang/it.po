@@ -2981,10 +2981,6 @@ msgid "Night uses its own colors"
 msgstr "Notte usa i propri colori"
 
 #: core/ui/ui_menus.c
-msgid "Terminal uses its own colors"
-msgstr "Terminale usa i propri colori"
-
-#: core/ui/ui_menus.c
 msgid "Mic gain: not in this build"
 msgstr "Guadagno mic: non in questa build"
 
