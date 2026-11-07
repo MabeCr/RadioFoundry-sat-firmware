@@ -48,6 +48,18 @@ static color_t sys_color(uint8_t sys)
 	static const color_t term[UI_GNSS_COUNT] = {
 		RGB565(51, 255, 51), RGB565(255, 255, 0), RGB565(0, 255, 255), RGB565(0, 176, 0), RGB565(255, 140, 0),
 	};
+	// Orange: ambers, with green, yellow and red for the others
+	static const color_t amber[UI_GNSS_COUNT] = {
+		RGB565(255, 153, 0), RGB565(64, 255, 64), RGB565(255, 230, 0), RGB565(200, 110, 0), RGB565(255, 64, 64),
+	};
+	// The inverse themes: dark shades on the light background
+	static const color_t inv[UI_GNSS_COUNT] = {
+		RGB565(0, 0, 0), RGB565(0, 0, 176), RGB565(176, 0, 0), RGB565(80, 80, 80), RGB565(112, 0, 112),
+	};
+	if (ui_theme_is_inverse())
+		return inv[sys];
+	if (ui_theme_number() == 5)
+		return amber[sys];
 	if (ui_theme_is_terminal())
 		return term[sys];
 	if (ui_theme_is_night())
