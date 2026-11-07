@@ -12,7 +12,7 @@ repository holds no copy of it: one source, so a change is made once.
 
 Only what the radio already offers over the [debug link](debug-link.md): `VERSION`, the `sat`, `tasks` and `crash` view
 sections, and the `SAT` command ([debuglink.md](../spec/debuglink.md) 3.24): TLE, LOAD, SAVE, STORED, DELETE, TIME,
-BENCH. Nothing in the firmware is there for the page alone. The update loop is the one in `tools/rfoundry_debug.py`
+BENCH, and the retune test (RETUNE_TEST, RETUNE_RESULT: [the plan](satellite-doppler-plan.md)). Nothing in the firmware is there for the page alone. The update loop is the one in `tools/rfoundry_debug.py`
 (`sat_update`), rule for rule: a set is used only if both lines are 69 characters with correct check digits and name the
 same catalog number, and replaces a stored one only if its epoch is later (with a one-second tolerance, because the radio
 reports the epoch rounded); a stored satellite keeps its profile (frequencies, tones, arming, name).

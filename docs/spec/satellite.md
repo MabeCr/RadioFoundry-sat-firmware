@@ -166,6 +166,26 @@ f in Hz and v the range rate:
 Both round to the hertz; the radio's tuning step applies after. `sat_locator_to_deg` gives the center of a 4- or
 6-character Maidenhead locator, for an observer typed in without a position fix.
 
+### 4.4 The retune test
+
+A Doppler correction retunes the receiver every few seconds, and a retune can drop the audio for as long as the synthesizer
+takes to lock and the chip to settle: a property of the radio, measured before the correction is designed
+([the plan](../dev/satellite-doppler-plan.md)). `radio/retune_test.c` steps the receiver between a base frequency and an
+offset of it, `count` times, `gap` apart (the radio task runs it, FM only, on an idle receiver; receive only, nothing is
+transmitted), and times each retune on the radio's own clock:
+
+| Reading | Meaning |
+|---|---|
+| call | the `rx()` call itself |
+| settle | from the call until the signal level is within 3 dB of its steady value on that frequency, for three reads in a row |
+| lowest, noise, no carrier | the lowest level and highest noise reading meanwhile, and the reads in which the chip said no carrier |
+
+The steady value on each frequency is measured first (300 ms after tuning it, eight reads averaged). A frequency without
+a steady carrier gives the call times only. A `RETUNE_TEST` request on the debug link ([debuglink.md](debuglink.md) 3.24)
+starts it and `RETUNE_RESULT` reads it; the radio goes back to the channel it was on. The test refuses while
+transmitting, scanning, on a DMR channel, or in AM or broadcast receive. Take a steady FM carrier such as a weather
+channel (162.400 MHz here) for a base frequency.
+
 ## 5. Pass prediction
 
 `sat_pass_next(s, o, from, span, min_el, ...)` finds the first pass that hasn't set by `from` and rises within `span`

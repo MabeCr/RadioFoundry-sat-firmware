@@ -29,6 +29,9 @@
 #endif
 #include "radio/beep.h"	// beep_t (beep_play only with CONFIG_BEEP)
 #include "radio/vibe.h"	// vibe_t (vibe_play only with CONFIG_VIBRATE)
+#if CONFIG_SAT
+#include "radio/retune_test.h"
+#endif
 #if CONFIG_NET_USRP || CONFIG_APRS_RX
 #include "usbaudio/audio_mux.h"	// the PCM stream shared with a host audio session and APRS
 #endif
@@ -4846,6 +4849,18 @@ static bool retunes(uint8_t type)
 	}
 }
 
+#if CONFIG_SAT
+// noinline: the task's loop calls it, and its frame must not join the loop's (make stack-check)
+__attribute__((noinline)) void radio_sm_retune_test(radio_sm_t *sm, uint32_t now_ms)
+{
+	uint8_t why = (uint8_t)(sm->retune_test - 1u);
+	sm->retune_test = 0;
+	retune_test_run(why == RETUNE_WHY_NONE, why);	// blocks this task for the length of the test
+	if (why == RETUNE_WHY_NONE)
+		tune(sm, now_ms);	// the channel as it was
+}
+#endif
+
 void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 {
 	// A beep or a vibration is an alert, not the user doing something; the volume changes nothing on air or on the
@@ -5101,6 +5116,15 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 			changed(sm);
 		}
 		break;
+#if CONFIG_SAT
+	case RREQ_RETUNE_TEST: {	// receive only, FM only, on an idle receiver; blocks this task for the length of the test
+		uint8_t why = busy ? RETUNE_WHY_BUSY : sm->view.scan != 0 ? RETUNE_WHY_SCANNING :
+			(sm->view.ch.mode != RADIO_MODE_FM || sm->board_mode != RADIO_MODE_FM) ? RETUNE_WHY_NOT_FM :
+			(sm->view.am || sm->view.bcast) ? RETUNE_WHY_OTHER_RX : RETUNE_WHY_NONE;
+		sm->retune_test = (uint8_t)(1u + why);	// radio_task.c runs it, outside this function's deep frame (stack-check)
+		break;
+	}
+#endif
 	case RREQ_RETUNE:	// a board that applies its reference trim when it tunes (hal_radio_t.ref_trim)
 		sm->retune_due = true;	// radio_sm_poll: once the trim stops changing
 		sm->retune_due_ms = now_ms + RADIO_RETUNE_SETTLE_MS;

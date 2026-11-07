@@ -12,6 +12,8 @@
 #if CONFIG_SAT
 #include <string.h>
 #include "hal_time.h"
+#include "radio/radio.h"
+#include "radio/retune_test.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_pass.h"
 #include "sat/sat_store.h"
@@ -245,6 +247,48 @@ static size_t op_bench(const uint8_t *req, uint16_t len, uint8_t *out)
 	return (size_t)(p - out);
 }
 
+// The retune test (radio/retune_test.h): queue it, and the radio task runs it. noinline: under the dispatch
+__attribute__((noinline)) static size_t op_retune_test(const uint8_t *req, uint16_t len, uint8_t *out)
+{
+	// base u32, step i32, count u8, gap u16, wide u8
+	if (len != 13)
+		return status(out, DL_ST_BAD_ARG);
+	uint8_t st = retune_test_state();
+	if (st == RETUNE_QUEUED || st == RETUNE_RUNNING)
+		return status(out, DL_ST_BUSY);
+	retune_test_args_t a = { .base_hz = get32(req + 1), .step_hz = (int32_t)get32(req + 5), .count = req[9],
+				 .gap_ms = get16(req + 10), .wide = req[12] };
+	if (!retune_test_queue(&a))
+		return status(out, DL_ST_BAD_ARG);
+	radio_req_retune_test();
+	return status(out, DL_ST_OK);
+}
+
+__attribute__((noinline)) static size_t op_retune_result(uint8_t *out)
+{
+	uint8_t st = retune_test_state();
+	uint8_t *p = out;
+	*p++ = DL_ST_OK;
+	*p++ = st;
+	if (st != RETUNE_DONE && st != RETUNE_REFUSED)
+		return (size_t)(p - out);
+	const retune_result_t *r = retune_test_result();
+	*p++ = r->reason;
+	*p++ = r->count;
+	p = put16(p, (uint16_t)r->ref_base);
+	p = put16(p, (uint16_t)r->ref_step);
+	*p++ = r->noise_base;
+	for (uint8_t i = 0; i < r->count; i++) {
+		const retune_hop_t *h = &r->hop[i];
+		p = put16(p, h->call_us);
+		p = put32(p, h->settle_us);
+		p = put16(p, (uint16_t)h->min_rssi);
+		*p++ = h->max_noise;
+		*p++ = h->lost;
+	}
+	return (size_t)(p - out);
+}
+
 // noinline for the same reason, under the debug link's dispatch
 __attribute__((noinline)) static size_t op_save(const uint8_t *req, uint16_t len, uint8_t *out)
 {
@@ -347,6 +391,10 @@ size_t debuglink_cmd_sat(const uint8_t *req, uint16_t len, uint8_t *out, size_t 
 		return op_stored(req, len, out);
 	case DL_SAT_OP_RECALL:
 		return op_recall(req, len, out);
+	case DL_SAT_OP_RETUNE_TEST:
+		return op_retune_test(req, len, out);
+	case DL_SAT_OP_RETUNE_RESULT:
+		return len == 1 ? op_retune_result(out) : status(out, DL_ST_BAD_ARG);
 	case DL_SAT_OP_CLEAR:
 		if (len != 5)
 			return status(out, DL_ST_BAD_ARG);

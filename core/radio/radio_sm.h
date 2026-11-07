@@ -148,6 +148,7 @@ typedef enum {
 	RREQ_DUAL,		// dual watch (CONFIG_DUAL_WATCH): arg channel A, arg2 channel B, radio_dual_arg()
 	RREQ_RETUNE,		// tune the current frequency again (the reference trim changed: radio/ref_trim.h)
 	RREQ_VFO_TX,		// arg: the VFO's TX Hz, 0 = simplex (its RX frequency)
+	RREQ_RETUNE_TEST,	// run the queued retune test (CONFIG_SAT; radio/retune_test.h), then tune the channel again
 } radio_req_type_t;
 
 // RREQ_TONE's argument: which (RADIO_TONE_*) in bits 25:24, the tone type in 23:16, the value in 15:0
@@ -246,6 +247,7 @@ typedef struct {
 	uint32_t host_push_ms;
 	bool retune_pending;		// receive settings changed during TX: retune on PTT release
 	bool retune_due;		// the reference trim changed: tune at retune_due_ms (RREQ_RETUNE)
+	uint8_t retune_test;		// RREQ_RETUNE_TEST accepted: 1 + why it is refused (RETUNE_WHY_NONE: runs); 0 none (CONFIG_SAT)
 	uint32_t retune_due_ms;
 	uint32_t tx_start_ms;
 	uint8_t close_count;		// polls in a row above the close threshold
@@ -432,6 +434,12 @@ bool radio_sm_hotspot_freq_ok(uint32_t rx_hz, uint32_t tx_hz);
 // MMDVM RF level 0-255 -> board power level
 uint8_t radio_sm_hotspot_power(uint8_t rf_level);
 
+#if CONFIG_SAT
+// The retune test is queued (RREQ_RETUNE_TEST accepted or refused): radio_task.c runs it between requests, where the
+// stack is shallow (radio/retune_test.h)
+static inline bool radio_sm_retune_test_due(const radio_sm_t *sm) { return sm->retune_test != 0; }
+void radio_sm_retune_test(radio_sm_t *sm, uint32_t now_ms);
+#endif
 // Settings in effect from now on (radio_task.c calls it for RREQ_SETTINGS; the tests call it directly)
 void radio_sm_set_settings(radio_sm_t *sm, const radio_settings_t *s, uint32_t now_ms);
 

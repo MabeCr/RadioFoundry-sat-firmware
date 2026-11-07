@@ -143,6 +143,10 @@ static void radio_task(void *arg)
 				}
 			} while (xQueueReceive(requests, &req, 0) == pdTRUE);
 		}
+#if CONFIG_SAT
+		if (radio_sm_retune_test_due(&sm))
+			radio_sm_retune_test(&sm, hal_millis());
+#endif
 		TickType_t now = xTaskGetTickCount();
 		if ((int32_t)(now - next_tick) >= 0) {
 			radio_sm_tick(&sm, hal_millis());
@@ -288,6 +292,9 @@ void radio_req_volume(uint8_t step) { post(RREQ_VOLUME, step, pdMS_TO_TICKS(50))
 void radio_req_volume_override(int8_t step) { post(RREQ_VOLUME_OVERRIDE, step, pdMS_TO_TICKS(50)); }
 void radio_req_clear_temporary(void) { post(RREQ_CLEAR_TEMP, 0, 0); }
 void radio_req_retune(void) { post(RREQ_RETUNE, 0, pdMS_TO_TICKS(50)); }
+#if CONFIG_SAT
+void radio_req_retune_test(void) { post(RREQ_RETUNE_TEST, 0, pdMS_TO_TICKS(50)); }
+#endif
 void radio_req_reload(void) { post(RREQ_RELOAD, 0, pdMS_TO_TICKS(50)); }
 void radio_req_bandwidth(radio_bw_t bw) { post(RREQ_BANDWIDTH, bw, 0); }
 void radio_req_tone(uint8_t which, subtone_t tone) { post(RREQ_TONE, radio_tone_arg(which, tone), 0); }

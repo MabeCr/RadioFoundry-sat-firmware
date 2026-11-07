@@ -561,9 +561,9 @@ satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 # The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
 # reference values. Without APRS: no GPS to take the observer from
 TESTS   += satLinkTest
-SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
+SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(CORE)/radio/retune_test.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
 	   $(CORE)/storage/storage.c sim/sim_flash.c
-satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/debuglink/debuglink.h \
+satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/radio/retune_test.h $(CORE)/debuglink/debuglink.h \
 	     $(CORE)/debuglink/debuglink_proto.h sim/sim_flash.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
 

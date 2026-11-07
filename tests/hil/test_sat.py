@@ -3,7 +3,7 @@
 """Satellite tracking on the radio (DL_CMD_SAT, docs/spec/debuglink.md 3.24, docs/spec/satellite.md): the orbit model,
 look angles and passes worked out on the radio, against the reference values the host test uses (tests/host/sat_ref.h,
 from python-sgp4 and Skyfield), and the model's time a run on the radio's CPU. Radio only, receive only: nothing is
-tuned or keyed. Loading a TLE and setting the observer change only the tracker's RAM; the clock is set too and an NMEA
+keyed, and only the retune test tunes the receiver (a weather channel, then back to the channel it was on). Loading a TLE and setting the observer change only the tracker's RAM; the clock is set too and an NMEA
 sentence puts it back. The store test writes one record to the satellite area, for a made-up satellite (catalog 100001)
 no real one uses, and deletes it again."""
 import pathlib
@@ -159,3 +159,28 @@ def test_sat_screens_open(radio):
         screen("tools")
     finally:
         radio.press("back", LONG)
+
+
+@pytest.mark.feature("sat")
+def test_sat_retune_test_runs(radio, record_property):
+    """The retune test (docs/spec/satellite.md 4.4): the receiver stepped between 162.400 MHz and 2 kHz above it, timed
+    on the radio. No steady carrier is needed: it only checks that a result comes back and the calls are timed"""
+    import time
+    if "SAT" not in radio.features():
+        skip("not_built", "built without CONFIG_SAT")
+    radio.link.sat_retune_test(162_400_000, 2000, 4, 100, True)
+    deadline = time.time() + 30
+    res = radio.link.sat_retune_result()
+    while res["state"] not in ("done", "refused") and time.time() < deadline:
+        time.sleep(0.3)
+        res = radio.link.sat_retune_result()
+    if res["state"] == "refused":
+        from rfoundry_debug import RETUNE_WHY
+        skip("state", f"the radio refused the retune test: {RETUNE_WHY[res['reason']]}")
+    assert res["state"] == "done", f"no result in 30 s: {res['state']}"
+    assert len(res["hops"]) == 4
+    for hop in res["hops"]:
+        assert 0 < hop["call_us"] < 50000, f"an rx() call took {hop['call_us']} us"
+    record_property("retune_call_us_max", max(h["call_us"] for h in res["hops"]))
+    settled = [h["settle_us"] for h in res["hops"] if h["settle_us"] is not None]
+    record_property("retune_settle_us_max", max(settled) if settled else -1)

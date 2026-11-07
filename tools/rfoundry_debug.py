@@ -105,7 +105,12 @@ RX2_FLAGS = {1: "present", 2: "up", 4: "bridge", 8: "restart"}
 IDDB = 0x1F                         # the DMR ID database: format, records, an ID looked up (docs/spec/debuglink.md 3.23)
 SAT = 0x20                          # satellite tracking (CONFIG_SAT; docs/spec/debuglink.md 3.24, docs/spec/satellite.md)
 SAT_OP_TLE, SAT_OP_LOAD, SAT_OP_OBSERVER, SAT_OP_OBSERVER_GPS, SAT_OP_TIME, SAT_OP_LOOK, SAT_OP_PASS, SAT_OP_BENCH, \
-    SAT_OP_SAVE, SAT_OP_STORED, SAT_OP_RECALL, SAT_OP_DELETE, SAT_OP_CLEAR = range(13)
+    SAT_OP_SAVE, SAT_OP_STORED, SAT_OP_RECALL, SAT_OP_DELETE, SAT_OP_CLEAR, SAT_OP_RETUNE_TEST, \
+    SAT_OP_RETUNE_RESULT = range(15)
+RETUNE_STATES = ["idle", "queued", "running", "done", "refused"]
+RETUNE_WHY = ["", "busy (transmitting, or a hotspot)", "scanning or dual watch is on", "not on an FM channel or the VFO",
+              "AM or broadcast receive is on", "a frequency the receiver won't take"]
+RETUNE_NEVER = 0xFFFFFFFF
 SAT_CLEAR_TOKEN = 0x43544153        # 'SATC'
 SAT_TLE_ERRORS = {0: "ok", 1: "a line isn't 69 columns, or the wrong line number", 2: "check digit wrong",
                   3: "a field doesn't parse", 4: "the two lines name different satellites"}
@@ -649,6 +654,26 @@ class DebugLink:
     def sat_clear(self):
         """Erase the whole store, foreign bytes included"""
         self.request(SAT, struct.pack("<BI", SAT_OP_CLEAR, SAT_CLEAR_TOKEN))
+
+    def sat_retune_test(self, base_hz, step_hz, count=12, gap_ms=150, wide=True):
+        """Start the retune test (receive only, docs/dev/satellite-doppler-plan.md): the receiver steps between base_hz
+        and base_hz + step_hz count times, gap_ms apart; the radio task runs it"""
+        self.request(SAT, struct.pack("<BIiBHB", SAT_OP_RETUNE_TEST, int(base_hz), int(step_hz), count, gap_ms,
+                                      1 if wide else 0))
+
+    def sat_retune_result(self):
+        """The retune test's state and, once done or refused, its result: {state, reason, count, ref_base, ref_step,
+        noise_base, hops: [{call_us, settle_us (None: never), min_rssi, max_noise, lost}]}"""
+        r = self.request(SAT, bytes([SAT_OP_RETUNE_RESULT]))[1]
+        out = {"state": RETUNE_STATES[r[0]] if r[0] < len(RETUNE_STATES) else str(r[0]), "hops": []}
+        if len(r) > 1:
+            reason, count, base, step, noise = struct.unpack_from("<BBhhB", r, 1)
+            out.update(reason=reason, count=count, ref_base=base, ref_step=step, noise_base=noise)
+            for i in range(count):
+                call, settle, lo, nz, lost = struct.unpack_from("<HIhBB", r, 8 + i * 10)
+                out["hops"].append({"call_us": call, "settle_us": None if settle == RETUNE_NEVER else settle,
+                                    "min_rssi": lo, "max_noise": nz, "lost": lost})
+        return out
 
     def version(self):
         return parse_kv(self.request(VERSION)[1].decode("ascii", "replace"))
@@ -1691,6 +1716,48 @@ def cmd_sat_update(link, a):
     return 1 if sat_update(link, tles, tuple(a.add), a.dry_run) else 0
 
 
+def format_retune_result(res):
+    """The lines for a retune test's result"""
+    if res["state"] == "refused":
+        why = RETUNE_WHY[res["reason"]] if res["reason"] < len(RETUNE_WHY) else str(res["reason"])
+        return [f"refused: {why}"]
+    lines = [f"steady level {res['ref_base']} dBm on the base frequency, {res['ref_step']} dBm on the other; "
+             f"noise {res['noise_base']}", "  #  call us  settle us  lowest dBm  noise  no carrier"]
+    for i, h in enumerate(res["hops"], 1):
+        settle = "never" if h["settle_us"] is None else str(h["settle_us"])
+        lines.append(f"{i:3} {h['call_us']:8} {settle:>10} {h['min_rssi']:11} {h['max_noise']:6} {h['lost']:11}")
+    settled = [h["settle_us"] for h in res["hops"] if h["settle_us"] is not None]
+    never = len(res["hops"]) - len(settled)
+    if settled:
+        settled.sort()
+        lines.append(f"settled in {settled[0]} to {settled[-1]} us (median {settled[len(settled) // 2]}); "
+                     f"{never} of {len(res['hops'])} never did")
+    else:
+        lines.append(f"none of the {len(res['hops'])} retunes settled within the timeout")
+    return lines
+
+
+def cmd_sat_retune_test(link, args):
+    """rfoundry_debug.py sat retune-test BASE_MHZ STEP_KHZ [COUNT [GAP_MS [12.5|25]]]: receive only"""
+    if len(args) < 2:
+        raise DebugLinkError("sat retune-test: BASE_MHZ STEP_KHZ [COUNT [GAP_MS [12.5|25]]], for example 162.400 2")
+    base, step = round(float(args[0]) * 1e6), round(float(args[1]) * 1e3)
+    count = int(args[2]) if len(args) > 2 else 12
+    gap = int(args[3]) if len(args) > 3 else 150
+    wide = (args[4] if len(args) > 4 else "25") != "12.5"
+    link.sat_retune_test(base, step, count, gap, wide)
+    deadline = time.time() + count * gap / 1000.0 + 5.0 + 2.0 * (300 + 8 * 5) / 1000.0 + 5.0
+    while True:
+        time.sleep(0.3)
+        res = link.sat_retune_result()
+        if res["state"] in ("done", "refused"):
+            break
+        if time.time() > deadline:
+            raise DebugLinkError("sat retune-test: no result in time")
+    print("\n".join(format_retune_result(res)))
+    return 0 if res["state"] == "done" else 1
+
+
 def cmd_sat(link, a):
     """rfoundry_debug.py sat ...: the SAT command (docs/spec/debuglink.md 3.24)"""
     if a.op == "update":
@@ -1759,6 +1826,8 @@ def cmd_sat(link, a):
     elif a.op == "bench":
         runs, us = link.sat_bench(int(a.args[0]) if a.args else 200)
         print(f"{runs} runs in {us} us: {us / runs:.1f} us a run" if runs else "no runs")
+    elif a.op == "retune-test":
+        return cmd_sat_retune_test(link, a.args)
     else:
         for k, v in link.view(["sat"]).items():
             print(f"{k}={v}")
@@ -2312,6 +2381,15 @@ def self_test():
     lines = []
     sat_update(fake, tl, dry_run=True, log=lines.append)
     check(fake.saved == [] and any("would update" in ln for ln in lines), "sat update --dry-run changes nothing")
+    # the retune test's result: a header and ten bytes a retune
+    class RetuneLink:
+        def request(self, cmd, payload):
+            hop = struct.pack("<HIhBB", 40, 600, -100, 90, 3) + struct.pack("<HIhBB", 41, RETUNE_NEVER, -99, 91, 255)
+            return 0, bytes([3, 0, 2]) + struct.pack("<hhB", -70, -73, 20) + hop
+    res = DebugLink.sat_retune_result(RetuneLink())
+    check(res["state"] == "done" and res["count"] == 2 and res["ref_base"] == -70 and res["hops"][0]["settle_us"] == 600
+          and res["hops"][1]["settle_us"] is None and res["hops"][1]["lost"] == 255, "sat retune-test: the result is decoded")
+    check(len(format_retune_result(res)) == 5 and "never" in format_retune_result(res)[3], "sat retune-test: the table")
     print("rfoundry_debug self-test:", "ok" if ok else "FAILED")
     return 0 if ok else 1
 
@@ -2408,11 +2486,12 @@ def main(argv=None):
     p.add_argument("ids", nargs="*", type=int)
     p = sub.add_parser("sat", help="satellite tracking: show, load FILE|L1 L2, observer [LAT LON [ALT]], time [UNIX], "
                        "look [UNIX], pass [FROM [SPAN [MIN_EL]]], bench [RUNS], save [UP_MHZ [DOWN_MHZ [TONE_HZ [NAME]]]], "
-                       "list, recall SLOT, delete NORAD, clear, update [--file F|--url U] [--add NORAD] [--dry-run] "
+                       "list, recall SLOT, delete NORAD, clear, update [--file F|--url U] [--add NORAD] [--dry-run], "
+                       "retune-test BASE_MHZ STEP_KHZ [COUNT [GAP_MS [12.5|25]]] "
                        "(docs/spec/debuglink.md 3.24)")
     p.add_argument("op", nargs="?", default="show", choices=["show", "load", "observer", "time", "look", "pass",
                                                              "bench", "save", "list", "recall", "delete", "clear",
-                                                             "update"])
+                                                             "update", "retune-test"])
     p.add_argument("args", nargs="*")
     p.add_argument("--file", help="update: element sets from this file (a saved CelesTrak or AMSAT download)")
     p.add_argument("--url", help="update: element sets from this address (default: CelesTrak's amateur group)")

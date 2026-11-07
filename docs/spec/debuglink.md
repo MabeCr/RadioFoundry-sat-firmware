@@ -790,12 +790,15 @@ a time of 0 is the radio's clock now.
 | 10 | RECALL | slot u16 | SGP4 error u8 (0 = tracking it), catalog u32: the stored satellite into the tracker, with its profile. Status 4 for a free slot or one without elements |
 | 11 | DELETE | catalog u32 | none; status 4 when it isn't stored or the write failed |
 | 12 | CLEAR | token u32, `'SATC'` (`0x43544153`) | none. Erases the whole area, foreign bytes included: the way out of a foreign area once the flash is backed up. Another token: status 7 |
+| 13 | RETUNE_TEST | base u32 (Hz), step i32 (Hz), count u8, gap u16 (ms), width u8 (1: 25 kHz) | none. Queues the retune test ([satellite.md](satellite.md) 4.4) and the radio task runs it. Status 2 for an argument out of range (count 1-32, gap 20-1000 ms, count x gap at most 10 s, a step of 1 Hz to 100 kHz), 3 while one is queued or running |
+| 14 | RETUNE_RESULT | none | state u8 (0 none, 1 queued, 2 running, 3 done, 4 refused); with a result (done or refused) also reason u8 (0, 1 busy, 2 scanning, 3 not FM, 4 AM or broadcast on, 5 band), count u8, level on the base frequency i16 and on the other i16 (dBm), noise u8, then per retune: the `rx()` call us u16, the settle time us u32 (`0xFFFFFFFF` never), the lowest level i16, the highest noise u8, reads without carrier u8 |
 
 LOOK, PASS and BENCH answer status 4 when no element set is loaded, no observer is set, or (for a time of 0) the
 radio has no clock. They run the model in the host link's task, so PASS's span is held to an hour (about 100 runs)
 and BENCH to 250 ms. SAVE, DELETE and CLEAR write the flash in the same task: an erase and a program, tens of ms.
 `rfoundry_debug.py sat [show|load FILE|L1 L2|observer [LAT LON [ALT]]|time [UNIX]|look [UNIX]|pass [FROM [SPAN
-[MIN_EL]]]|bench [RUNS]|save [UP DOWN [TONE [NAME]]]|list|recall SLOT|delete NORAD|clear]`.
+[MIN_EL]]]|bench [RUNS]|save [UP DOWN [TONE [NAME]]]|list|recall SLOT|delete NORAD|clear|retune-test BASE_MHZ STEP_KHZ
+[COUNT [GAP_MS [12.5|25]]]]`.
 
 `rfoundry_debug.py sat update` is the host tool's own loop over these operations, not a command: it downloads the
 element sets (CelesTrak's amateur group, `--url` or `--file` for another source), reads the stored satellites (STORED),
