@@ -29,6 +29,7 @@ and ST's HAL and CMSIS into `third_party/`.
 | `make test` | The host tests (the same as `make -C tests/host`); needs no `BOARD` |
 | `make BOARD=<b> print-config` | The feature switches this board builds with, as `NAME=y/n` |
 | `make BOARD=<b> print-cc` | The compiler the board uses (ci.sh checks it is installed) |
+| `tools/satellite.sh <b> [goal]` | the board's satellite build, the image to flash: its defaults plus `CONFIG_SAT=y` and the board's `SATELLITE_VARS` (a radio with little RAM cuts switches there); `BUILD` defaults to `build/<b>-satellite`. `make print-satellite-vars` prints the list. ci.sh builds and stack-checks it for a board that lists it |
 | `tools/maximal.sh <b> [goal]` | the board\'s maximal configuration (what ci.sh builds): every switch it can do on, then its `MAXIMAL_VARS`; `--args <b>` prints the variables only. On a radio with little RAM the cuts are in its `MAXIMAL_VARS` |
 | `make BOARD=<b> print-unsupported`, `print-not-written`, `print-maximal-vars` | `BOARD_UNSUPPORTED`, `BOARD_NOT_WRITTEN` and `MAXIMAL_VARS` from the board's `config.mk`, for ci.sh's maximal build |
 | `make BOARD=<b> clean` | Removes `build/<b>` |

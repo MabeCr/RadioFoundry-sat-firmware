@@ -1,0 +1,148 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 The RadioFoundry Authors
+#
+# The satellite build's firmware image, built in the cloud and published as a GitHub pre-release, so it can be
+# downloaded on a phone and installed from there (docs/testing/dm32-satellite-bringup.md, docs/dev/ci.md). It is the
+# board's satellite build (tools/satellite.sh: the radio's own defaults, English only, plus tracking and the cuts a radio
+# with little RAM needs; NOT the maximal configuration, which turns every language on), built with the pinned C-SKY
+# compiler image like ci.yml's firmware job, then stack-checked. The image is CODEC-LESS by construction
+# (no codecs/ in a checkout): the installer keeps the codec already in a RadioFoundry radio. A job step fails the run if
+# anything with the codec could be in the output. Each build is a pre-release `satellite-<commit>`; the newest five are
+# kept. Runs only in the fork this fork-specific workflow lives in.
+name: Satellite image
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "core/**"
+      - "hal/**"
+      - "drivers/**"
+      - "platform/**"
+      - "boards/**"
+      - "config/**"
+      - "Makefile"
+      - "tools/maximal.sh"
+      - "tools/satellite.sh"
+      - ".github/workflows/satellite-image.yml"
+  workflow_dispatch:
+    inputs:
+      board:
+        description: The board to build (a boards/ id); empty for the board that lists SATELLITE_VARS in its config.mk
+        default: ""
+
+concurrency:
+  group: satellite-image-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # the pre-release
+  packages: read    # the ghcr.io compiler image
+
+jobs:
+  image:
+    name: image
+    if: github.repository == 'MabeCr/RadioFoundry-sat-firmware'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          submodules: false   # tools/checkout-submodules.sh: the runner image's copies, then the network
+      - name: third_party submodules
+        run: tools/checkout-submodules.sh
+      - name: Which board
+        env:
+          WANTED: ${{ inputs.board }}
+        run: |
+          set -eu
+          board=$WANTED
+          if [ -z "$board" ]; then   # the board that lists a satellite build of its own (SATELLITE_VARS in config.mk)
+            for d in boards/*/; do
+              b=$(basename "$d")
+              [ -f "$d/board.mk" ] || continue
+              [ -n "$(make -s BOARD="$b" print-satellite-vars 2>/dev/null)" ] && { board=$b; break; }
+            done
+          fi
+          [ -n "$board" ] || { echo "::error::no board lists SATELLITE_VARS: give the board input"; exit 1; }
+          echo "BOARD=$board" >> "$GITHUB_ENV"
+          echo "board: $board"
+      - name: Toolchain (platform.toml [toolchain])
+        id: tc
+        uses: ./.github/actions/toolchain
+        with:
+          toolchain: csky
+          image: ${{ vars.RFOUNDRY_CSKY_IMAGE }}
+          registry: ${{ vars.RFOUNDRY_CSKY_REGISTRY }}
+          registry-user: ${{ vars.RFOUNDRY_CSKY_REGISTRY_USER || github.actor }}
+          registry-token: ${{ secrets.RFOUNDRY_CSKY_REGISTRY_TOKEN || github.token }}
+
+      - name: Build the satellite configuration, warnings are failures
+        env:
+          RUN: ${{ steps.tc.outputs.run }}   # empty, or the csky-elf image's run.sh
+        run: |
+          set -eu -o pipefail
+          $RUN tools/satellite.sh "$BOARD" 2>&1 | tee build.log
+          if grep -qi 'warning:' build.log; then echo "::error::the build has warnings"; grep -i 'warning:' build.log | sort -u | head; exit 1; fi
+
+      - name: Static stack check
+        env:
+          RUN: ${{ steps.tc.outputs.run }}
+        run: |
+          set -eu -o pipefail
+          $RUN tools/satellite.sh "$BOARD" stack-check 2>&1 | tee stack.log
+          grep -qE '^stack check .*: every task fits' stack.log || { echo "::error::a task's stack does not fit"; exit 1; }
+
+      - name: Collect the image, and make sure the codec is not in it
+        run: |
+          set -eu
+          dir=build/$BOARD-satellite
+          mkdir -p dist
+          img=$dir/rfoundry_$BOARD.bin
+          [ -f "$img" ] || { echo "::error::$img was not built"; exit 1; }
+          # the codec is never in a public image (AGENTS.md rule 2): no codec file beside it, none in the checkout
+          if ls "$dir" | grep -qi codec; then echo "::error::a codec image in the build directory"; ls "$dir"; exit 1; fi
+          if [ -d codecs ] && [ -n "$(ls codecs | grep -vi readme || true)" ]; then echo "::error::codec files in the checkout"; exit 1; fi
+          short=$(git rev-parse --short=7 HEAD)
+          cp "$img" "dist/rfoundry_${BOARD}_satellite.bin"
+          ( cd dist && sha256sum "rfoundry_${BOARD}_satellite.bin" > "rfoundry_${BOARD}_satellite.bin.sha256" )
+          {
+            echo "Satellite build of \`$BOARD\` from commit \`$short\` (${GITHUB_REF_NAME}), built by GitHub Actions."
+            echo
+            echo "**The image has no codec.** The RadioFoundry installer keeps the codec that is already in a RadioFoundry radio, and says so before it writes. Nothing here has been run on a radio unless the bring-up record says so: [docs/testing/dm32-satellite-bringup.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/testing/dm32-satellite-bringup.md)."
+            echo
+            echo '```'
+            grep -E '^ *(FLASH|RAM):' build.log || true
+            grep -E '^stack check ' stack.log || true
+            echo '```'
+            echo
+            echo "sha256: \`$(cut -d' ' -f1 dist/rfoundry_${BOARD}_satellite.bin.sha256)\`"
+          } > dist/notes.md
+          cat dist/notes.md >> "$GITHUB_STEP_SUMMARY"
+          echo "short=$short" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: satellite-image-${{ env.BOARD }}
+          path: |
+            dist/rfoundry_*.bin
+            dist/rfoundry_*.sha256
+            build.log
+            stack.log
+
+      - name: Publish a pre-release (a direct download on a phone)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          tag="satellite-$short"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --prerelease --target "$GITHUB_SHA" --title "$BOARD satellite build $short" --notes-file dist/notes.md
+          else
+            gh release edit "$tag" --prerelease --title "$BOARD satellite build $short" --notes-file dist/notes.md
+          fi
+          gh release upload "$tag" dist/rfoundry_*.bin dist/rfoundry_*.sha256 --clobber
+          # keep the newest five of these pre-releases (only ones this workflow makes: satellite-<7 hex>, pre-release)
+          gh release list --limit 100 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease and (.tagName | test("^satellite-[0-9a-f]{7}$")))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' |
+            while read -r old; do gh release delete "$old" --yes --cleanup-tag; done

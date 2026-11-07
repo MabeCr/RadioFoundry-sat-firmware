@@ -18,6 +18,7 @@ so one set serves the self-hosted Gitea runner and GitHub.
 | `ui-gallery.yml` | `ubuntu-24.04` | a pull request that changes the UI (`core/ui/`, the simulator, `uiSim`) | renders the screen gallery at the base and at the pull request, and makes the side-by-side artifact |
 | `ui-gallery-comment.yml` | `ubuntu-24.04` | when `ui-gallery.yml` finishes on a pull request | posts the pull request's gallery comment with the changed screens attached |
 | `manual.yml` | `ubuntu-24.04` | docs changes pushed to `main`, `v*` tags | the user manual PDF ([manual-pdf.md](manual-pdf.md)) |
+| `satellite-image.yml` | `ubuntu-24.04` | a push to `main` or a `claude/**` branch that changes firmware sources; by hand (board input) | this fork only: the board's satellite build ([satellite.sh](building.md): its defaults plus tracking, with the cuts a radio with little RAM needs) built with the C-SKY compiler image, stack-checked, and published as a pre-release `satellite-<commit>` whose codec-less image downloads on a phone ([the testing index](../testing/README.md)); the newest five are kept. It fails if a codec could be in the output |
 | `release.yml` | `ubuntu-24.04`, and for rfoundry the hosted macOS / Windows runners | `v*` tags; pull requests that change rfoundry or this workflow (no release gate; `pr-tests.yml` runs the firmware packaging) | release images and rfoundry ([release.md](release.md)) |
 
 On GitHub, `ci.yml` and `nightly.yml` run only when the repository variable `RFOUNDRY_CI_GITHUB` is `true` (on a

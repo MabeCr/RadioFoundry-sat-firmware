@@ -30,18 +30,19 @@ radio is untested, however likely it looks.
 
 ## Build configuration
 
-The configuration chosen for satellite use on the DM-32UV is the board's **maximal** build: every switch the radio can
-do on, then the cuts in `MAXIMAL_VARS` of `boards/dm32/config.mk` (the fourteen below and their sub-features). It is what
-CI builds and stack-checks on every pull request, so the RAM budget is checked there, not only on a laptop:
+The configuration chosen for satellite use on the DM-32UV is the radio's own defaults plus `CONFIG_SAT=y` and the cuts in
+`SATELLITE_CUTS` of `boards/dm32/config.mk` (the fourteen below and their sub-features). `tools/satellite.sh` builds it, and
+CI builds and stack-checks it on every push and publishes the image (`.github/workflows/satellite-image.yml`), so the RAM
+budget is checked there, not only on a laptop:
 
 ```
-tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32                # build/dm32-maximal/rfoundry_dm32.bin
-tools/docker/csky-toolchain/run.sh tools/maximal.sh dm32 stack-check
+tools/docker/csky-toolchain/run.sh tools/satellite.sh dm32                # build/dm32-satellite/rfoundry_dm32.bin
+tools/docker/csky-toolchain/run.sh tools/satellite.sh dm32 stack-check
 ```
 
-The first measurements (below) were made with the same cuts typed by hand, and `SAT` on, with `LANG_IT` and `VIBRATE`
-left off. The maximal build also turns those on (a few KB of flash, little RAM): the numbers move a little and are
-measured again after this change.
+This is the configuration the first measurements (below) were made with, typed by hand. The board's *maximal* build,
+every switch on with the same cuts, is a separate coverage build for CI: it also turns on the Italian language as the
+default, so it is never flashed.
 
 | Switch | State | Why |
 |---|---|---|

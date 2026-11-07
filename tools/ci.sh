@@ -396,8 +396,8 @@ build() {
 		grep -i 'warning:' "$log" | sort -u | head -10
 		bad "$b $name: warnings ($*; see $log)"
 	fi
-	# the static stack check (docs/dev/stack-check.md) on the default and the maximal configuration
-	if [ "$name" = default ] || [ "$name" = maximal ]; then
+	# the static stack check (docs/dev/stack-check.md) on the default, the maximal and the satellite configuration
+	if [ "$name" = default ] || [ "$name" = maximal ] || [ "$name" = satellite ]; then
 		if make -s BOARD="$b" BUILD="$dir" "$@" stack-check > "$dir.stack.log" 2>&1; then
 			ok "$b $name: $(grep -E '^stack check .*: every task fits' "$dir.stack.log" | sed 's/^stack check [^:]*: //')"
 		else
@@ -492,6 +492,11 @@ for bm in boards/*/board.mk boards/*/; do
 	# Maximal with --quick too: its flash and the stack check's deepest chains are where a pull request runs out first
 	# shellcheck disable=SC2086
 	build "$b" maximal $(tools/maximal.sh --args "$b" 2>/dev/null)
+	# A board that lists SATELLITE_VARS (a radio with little RAM) also builds and stack-checks the satellite image it
+	# flashes: the defaults plus tracking and the cuts, which the maximal build (every switch on) is not
+	sat_vars=$(make -s BOARD="$b" print-satellite-vars 2>/dev/null)
+	# shellcheck disable=SC2086
+	[ -n "$sat_vars" ] && build "$b" satellite $sat_vars
 done
 # Each platform's flash stubs (platform.toml stubs), once, when any board on the platform was built: one image serves
 # every board on it. Built with that platform's compiler (the first board's print-cc), then the stub's own check target
