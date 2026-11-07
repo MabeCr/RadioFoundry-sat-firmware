@@ -131,7 +131,7 @@ typedef struct {
 	uint16_t roam_check_s;		// beacon check interval, 0 = off
 	uint8_t roam_zones[SETTINGS_ROAM_ZONE_BYTES];	// bit z % 8 of byte z / 8: zone z is a roaming zone
 	// More of the UI's settings (docs/spec/ui.md 4; appended for uifix)
-	uint8_t theme;			// 0 dark, 1 light, 2 high contrast, 3 night (color displays)
+	uint8_t theme;			// 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal (color displays; settings_theme)
 	uint8_t ui_flags;		// SETTINGS_UI_* bits
 	uint8_t updown_home;		// what Up / Down change on Home: 0 channel, 1 zone, 2 talk target
 	uint8_t low_batt_pct;		// warn at this battery percent (5-30), 0 = only the board's low voltage
@@ -300,9 +300,21 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 #define SETTINGS_ACCENT_COLOR	0x07u
 #define SETTINGS_ACCENT_PLAIN	0x08u
 
-// theme holds 0..3 and updown_home 0..2 in bits 0-1; their upper bits hold the crash report's target (below)
+// theme holds 0..3 and updown_home 0..2 in bits 0-1; their upper bits hold the crash report's target (below). The fifth
+// theme (4, terminal) has its bit 2 in updown_home bit 7, the one spare bit: a firmware from before reads the low bits,
+// 0, and shows the dark theme
 #define SETTINGS_SMALL_MASK	0x03u
-static inline uint8_t settings_theme(const settings_t *s) { return s->theme & 3u; }
+#define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
+#define SETTINGS_THEME_MAX	4u
+static inline uint8_t settings_theme(const settings_t *s)
+{
+	return (uint8_t)((s->theme & 3u) | ((s->updown_home & SETTINGS_THEME_HIGH) ? 4u : 0u));
+}
+static inline void settings_set_theme(settings_t *s, uint8_t theme)
+{
+	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
+	s->updown_home = (uint8_t)((s->updown_home & ~SETTINGS_THEME_HIGH) | ((theme & 4u) ? SETTINGS_THEME_HIGH : 0u));
+}
 static inline uint8_t settings_updown_home(const settings_t *s)
 {
 	return (s->updown_home & 3u) <= 2u ? s->updown_home & 3u : 0;

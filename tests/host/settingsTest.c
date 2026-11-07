@@ -630,9 +630,23 @@ static void test_crash_bits(void)
 	}
 	settings_set_crash_mode(&s, 1);
 	CHECK(settings_crash_mode(&s) == 1 && (s.accent & 0x0F) == (5 | SETTINGS_ACCENT_PLAIN) && !(s.accent & 0xC0));
-	CHECK(!(s.updown_home & 0x80));		// bit 7 stays free
+	CHECK(!(s.updown_home & 0x80));		// bit 7 stays free until the fifth theme takes it
 	s.theme = 3;				// night, the last value bits 0-1 can hold
 	CHECK(settings_theme(&s) == 3);
+	// The fifth theme, terminal: its bit 2 is updown_home bit 7, and every other field keeps its value
+	s.theme = 2;
+	s.updown_home = 1;
+	settings_set_crash_contact(&s, 1234);
+	settings_set_theme(&s, 4);
+	CHECK(settings_theme(&s) == 4 && (s.theme & 3u) == 0 && (s.updown_home & 0x80u) && settings_updown_home(&s) == 1);
+	CHECK(settings_crash_contact(&s) == 1234 && settings_crash_mode(&s) == 1);
+	settings_set_theme(&s, 3);
+	CHECK(settings_theme(&s) == 3 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 1234);
+	settings_set_theme(&s, 4);
+	settings_set_crash_contact(&s, 7);	// setting the target leaves the theme's bit
+	CHECK(settings_theme(&s) == 4 && settings_crash_contact(&s) == 7 && settings_updown_home(&s) == 1);
+	settings_set_theme(&s, 0);
+	CHECK(settings_theme(&s) == 0 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 7);
 }
 
 // The last dual watch B in beeps bits 1-7 and mic_gain bits 4-7: every code reads back, beeps and the mic gain stay

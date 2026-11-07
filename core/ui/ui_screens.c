@@ -33,10 +33,13 @@ static void accent_apply(void)
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
-	if (ui_theme == 3) {
-		// Night: the highlight color is ignored, its choices are all too bright, and the strip is never filled (ui_draw_top).
-		// The focus is a dark bar with brighter text, not reverse video: a bright row would outshine the screen
-		ui_col.focus_fg = RGB565(255, 0, 0);
+	if (ui_theme == 3 || (ui_theme == 4 && ui_accent == UI_ACCENT_DEFAULT)) {
+		// Night: the highlight color is ignored, its choices are all too bright or the wrong hue, and the strip is
+		// never filled (ui_draw_top). Terminal with Default keeps its own green. The focus is a dark bar with
+		// brighter text, not reverse video: a bright row would outshine the screen (Night), or leave the one hue
+		// (Terminal). A Terminal highlight color other than Default is the user's choice and applies like on the
+		// dark theme
+		ui_col.focus_fg = ui_theme == 3 ? RGB565(255, 0, 0) : RGB565(170, 255, 170);
 		return;
 	}
 	static const color_t acc[UI_ACCENT_COUNT] = {
@@ -122,6 +125,21 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(64, 0, 0);
 		ui_col.hint_bg = RGB565(32, 0, 0);
 		ui_col.priv = RGB565(160, 0, 0);
+	} else if (theme == 4) {
+		// Terminal: an old green phosphor screen, for looks and not for night vision, so brighter than Night. Yellow
+		// marks receive and red transmit, which green text would hide; orange warns (yellow is receive's). TX is a red
+		// pill (P5). Everything else is a shade of green
+		ui_col.bg = RGB565(0, 0, 0);
+		ui_col.fg = RGB565(51, 255, 51);
+		ui_col.dim = RGB565(0, 176, 0);
+		ui_col.line = RGB565(0, 120, 0);	// also the disabled rows' text
+		ui_col.tx = RGB565(255, 64, 64);
+		ui_col.rx = RGB565(255, 255, 0);
+		ui_col.warn = RGB565(255, 140, 0);
+		ui_col.idle = RGB565(0, 200, 0);
+		ui_col.focus = RGB565(0, 72, 0);
+		ui_col.hint_bg = RGB565(0, 36, 0);
+		ui_col.priv = RGB565(0, 230, 150);
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);
@@ -135,7 +153,7 @@ void ui_theme_set(uint8_t theme)
 		ui_col.hint_bg = RGB565(32, 32, 32);
 		ui_col.priv = RGB565(64, 140, 255);
 	}
-	ui_col.pill_fg = theme == 3 ? RGB565(0, 0, 0) : RGB565(255, 255, 255);	// no white at night
+	ui_col.pill_fg = theme == 3 || theme == 4 ? RGB565(0, 0, 0) : RGB565(255, 255, 255);	// no white at night or in Terminal
 	ui_col.pill_dark_fg = RGB565(0, 0, 0);
 	accent_apply();
 }
@@ -143,6 +161,18 @@ void ui_theme_set(uint8_t theme)
 bool ui_theme_is_night(void)
 {
 	return ui_theme == 3 && gfx_bpp() != 1;	// a monochrome panel keeps the stored theme but draws ink on paper
+}
+
+bool ui_theme_is_terminal(void)
+{
+	return ui_theme == 4 && gfx_bpp() != 1;
+}
+
+// Night and Terminal: a theme with its own colors, near one hue on black. The highlight color and the filled strip don't
+// apply, the strip is plain, and an edited row or tile and a toast are outlines, not blocks of light
+bool ui_theme_is_mono(void)
+{
+	return (ui_theme == 3 || ui_theme == 4) && gfx_bpp() != 1;
 }
 
 void ui_accent_set(uint8_t accent)
@@ -320,7 +350,9 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		pfg = ui_col.pill_dark_fg;
 	// A filled strip (Settings > Display) draws on its own background in black, warnings in a dark shade that reads on
 	// it (accent_apply); the idle pill turns inverse on it, RX / TX / NO TX keep their colors and words (P5)
-	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_night();
+	// Night never fills; Terminal fills only with a highlight color, as its Default has no strip color of its own
+	bool filled = CONFIG_UI_COLOR && ui_strip_fill && gfx_bpp() != 1 && !ui_theme_is_night() &&
+		      !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
 	if (filled && st == RS_IDLE) {
@@ -574,7 +606,7 @@ void ui_draw_hint(const char *text, bool toast)
 	int w = gfx_width();
 	char fit[64];
 	// Night outlines a toast in red: reverse video would be a block of light, and amber is for warnings
-	bool outline = toast && ui_theme_is_night();
+	bool outline = toast && ui_theme_is_mono();
 	color_t bg = toast && !outline ? ui_col.fg : ui_col.hint_bg;
 	color_t fg = outline ? ui_col.fg : toast ? ui_col.bg : ui_col.dim;
 	if (gfx_bpp() == 1 && !toast)
@@ -2570,7 +2602,7 @@ void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l
 		bool outline = false;
 		if (focus) {
 			bool edit = (it.flags & UI_ITEM_EDIT) != 0;
-			outline = edit && ui_theme_is_night();
+			outline = edit && ui_theme_is_mono();
 			color_t bg = outline ? ui_col.hint_bg : edit ? ui_col.warn : ui_col.focus;
 			gfx_fill(0, ry, w, L->row_h, bg);
 			if (outline)
@@ -2614,8 +2646,8 @@ void ui_draw_emergency(const radio_view_t *v, const ui_state_t *s, uint32_t id, 
 	char buf[32];
 	sbuf_t b;
 	gfx_clear(gfx_bpp() == 1 ? ui_col.bg : ui_col.tx);
-	// Night's text is red too, so it needs the pill's black to read on the red
-	color_t fg = ui_theme_is_night() ? ui_col.pill_fg : ui_col.fg;
+	// Night's text is red (Terminal's green) too, so it needs the pill's black to read on the red
+	color_t fg = ui_theme_is_mono() ? ui_col.pill_fg : ui_col.fg;
 	int y = ui_draw_top(v, s, TR("Emergency"), NULL) + 2;
 	const char *word = TR("EMERGENCY");
 	const font_t *big = gfx_text_width(L->large, word) <= w ? L->large : L->medium;
@@ -2976,7 +3008,7 @@ static void __attribute__((noinline)) draw_quick_tiles(const radio_view_t *v, co
 		if (gfx_bpp() == 1 && !ok)
 			fg = ui_col.fg;
 		if (focus) {
-			bool outline = s->quick_edit && ui_theme_is_night();
+			bool outline = s->quick_edit && ui_theme_is_mono();
 			bg = outline ? ui_col.hint_bg : s->quick_edit ? ui_col.warn : ui_col.focus;
 			fg = gfx_bpp() == 1 ? ui_col.bg : outline ? ui_col.warn :
 				s->quick_edit ? ui_col.pill_dark_fg : ui_col.focus_fg;
