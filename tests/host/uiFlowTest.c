@@ -586,6 +586,7 @@ static const flow_t flows[] = {
 	  "screen=track shows=AOS hides=Az hides=RX hides=Rng hides=Working", 1, false },
 	{ "S tracking: # tunes the VFO to the downlink, FM, the uplink as the split", "ok 6 0 1 ok", "ctx",
 	  "screen=track vfo=1 mode=fm txfreq=145850000 toast=Tuned_to_the", 1, false },
+	{ "S tracking: # below the horizon shows the tuned frequency", "ok 6 0 2 ok", "ctx", "screen=track vfo=1 freq=436795000 shows=RX hides=Az", 1, false },
 	{ "S tracking: # again retunes lightly", "ok 6 0 1 ok ctx", "ctx", "vfo=1 toast=Retuned", 1, false },
 	{ "S tracking: Back puts the channel back", "ok 6 0 1 ok ctx", "back", "screen=passes vfo=0", 1, false },
 	{ "S tracking: the dial nudges the downlink by 1 kHz", "ok 6 0 1 ok ctx", "up", "toast=Dial_+1.0k", 1, false },

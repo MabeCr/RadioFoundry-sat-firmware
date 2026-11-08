@@ -667,11 +667,17 @@ static void track_draw(void)
 		trow(x, &ty, st.utc >= trk_los ? "" : up ? "LOS" : "AOS", buf, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
 	}
 	ui_sat_profile_t p;
+	bool on = trk_tuned && ui_view()->vfo;		// # tuned the receiver
+	if (!seen && on && ui_svc_sat_profile(&p) && p.down_hz) {
+		// Below the horizon there is no Doppler to show, but what the receiver was tuned to still is
+		sb_init(&b, buf, sizeof buf);
+		sb_shifted(&b, ui_view()->ch.rx_hz, p.down_hz);
+		trow(x, &ty, "RX", buf, ui_col.rx);
+	}
 	if (seen && ui_svc_sat_profile(&p)) {
 		if (live.rx_hz && p.down_hz) {
 			// Tuned (#): the frequency the receiver is on, in the warning color when it is behind where it
 			// should be (the Doppler moved on, or the dial); else the corrected one to tune to
-			bool on = trk_tuned && ui_view()->vfo;
 			uint32_t at = on ? ui_view()->ch.rx_hz : live.rx_hz;
 			int32_t behind = (int32_t)(track_want(&p) - at);
 			sb_init(&b, buf, sizeof buf);
