@@ -767,7 +767,7 @@ static void track_draw(void)
 	if (!on && have_p) {
 		sb_init(&b, buf, sizeof buf);
 		sb_shifted(&b, track_want(&p), p.down_hz);
-		trow(x, &ty, "Sat", buf, ui_col.dim);
+		trow(x, &ty, "To", buf, ui_col.dim);	// two letters like RX: a longer label pushes the frequency off a narrow panel
 	}
 	if (trk_follow.on) {
 		if (below) {
