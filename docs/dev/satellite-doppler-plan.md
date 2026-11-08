@@ -2,7 +2,7 @@
 
 # Plan: Doppler tuning for FM satellites
 
-Status: agreed 2026-11-07, phase 0 in progress. The orbit library and the Tracking screen already compute the corrected
+Status: agreed 2026-11-07, phase 0 done 2026-11-08 (results below), phase 1 in progress. The orbit library and the Tracking screen already compute the corrected
 downlink and uplink every second ([satellite.md](../spec/satellite.md) 4.3, 5.1); this plan makes the radio follow the
 downlink. Decisions come from the owner's answers; open items are at the end.
 
@@ -69,10 +69,31 @@ For each retune: the time the `rx()` call itself took, the time from the call un
 highest noise reading. The channel the radio was on is tuned again when it ends. Reading the settle time needs a steady carrier;
 without one the test still reports the call times.
 
+## Phase 0 results (2026-11-08, 162.400 MHz weather carrier, 25 kHz wide, 12 retunes 150 ms apart)
+
+| Step | `rx()` call | Settle (median, range) | Steady level base / other | During the retune |
+|---|---|---|---|---|
+| 2 kHz | 1.46 ms | 10.7 ms (9.7 to 11.7) | -75 / -75 dBm | level at the floor (-148 dBm), noise 137 against 60 steady, 20 to 24 reads (200 µs apart) with no carrier, in 12 of 12 |
+| 10 kHz | 1.46 ms | 9.3 ms (7.5 to 10.2) | -71 / -92 dBm | the same: floor level, noise 137, 15 to 21 reads, in 12 of 12 |
+
+What it means:
+
+- Every retune re-locks the synthesizer: about 1.5 ms in the call, about 10 ms until the level is steady, of which about 4 ms
+  with no carrier. It doesn't depend on the step (2 and 10 kHz settle alike), so there is no cheaper small step.
+- A frequency error costs signal: 10 kHz off is 21 dB down, 2 kHz is no loss. The receiver tolerates about 2 kHz, so the
+  automatic mode retunes before the error reaches it.
+- 10 ms about every 30 to 60 seconds (estimated from a pass's Doppler rate on 70 cm, less often on 2 m) is a click, not a
+  gap: no need to wait for a gap in the signal, and a latched-open squelch is no obstacle.
+- Not measured: whether the audio mutes or plays a burst of noise (the cable mutes the speaker on the test radio, or at
+  least nothing was heard), so the interval below is set from the level only.
+
+Proposed numbers for phase 2, to adjust after a real pass: retune when the needed frequency differs from the tuned one by
+1.5 kHz or more; at most once every 5 seconds; no wait for a gap.
+
 ## Open items
 
-- How long a retune takes on this hardware, and whether the audio drops: the test answers it.
+- Whether the audio drops or clicks during a retune (listen with a second radio nearby).
 - Whether the synthesizer's swing between bands at key-up (the split) is quick enough for a satellite's key-up: a transmit
   test, with a dummy load, after phase 1.
-- The automatic mode's threshold, interval and gap rule, and what it does with the squelch latched open.
+- The automatic mode's threshold and interval (proposed above), from a real pass.
 - The dial: that it can be read on the Tracking screen without stepping a list, and whether the radio has a press on it.
