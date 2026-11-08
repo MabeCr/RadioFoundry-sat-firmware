@@ -631,7 +631,7 @@ static void track_draw(void)
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
-	int num_y = ty;		// the first row of the numbers
+	int cd_y = ty;		// the countdown's row (the first row of the numbers when there is no countdown)
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
@@ -658,6 +658,7 @@ static void track_draw(void)
 	}
 	// The countdown: to the set while it is up, else to the rise (it comes before the rest: a small panel has no room)
 	if (st.utc != 0) {
+		cd_y = ty;
 		sb_init(&b, buf, sizeof buf);
 		bool up = st.utc >= trk_aos && st.utc < trk_los;
 		if (st.utc >= trk_los)
@@ -690,9 +691,9 @@ static void track_draw(void)
 			trow(x, &ty, "TX", buf, ui_col.fg);
 		}
 	}
-	// Where you are, for the grid locator a contact asks for. On a tall panel it sits right of the elevation (the
-	// numbers fill the rows below it); beside the plot, where the rows are short, it comes before the range, which a
-	// small panel drops
+	// Where you are, for the grid locator a contact asks for. On a tall panel it sits on the countdown's row, right
+	// aligned (the rows below it hold the frequencies); beside the plot, where the rows are short, it comes before the
+	// range, which a small panel drops
 	char loc[8];
 	bool grid = false;
 	if (st.pos_ok) {
@@ -705,7 +706,7 @@ static void track_draw(void)
 			sb_str(&b, TR("Grid"));
 			sb_chr(&b, ' ');
 			sb_str(&b, loc);
-			gfx_text(sm, w - gfx_text_width(sm, buf) - 2, num_y + (big->h - sm->h) / 2, buf, ui_col.dim);
+			gfx_text(sm, w - gfx_text_width(sm, buf) - 2, cd_y, buf, ui_col.dim);
 			grid = false;
 		}
 	}
