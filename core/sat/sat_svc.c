@@ -533,6 +533,15 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 	}
 	if (!r.open_found || in->now - (double)w.live_at < LIVE_S)
 		return;
+	// Well before the rise or after the set the satellite can't be above the horizon: no look, no Doppler
+	if (in->now < (double)track_aos - (double)SAT_TRACK_MARGIN_S || in->now >= (double)track_los + (double)SAT_TRACK_MARGIN_S) {
+		if (r.live.ok) {
+			begin_write();
+			r.live.ok = false;
+			end_write();
+		}
+		return;
+	}
 	if (w.kind >= 0 && w.norad != r.open_norad)
 		return;	// the model is busy with another piece: next poll
 	sat_record_t rec;
@@ -544,7 +553,7 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 	bool ok = sat_look_at(&w.model, &w.obs, in->now, &l);
 	// The slow arithmetic (the Doppler) before the write; what is left in it is a few stores and conversions
 	uint32_t rx = 0, tx = 0;
-	if (ok) {
+	if (ok && l.el >= 0.0) {	// below the horizon nobody is tuning to it
 		rx = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
 		tx = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
 	}

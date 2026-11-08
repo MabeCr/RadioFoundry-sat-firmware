@@ -98,6 +98,10 @@ uint8_t sat_svc_count(void);	// rows in the list
 bool sat_svc_row(uint8_t i, sat_row_t *out);
 // Track the opened satellite's pass aos..los (UTC): its position every second and the path across the sky; 0 stops
 void sat_svc_track(uint32_t aos, uint32_t los);
+// The satellite is looked at only from this long before the pass's rise to this long after its set (the horizon is
+// reached a little before the rise above the lowest pass elevation): outside it nothing is worked out and sat_svc_live
+// is false. Below the horizon inside it the position is kept but the Doppler isn't worked out
+#define SAT_TRACK_MARGIN_S	120u
 bool sat_svc_live(sat_live_t *out);
 // The path's points so far (SAT_SVC_PATH once complete, evenly from aos to los) and point i
 uint8_t sat_svc_path_count(void);

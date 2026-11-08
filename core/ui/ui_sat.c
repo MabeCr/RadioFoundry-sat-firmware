@@ -425,7 +425,7 @@ static void plot(int cx, int cy, int r, const ui_sat_live_t *live)
 	if (live != NULL) {
 		int x, y, d = r >= 40 ? 3 : 2;
 		sky_xy(cx, cy, r, live->az, live->el, &x, &y);
-		gfx_fill(x - d, y - d, 2 * d + 1, 2 * d + 1, live->el >= 0 ? ui_col.rx : ui_col.warn);
+		gfx_fill(x - d, y - d, 2 * d + 1, 2 * d + 1, ui_col.rx);
 	}
 }
 
@@ -493,22 +493,30 @@ static void track_draw(void)
 		side = h / 2;
 	int r = side / 2 - 1;
 	int cx = below ? w / 2 : r + 1, cy = y + r + 1;
-	plot(cx, cy, r, have ? &live : NULL);
+	// The satellite is drawn only while it is above the horizon: below it, or outside the pass's margin, the plot shows
+	// the path alone and the service works nothing out
+	bool seen = have && live.el >= 0;
+	plot(cx, cy, r, seen ? &live : NULL);
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
-	if (!have) {
+	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
+	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Working"));
-		sb_str(&b, GLYPH_ELLIPSIS);
-		gfx_text(ui_layout.small, x, ty, buf, ui_col.dim);
-		ty += ui_layout.small->h + 2;
+		if (!have && near)
+			sb_str(&b, TR("Working")), sb_str(&b, GLYPH_ELLIPSIS);
+		else if (have)
+			sb_str(&b, TR("Below horizon"));
+		if (buf[0] != '\0') {
+			gfx_text(ui_layout.small, x, ty, buf, ui_col.dim);
+			ty += ui_layout.small->h + 2;
+		}
 	} else {
 		// "62°" large, then the way across the sky
 		sb_init(&b, buf, sizeof buf);
 		sb_i32(&b, live.el);
 		sb_str(&b, GLYPH_DEGREE);
-		gfx_text(big, x, ty, buf, live.el >= 0 ? ui_col.rx : ui_col.warn);
+		gfx_text(big, x, ty, buf, ui_col.rx);
 		ty += big->h + 1;
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, live.az, 1);
@@ -527,7 +535,7 @@ static void track_draw(void)
 		trow(x, &ty, st.utc >= trk_los ? "" : up ? "LOS" : "AOS", buf, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
 	}
 	ui_sat_profile_t p;
-	if (have && ui_svc_sat_profile(&p)) {
+	if (seen && ui_svc_sat_profile(&p)) {
 		if (live.rx_hz && p.down_hz) {
 			sb_init(&b, buf, sizeof buf);
 			sb_shifted(&b, live.rx_hz, p.down_hz);
@@ -539,7 +547,7 @@ static void track_draw(void)
 			trow(x, &ty, "TX", buf, ui_col.fg);
 		}
 	}
-	if (have) {
+	if (seen) {
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, (uint32_t)(live.range_km + 0.5f), 1);
 		sb_str(&b, " km");
