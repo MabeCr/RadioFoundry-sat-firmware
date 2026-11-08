@@ -90,7 +90,7 @@ Keys on the Tracking screen:
 
 | Key | Does |
 |---|---|
-| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves; the receive line turns the warning color when the radio is 1.5 kHz or more behind. Back puts the channel you were on back |
+| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves (it keeps your dial setting); hold **#** to clear the dial setting and retune to the computed frequency alone; the receive line turns the warning color when the radio is 1.5 kHz or more behind. Back puts the channel you were on back |
 | **0** | Opens the squelch and holds it open, to listen to the whole pass. **0** again, or Back, closes it. FM only |
 | The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune |
 

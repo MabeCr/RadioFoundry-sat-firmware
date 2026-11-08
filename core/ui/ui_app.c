@@ -1990,6 +1990,9 @@ void ui_app_key(const input_event_t *ev)
 		ui_go_home();
 		return;
 	}
+	if (ev->action == ACT_CONTEXT && ev->gesture == GESTURE_LONG && (ui_scr[stack[sp].scr]->flags & SF_HOLD_CONTEXT) &&
+	    ui_scr[stack[sp].scr]->key != NULL && ui_scr[stack[sp].scr]->key(ev))
+		return;
 	if (ev->action == ACT_CONTEXT && ev->gesture == GESTURE_LONG) {
 		if (!CONFIG_DMR || view->ch.mode != RADIO_MODE_DMR)
 			ui_toast(TR("Talk target: DMR channels only"));

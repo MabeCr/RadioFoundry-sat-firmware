@@ -205,7 +205,7 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
 - `0` latches the squelch open (the Quick menu's Monitor tile, `ui_svc_monitor`); Back closes it.
 - The dial (or Up and Down on a radio without one) nudges the downlink 1 kHz a detent, up to 10 kHz either way, added to
-  every corrected frequency.
+  every corrected frequency. A short `#` retunes with the nudge, a held `#` clears it first.
 
 The service keeps the last position: after the fix is lost the passes go on for it (`sat_svc_poll` sets the observer
 only from a current position). Time is required, without it nothing is worked out. `sat_svc_position` gives the screens

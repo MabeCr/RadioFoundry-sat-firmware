@@ -515,7 +515,8 @@ static void track_leave(void)
 	track_enter();
 }
 
-static void track_tune(void)
+// clear: hold #: the dial's nudge goes and the receiver is retuned to the computed frequency alone
+static void track_tune(bool clear)
 {
 	const radio_view_t *v = ui_view();
 	ui_sat_profile_t p;
@@ -527,10 +528,12 @@ static void track_tune(void)
 		ui_toast(TR("Not while transmitting"));
 		return;
 	}
+	if (clear)
+		trk_nudge_hz = 0;
 	uint32_t hz = track_want(&p);
 	if (trk_tuned && v->vfo) {
 		radio_req_rx_hz(hz);	// a light retune: one rx() call, a reception in progress goes on
-		ui_toast(TR("Retuned"));
+		ui_toast(clear ? TR("Dial cleared") : TR("Retuned"));
 		return;
 	}
 	// The first time: the temporary VFO on the satellite's profile, FM 25 kHz, no receive tone; the uplink as a split
@@ -597,7 +600,11 @@ static bool track_key(const input_event_t *ev)
 		return true;
 	}
 	if (press && ev->action == ACT_CONTEXT) {	// #
-		track_tune();
+		track_tune(false);
+		return true;
+	}
+	if (ev->gesture == GESTURE_LONG && ev->action == ACT_CONTEXT) {	// hold #
+		track_tune(true);
 		return true;
 	}
 	if (press && ev->action == ACT_DIGIT_0) {
@@ -724,7 +731,7 @@ static void track_draw(void)
 
 const ui_scr_def_t ui_sat_track_screen = {
 	// Not a field-use screen (P4): OK on a pass of the list, four levels from Home
-	.name = "track", .flags = 0, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
+	.name = "track", .flags = SF_HOLD_CONTEXT, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
 };
 // --- setting the clock (Settings > Location > Set time) ---
 

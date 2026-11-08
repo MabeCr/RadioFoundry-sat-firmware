@@ -3245,6 +3245,10 @@ msgid "Not while transmitting"
 msgstr "Non durante la trasmissione"
 
 #: core/ui/ui_sat.c
+msgid "Dial cleared"
+msgstr "Manopola azzerata"
+
+#: core/ui/ui_sat.c
 msgid "Retuned"
 msgstr "Risintonizzato"
 
