@@ -1819,6 +1819,9 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 		sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
 	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
 	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
+	out->pos_ok = sat_sim.state != UI_SAT_NO_POSITION;
+	out->lat_e7 = 423601000;	// the simulator's GPS fix (ui_svc_position)
+	out->lon_e7 = -710589000;
 	return true;
 }
 

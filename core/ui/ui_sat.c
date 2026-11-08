@@ -500,6 +500,7 @@ static void track_draw(void)
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
+	int num_y = ty;		// the first row of the numbers
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
@@ -547,6 +548,27 @@ static void track_draw(void)
 			trow(x, &ty, "TX", buf, ui_col.fg);
 		}
 	}
+	// Where you are, for the grid locator a contact asks for. On a tall panel it sits right of the elevation (the
+	// numbers fill the rows below it); beside the plot, where the rows are short, it comes before the range, which a
+	// small panel drops
+	char loc[8];
+	bool grid = false;
+	if (st.pos_ok) {
+		sb_init(&b, loc, sizeof loc);
+		sb_locator(&b, st.lat_e7, st.lon_e7);
+		grid = true;
+		if (below) {
+			const font_t *sm = ui_layout.small;
+			sb_init(&b, buf, sizeof buf);
+			sb_str(&b, TR("Grid"));
+			sb_chr(&b, ' ');
+			sb_str(&b, loc);
+			gfx_text(sm, w - gfx_text_width(sm, buf) - 2, num_y + (big->h - sm->h) / 2, buf, ui_col.dim);
+			grid = false;
+		}
+	}
+	if (grid)
+		trow(x, &ty, TR("Grid"), loc, ui_col.fg);
 	if (seen) {
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, (uint32_t)(live.range_km + 0.5f), 1);

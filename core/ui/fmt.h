@@ -38,6 +38,8 @@ void sb_age_long(sbuf_t *b, uint32_t ms);	// "14m ago", no alternates (for wrapp
 void sb_degrees(sbuf_t *b, int32_t e7);
 // A latitude or longitude with 6 decimals (0.1 m) and its hemisphere: "33.990512 N"
 void sb_coord(sbuf_t *b, int32_t e7, char pos, char neg);
+// The Maidenhead locator to 6 characters from 1e-7 degree units: "FN42li"
+void sb_locator(sbuf_t *b, int32_t lat_e7, int32_t lon_e7);
 // The nearest of the 8 compass points to a bearing in degrees: "NE"
 void sb_compass(sbuf_t *b, uint16_t bearing);
 // The arrow toward the nearest of the 8 compass points (font.h GLYPH_DIR_FIRST)
