@@ -21,6 +21,26 @@ downlink. Decisions come from the owner's answers; open items are at the end.
 | Position | The satellite task keeps the last position it saw: after a fix is lost it goes on with that one. Time is required: without it nothing is tuned |
 | Display | The Tracking screen's receive line shows the tuned frequency and, when the radio is behind the needed one, by how much |
 
+## Keys on the Tracking screen
+
+Decided 2026-11-08. Only keys the screen has no other use for; the radio's own keys keep working (Monitor held opens
+the squelch while held, PTT, the volume).
+
+| Key | Does | Notes |
+|---|---|---|
+| `#` | Retune to the downlink as it should be now (phase 1) | The first press enters the temporary VFO |
+| `*` | Automatic correction on and off (phase 2) | |
+| `0` | Squelch open on and off, latched | Listening to a whole pass with the squelch open: no key held. The strip shows MON (as for the monitor today) and a toast says "Squelch open" or "Squelch normal". Left again by Back, so the channel that comes back keeps its squelch. Needs a latched monitor request in the radio core (the monitor key today is a hold) |
+| Dial (the encoder) | Nudges the downlink by a step of 1 kHz a detent, remembered for the pass | The computed Doppler can be right while the satellite's own transmitter sits slightly off, so people tune by ear. The nudge is added to every corrected frequency, manual or automatic, and shows in the receive line ("+1.0k tuned"). Pressing the dial, if the radio has that key, clears it. Step size to settle after phase 0 |
+
+How the screen tells the user about them: the hint row lists them with shorter forms for narrow screens ("0 Squelch  # Retune  * Auto"
+on a tall panel, fewer words on a small one, as other screens do with their text alternates), a toast confirms each
+toggle, and the status line carries MON. No modal prompt.
+
+With the squelch latched open there is no gap in the signal to retune in, so the automatic mode (phase 2) must not wait
+for one then: it retunes on the threshold and the minimum interval alone, and the measurement from phase 0 says
+whether the audio click of a retune is acceptable. Until then `*` with the squelch open is the open question below.
+
 ## Phases, with a gate between each
 
 | Phase | Work | Gate |
@@ -54,4 +74,5 @@ without one the test still reports the call times.
 - How long a retune takes on this hardware, and whether the audio drops: the test answers it.
 - Whether the synthesizer's swing between bands at key-up (the split) is quick enough for a satellite's key-up: a transmit
   test, with a dummy load, after phase 1.
-- The automatic mode's threshold, interval and gap rule.
+- The automatic mode's threshold, interval and gap rule, and what it does with the squelch latched open.
+- The dial: that it can be read on the Tracking screen without stepping a list, and whether the radio has a press on it.
