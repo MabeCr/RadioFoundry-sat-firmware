@@ -10,6 +10,7 @@
 // - the Transmitting screen names a private call's contact and tells it apart from a group call (P2).
 #include <stdio.h>
 #include <string.h>
+#include "ui/fmt.h"
 #include "sim/ui_sim.h"
 #include "ui/ui_app.h"
 #include "ui/ui_screens.h"
@@ -1496,10 +1497,33 @@ static void terminal_checks(void)
 }
 #endif
 
+// The Maidenhead locator (core/ui/fmt.c sb_locator): a known place, the origin and the four corners of the grid
+static void locator_checks(void)
+{
+	static const struct { int32_t lat_e7, lon_e7; const char *want; } c[] = {
+		{ 423601000, -710589000, "FN42li" },	// Boston
+		{ 0, 0, "JJ00aa" },
+		{ -900000000, -1800000000, "AA00aa" },
+		{ 900000000, 1800000000, "RR99xx" },	// the poles and the date line clamp into the last square
+		{ 515007000, -1270000, "IO91wm" },	// London
+	};
+	for (size_t i = 0; i < sizeof c / sizeof c[0]; i++) {
+		char out[7];
+		sbuf_t b;
+		sb_init(&b, out, sizeof out);
+		sb_locator(&b, c[i].lat_e7, c[i].lon_e7);
+		if (strcmp(out, c[i].want) != 0) {
+			printf("FAIL locator %d,%d: %s, want %s\n", (int)c[i].lat_e7, (int)c[i].lon_e7, out, c[i].want);
+			fails++;
+		}
+	}
+}
+
 int main(void)
 {
 	if (check_name_is_id() != 0)
 		return 1;
+	locator_checks();
 	static const struct { sim_map_t map; const char *name, *geom; } runs[] = {
 		{ SIM_MAP_K, "K DM-1701", "160x120i5" },
 		{ SIM_MAP_M, "M GD-77", "128x64" },
@@ -1510,6 +1534,13 @@ int main(void)
 		const sim_geom_t *g = sim_geom_find(runs[r].geom);
 		for (size_t i = 0; i < sizeof flows / sizeof flows[0]; i++)
 			run_flow(&flows[i], g, runs[r].map, runs[r].name);
+#if CONFIG_SAT
+		// The grid locator on the Tracking screen, on every display with room for it (the 128x64 one has none)
+		static const flow_t grid_flow = { "S tracking shows your grid locator", "ok 6 0 1 ok", "",
+						  "screen=track shows=Grid shows=FN42li", 1, false };
+		if (runs[r].map != SIM_MAP_M)
+			run_flow(&grid_flow, g, runs[r].map, runs[r].name);
+#endif
 	}
 	for (size_t i = 0; i < sizeof flows_mono / sizeof flows_mono[0]; i++)
 		run_flow(&flows_mono[i], sim_geom_find("128x64"), SIM_MAP_M, "M GD-77");

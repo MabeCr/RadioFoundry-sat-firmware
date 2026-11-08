@@ -194,6 +194,8 @@ typedef struct {
 	uint32_t utc;		// UTC now, Unix seconds (0 without the time)
 	int16_t utc_offset_min;	// the Time zone setting
 	uint8_t min_el;		// the Lowest pass setting
+	bool pos_ok;		// the observer's position is known (the one the passes are worked out for)
+	int32_t lat_e7, lon_e7;	// that position, 1e-7 degree
 } ui_sat_status_t;
 // One satellite of the list (state: sat_row_state_t, core/sat/sat_svc.h)
 enum { UI_SAT_NO_ORBIT, UI_SAT_WORKING, UI_SAT_NEXT, UI_SAT_UP, UI_SAT_NONE, UI_SAT_OLD, UI_SAT_BAD };

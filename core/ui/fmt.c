@@ -189,6 +189,23 @@ void sb_coord(sbuf_t *b, int32_t e7, char pos, char neg)
 	sb_chr(b, e7 < 0 ? neg : pos);
 }
 
+void sb_locator(sbuf_t *b, int32_t lat_e7, int32_t lon_e7)
+{
+	uint32_t lo = (uint32_t)lon_e7 + 1800000000u, la = (uint32_t)lat_e7 + 900000000u;	// unsigned: no overflow east of 34.7 E
+	if (lo >= 3600000000u)
+		lo = 3599999999u;
+	if (la >= 1800000000u)
+		la = 1799999999u;
+	sb_chr(b, (char)('A' + lo / 200000000u));
+	sb_chr(b, (char)('A' + la / 100000000u));
+	lo %= 200000000u;
+	la %= 100000000u;
+	sb_chr(b, (char)('0' + lo / 20000000u));
+	sb_chr(b, (char)('0' + la / 10000000u));
+	sb_chr(b, (char)('a' + (lo % 20000000u) * 24u / 20000000u));
+	sb_chr(b, (char)('a' + (la % 10000000u) * 24u / 10000000u));
+}
+
 void sb_compass(sbuf_t *b, uint16_t bearing)
 {
 	static const char *const points[] = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
