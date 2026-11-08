@@ -226,6 +226,12 @@ preempted would never let it finish (the watchdog caught this once on the radio:
 gives up for that draw and asks again at the next. The slow arithmetic of a result (Doppler, heading) is done before its
 write, which then holds only stores.
 
+The tracked satellite is looked at only from `SAT_TRACK_MARGIN_S` (120 s) before the pass's rise to the same after its
+set; outside that `sat_svc_live` is false and the screen draws the path alone and works nothing out. The horizon is
+reached a little before the rise above the lowest pass elevation, so inside the margin the position is kept while the
+satellite is below the horizon, but its Doppler isn't worked out (`rx_hz` and `tx_hz` are 0) and the screen shows no dot,
+azimuth, range or frequencies, only "Below horizon".
+
 The screen asks for a pass with `sat_svc_track(aos, los)` at every draw. Nothing tells the service the screen has gone, so
 it stops, and drops the results, five seconds after the last request. A new observer or pass starts the path over.
 
