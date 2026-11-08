@@ -10,6 +10,7 @@
 #include <string.h>
 #include "ui_nav.h"
 #include "sat/sat_clock.h"
+#include "sat/sat_follow.h"
 #include "fmt.h"
 #include "i18n.h"
 #include "radio/radio.h"
@@ -489,13 +490,16 @@ static bool trk_tuned;			// # was pressed: the receiver is on this pass's downli
 static bool trk_entered_vfo;		// Tracking put the radio in the VFO: Back leaves it
 static bool trk_mon_ours;		// Tracking latched the squelch open: Back closes it
 static int32_t trk_nudge_hz;		// the dial's correction, added to every downlink
+static sat_follow_t trk_follow;		// * : the receiver follows the Doppler by itself (core/sat/sat_follow.c)
+static uint32_t trk_tune_ms;		// when # last asked the radio to tune: the view takes a moment to follow
 
 // Where the receiver should be: the Doppler-corrected downlink while the satellite is up, else the profile's own, and
 // the dial's nudge
 static uint32_t track_want(const ui_sat_profile_t *p)
 {
 	ui_sat_live_t l;
-	uint32_t base = ui_svc_sat_live(&l) && l.el >= 0 && l.rx_hz != 0 ? l.rx_hz : p->down_hz;
+	// Worked out from two minutes before the rise, so the receiver is on the rise's shift when the satellite comes up
+	uint32_t base = ui_svc_sat_live(&l) && l.rx_hz != 0 ? l.rx_hz : p->down_hz;
 	return (uint32_t)((int32_t)base + trk_nudge_hz);
 }
 
@@ -503,6 +507,8 @@ static void track_enter(void)
 {
 	trk_tuned = trk_entered_vfo = trk_mon_ours = false;
 	trk_nudge_hz = 0;
+	trk_follow.on = false;
+	trk_follow.last_ms = 0;
 }
 
 static void track_leave(void)
@@ -531,6 +537,8 @@ static void track_tune(bool clear)
 	if (clear)
 		trk_nudge_hz = 0;
 	uint32_t hz = track_want(&p);
+	trk_tune_ms = ui_st.now_ms;
+	sat_follow_retuned(&trk_follow, ui_st.now_ms);	// a retune of the user's: the automatic one waits its interval
 	if (trk_tuned && v->vfo) {
 		radio_req_rx_hz(hz);	// a light retune: one rx() call, a reception in progress goes on
 		ui_toast(clear ? TR("Dial cleared") : TR("Retuned"));
@@ -551,6 +559,47 @@ static void track_tune(bool clear)
 	}
 	trk_tuned = true;
 	ui_toast(TR("Tuned to the downlink"));
+}
+
+// * : on, when the receiver is tuned to the satellite (tuning it first when it is not), or off
+static void track_auto(void)
+{
+	if (trk_follow.on) {
+		trk_follow.on = false;
+		ui_toast(TR("Auto off"));
+		return;
+	}
+	if (!(trk_tuned && ui_view()->vfo)) {
+		track_tune(false);
+		if (!trk_tuned)
+			return;		// refused (no downlink, transmitting): its toast says why
+	}
+	trk_follow.on = true;
+	sat_follow_retuned(&trk_follow, ui_st.now_ms);
+	ui_toast(TR("Auto on: following the Doppler"));
+}
+
+// Once a draw while following: retune when the receiver is the threshold off, at the interval. The draw is the
+// screen's tick (it comes about once a second); the decision is core/sat/sat_follow.c's
+static void track_follow(void)
+{
+	if (!trk_follow.on)
+		return;
+	const radio_view_t *v = ui_view();
+	if (!v->vfo) {
+		// The radio takes a moment to enter the VFO; after that it is the user's doing (another channel): stop
+		if (ui_st.now_ms - trk_tune_ms > 1500u) {
+			trk_follow.on = trk_tuned = false;
+			ui_toast(TR("Auto off"));
+		}
+		return;
+	}
+	ui_sat_profile_t p;
+	if (!ui_svc_sat_profile(&p) || p.down_hz == 0)
+		return;
+	uint32_t want = track_want(&p);
+	if (sat_follow_step(&trk_follow, ui_st.now_ms, v->ch.rx_hz, want, v->state == RS_TX))
+		radio_req_rx_hz(want);
 }
 
 static void track_squelch(void)
@@ -607,6 +656,10 @@ static bool track_key(const input_event_t *ev)
 		track_tune(true);
 		return true;
 	}
+	if (press && ev->action == ACT_QUICK) {	// *
+		track_auto();
+		return true;
+	}
 	if (press && ev->action == ACT_DIGIT_0) {
 		track_squelch();
 		return true;
@@ -621,6 +674,7 @@ static void track_draw(void)
 	ui_sat_live_t live;
 	ui_svc_sat_track(trk_aos, trk_los);	// asked again at every draw: the service stops when the screen is gone
 	bool have = ui_svc_sat_live(&live);
+	track_follow();
 	status();
 	gfx_clear(ui_col.bg);
 	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Tracking")) + 2;
@@ -638,6 +692,7 @@ static void track_draw(void)
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
+	int num_y = ty;		// the first row of the numbers
 	int cd_y = ty;		// the countdown's row (the first row of the numbers when there is no countdown)
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
@@ -663,6 +718,13 @@ static void track_draw(void)
 		sb_compass(&b, live.az);
 		trow(x, &ty, "Az", buf, ui_col.fg);
 	}
+	// Where you are, for the grid locator a contact asks for
+	char loc[8];
+	loc[0] = '\0';
+	if (st.pos_ok) {
+		sb_init(&b, loc, sizeof loc);
+		sb_locator(&b, st.lat_e7, st.lon_e7);
+	}
 	// The countdown: to the set while it is up, else to the rise (it comes before the rest: a small panel has no room)
 	if (st.utc != 0) {
 		cd_y = ty;
@@ -672,66 +734,73 @@ static void track_draw(void)
 			sb_str(&b, TR("Pass over"));
 		else
 			sb_clock(&b, up ? trk_los - st.utc : trk_aos - st.utc);
+		if (!below && loc[0] != '\0' && st.utc < trk_los) {	// beside the plot the locator shares the row, if it fits (trow)
+			sb_str(&b, "  ");
+			sb_str(&b, loc);
+		}
 		trow(x, &ty, st.utc >= trk_los ? "" : up ? "LOS" : "AOS", buf, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
 	}
+	// What the radio is on, always: an operator should know the receive and transmit frequencies. Tuned (#), the receive
+	// one shows its shift from the satellite's own, in the warning color while it is behind where it should be (the
+	// Doppler moved on, or the dial); not tuned, the corrected one to tune to comes after
 	ui_sat_profile_t p;
-	bool on = trk_tuned && ui_view()->vfo;		// # tuned the receiver
-	if (!seen && on && ui_svc_sat_profile(&p) && p.down_hz) {
-		// Below the horizon there is no Doppler to show, but what the receiver was tuned to still is
+	bool have_p = ui_svc_sat_profile(&p) && p.down_hz != 0;
+	const radio_view_t *rv = ui_view();
+	bool on = trk_tuned && rv->vfo;
+	if (rv->ch.rx_hz != 0) {
 		sb_init(&b, buf, sizeof buf);
-		sb_shifted(&b, ui_view()->ch.rx_hz, p.down_hz);
-		trow(x, &ty, "RX", buf, ui_col.rx);
-	}
-	if (seen && ui_svc_sat_profile(&p)) {
-		if (live.rx_hz && p.down_hz) {
-			// Tuned (#): the frequency the receiver is on, in the warning color when it is behind where it
-			// should be (the Doppler moved on, or the dial); else the corrected one to tune to
-			uint32_t at = on ? ui_view()->ch.rx_hz : live.rx_hz;
-			int32_t behind = (int32_t)(track_want(&p) - at);
-			sb_init(&b, buf, sizeof buf);
-			sb_shifted(&b, at, p.down_hz);
-			trow(x, &ty, "RX", buf, !on ? ui_col.fg : (behind >= TRK_BEHIND_HZ || behind <= -TRK_BEHIND_HZ) ? ui_col.warn : ui_col.rx);
+		color_t rc = ui_col.fg;
+		if (on && have_p) {
+			sb_shifted(&b, rv->ch.rx_hz, p.down_hz);
+			int32_t behind = (int32_t)(track_want(&p) - rv->ch.rx_hz);
+			rc = (behind >= (int32_t)SAT_FOLLOW_THRESHOLD_HZ || behind <= -(int32_t)SAT_FOLLOW_THRESHOLD_HZ) ? ui_col.warn : ui_col.rx;
+		} else {
+			sb_freq(&b, rv->ch.rx_hz);
 		}
-		if (live.tx_hz && p.up_hz) {
-			sb_init(&b, buf, sizeof buf);
-			sb_shifted(&b, live.tx_hz, p.up_hz);
-			trow(x, &ty, "TX", buf, ui_col.fg);
-		}
+		trow(x, &ty, "RX", buf, rc);
 	}
-	// Where you are, for the grid locator a contact asks for. On a tall panel it sits on the countdown's row, right
-	// aligned (the rows below it hold the frequencies); beside the plot, where the rows are short, it comes before the
-	// range, which a small panel drops
-	char loc[8];
-	bool grid = false;
-	if (st.pos_ok) {
-		sb_init(&b, loc, sizeof loc);
-		sb_locator(&b, st.lat_e7, st.lon_e7);
-		grid = true;
+	if (rv->ch.tx_hz != 0) {
+		sb_init(&b, buf, sizeof buf);
+		sb_freq(&b, rv->ch.tx_hz);
+		trow(x, &ty, "TX", buf, ui_col.fg);
+	}
+	if (!on && have_p) {
+		sb_init(&b, buf, sizeof buf);
+		sb_shifted(&b, track_want(&p), p.down_hz);
+		trow(x, &ty, "Sat", buf, ui_col.dim);
+	}
+	if (trk_follow.on) {
 		if (below) {
 			const font_t *sm = ui_layout.small;
-			sb_init(&b, buf, sizeof buf);
-			sb_str(&b, TR("Grid"));
-			sb_chr(&b, ' ');
-			sb_str(&b, loc);
-			gfx_text(sm, w - gfx_text_width(sm, buf) - 2, cd_y, buf, ui_col.dim);
-			grid = false;
+			gfx_text(sm, w - gfx_text_width(sm, "AUTO") - 2, num_y, "AUTO", ui_col.rx);
+		} else {
+			trow(x, &ty, "Auto", TR("on"), ui_col.rx);
 		}
 	}
-	if (grid)
-		trow(x, &ty, TR("Grid"), loc, ui_col.fg);
+	// On a tall panel the locator sits on the countdown's row, right aligned
+	if (below && loc[0] != '\0') {
+		const font_t *sm = ui_layout.small;
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Grid"));
+		sb_chr(&b, ' ');
+		sb_str(&b, loc);
+		gfx_text(sm, w - gfx_text_width(sm, buf) - 2, cd_y, buf, ui_col.dim);
+	}
 	if (seen) {
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, (uint32_t)(live.range_km + 0.5f), 1);
 		sb_str(&b, " km");
 		trow(x, &ty, TR("Rng"), buf, ui_col.fg);
 	}
-	ui_draw_bottom(&ui_st, trk_tuned ? TR("0 Squelch  # Retune  Back") : TR("0 Squelch  # Tune  Back"));
+	ui_draw_bottom(&ui_st, trk_follow.on ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Stop  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  Back" TEXT_ALT_NEXT "# Tune  * Stop  Back" TEXT_ALT_CLOSE) :
+		       trk_tuned ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Auto  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE) :
+		       TR(TEXT_ALT_OPEN "0 Squelch  # Tune  * Auto  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE));
 	ui_draw_banner(&ui_st);
 }
 
 const ui_scr_def_t ui_sat_track_screen = {
 	// Not a field-use screen (P4): OK on a pass of the list, four levels from Home
-	.name = "track", .flags = SF_HOLD_CONTEXT, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
+	.name = "track", .flags = SF_HOLD_CONTEXT | SF_OWN_QUICK, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
 };
 // --- setting the clock (Settings > Location > Set time) ---
 

@@ -80,22 +80,24 @@ title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
 **OK** on a pass tracks it (or hold **OK** on a satellite in the list to track its next pass). The screen has a sky plot
 with north up and the pass's whole path, the satellite as a dot (green above the horizon), and beside it: the elevation,
-the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the range, your grid locator (for the contact that asks "what's your grid?"), and the receive and transmit
-frequencies corrected for Doppler with how far they are from the nominal ones ("+3.4k"). The dot, the azimuth, the range
-and the frequencies appear only while the satellite is above your horizon. Before the rise (and after the set) the plot
-shows the path alone and the radio works nothing out; just before the rise the screen says "Below horizon". The radio
-does not follow the Doppler by itself yet.
+the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), your grid locator (for the contact that asks
+"what's your grid?"), the range, and **always the frequencies the radio is on**, **RX** and **TX**: whatever it was playing
+until you tune it, then the satellite's. The dot, the azimuth and the range appear only while the satellite is above your
+horizon; before the rise (and after the set) the plot shows the path alone and the screen says "Below horizon" just
+before the rise.
 
 Keys on the Tracking screen:
 
 | Key | Does |
 |---|---|
-| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves (it keeps your dial setting); hold **#** to clear the dial setting and retune to the computed frequency alone; the receive line turns the warning color when the radio is 1.5 kHz or more behind. Back puts the channel you were on back |
+| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves (it keeps your dial setting); hold **#** to clear the dial setting and retune to the computed frequency alone. The receive line shows how far the downlink is from the satellite's own ("+3.4k") and turns the warning color when the radio is 1.5 kHz or more behind. Back puts the channel you were on back |
+| **\*** | The radio follows the Doppler by itself: **AUTO** shows, and the receiver is retuned whenever it is 1.5 kHz or more off, at most every 5 seconds. It tunes to the shift for the rise about two minutes before the satellite comes up, keeps your dial setting, and never retunes while you transmit. The first press tunes the receiver too, if **#** has not. **\*** again stops it. Back ends it. This screen uses **\*** itself, not the quick menu |
 | **0** | Opens the squelch and holds it open, to listen to the whole pass. **0** again, or Back, closes it. FM only |
-| The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune |
+| The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune, manual or automatic |
 
-Opening the screen changes nothing: the radio keeps what it was playing until you press **#**. A retune takes about
-10 ms, which is a click, so retuning every half minute or so is fine.
+Opening the screen changes nothing: the radio keeps what it was playing until you press **#** or **\***. A retune takes
+about 10 ms, which is a click, and following retunes about once a minute on 70 cm, less often on 2 m. The transmit
+frequency is the satellite's own uplink: the radio does not shift it.
 
 ## Updating the element sets from a phone
 

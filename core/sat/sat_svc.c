@@ -569,7 +569,7 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 	bool ok = sat_look_at(&w.model, &w.obs, in->now, &l);
 	// The slow arithmetic (the Doppler) before the write; what is left in it is a few stores and conversions
 	uint32_t rx = 0, tx = 0;
-	if (ok && l.el >= 0.0) {	// below the horizon nobody is tuning to it
+	if (ok) {	// worked out below the horizon too, inside the margin: the automatic mode tunes to the rise before it
 		rx = r.open_profile.down_hz ? sat_doppler_rx_hz(r.open_profile.down_hz, l.range_rate) : 0;
 		tx = r.open_profile.up_hz ? sat_doppler_tx_hz(r.open_profile.up_hz, l.range_rate) : 0;
 	}

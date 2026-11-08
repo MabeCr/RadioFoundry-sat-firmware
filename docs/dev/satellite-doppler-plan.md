@@ -2,7 +2,7 @@
 
 # Plan: Doppler tuning for FM satellites
 
-Status: agreed 2026-11-07, phase 0 done 2026-11-08 (results below), phase 1 (manual `#`, the squelch, the dial, the kept position) built and untested on a radio. The orbit library and the Tracking screen already compute the corrected
+Status: agreed 2026-11-07, phase 0 done 2026-11-08 (results below), phase 1 (manual `#`, the squelch, the dial, the kept position) built and tried on the bench, phase 2 (`*`) built, untested on a pass. The orbit library and the Tracking screen already compute the corrected
 downlink and uplink every second ([satellite.md](../spec/satellite.md) 4.3, 5.1); this plan makes the radio follow the
 downlink. Decisions come from the owner's answers; open items are at the end.
 

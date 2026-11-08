@@ -3257,6 +3257,14 @@ msgid "Tuned to the downlink"
 msgstr "Sintonizado a la bajada"
 
 #: core/ui/ui_sat.c
+msgid "Auto off"
+msgstr "Auto desactivado"
+
+#: core/ui/ui_sat.c
+msgid "Auto on: following the Doppler"
+msgstr "Auto activo: sigue el Doppler"
+
+#: core/ui/ui_sat.c
 msgid "Squelch: FM only"
 msgstr "Squelch: solo FM"
 
@@ -3285,16 +3293,24 @@ msgid "Pass over"
 msgstr "Pase terminado"
 
 #: core/ui/ui_sat.c
+msgid "on"
+msgstr "activo"
+
+#: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
 
 #: core/ui/ui_sat.c
-msgid "0 Squelch  # Retune  Back"
-msgstr "0 Squelch  # Resintonizar  Atrás"
+msgid "{0 Squelch  # Retune  * Stop  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
+msgstr "{0 Squelch  # Resintonizar  * Parar  Atrás|0 Sql  # Sint  * Parar  Atrás|# Sint  * Parar  Atrás}"
 
 #: core/ui/ui_sat.c
-msgid "0 Squelch  # Tune  Back"
-msgstr "0 Squelch  # Sintonizar  Atrás"
+msgid "{0 Squelch  # Retune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Resintonizar  * Auto  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
+
+#: core/ui/ui_sat.c
+msgid "{0 Squelch  # Tune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Sintonizar  * Auto  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
 
 #: core/ui/ui_sat.c
 msgid "Local"

@@ -582,8 +582,8 @@ static const flow_t flows[] = {
 	{ "S satellite passes", "ok 6 0", "2", "screen=passes shows=TX_145.850 shows=arm_74.4 shows=Tomorrow shows=NW",
 	  1, false },
 	{ "S track a pass", "ok 6 0 1", "ok", "screen=track shows=Tracking shows=ISS shows=Az shows=RX shows=LOS", 1, false },
-	{ "S track a pass not up yet: no position, no Doppler and no range", "ok 6 0 2", "ok",
-	  "screen=track shows=AOS hides=Az hides=RX hides=Rng hides=Working", 1, false },
+	{ "S track a pass not up yet: no position and no range, the radio's own frequencies", "ok 6 0 2", "ok",
+	  "screen=track shows=AOS shows=RX hides=Az hides=Rng hides=Working", 1, false },
 	{ "S tracking: # tunes the VFO to the downlink, FM, the uplink as the split", "ok 6 0 1 ok", "ctx",
 	  "screen=track vfo=1 mode=fm txfreq=145850000 toast=Tuned_to_the", 1, false },
 	{ "S tracking: # below the horizon shows the tuned frequency", "ok 6 0 2 ok", "ctx", "screen=track vfo=1 freq=436795000 shows=RX hides=Az", 1, false },
@@ -593,6 +593,12 @@ static const flow_t flows[] = {
 	{ "S tracking: hold # clears the dial and retunes to the computed frequency", "ok 6 0 1 ok ctx up up", "long:ctx",
 	  "screen=track toast=Dial_cleared", 1, false },
 	{ "S tracking: hold # before any tune tunes too", "ok 6 0 1 ok", "long:ctx", "screen=track vfo=1", 1, false },
+	{ "S tracking: * tunes and follows the Doppler (not the quick menu)", "ok 6 0 1 ok", "quick",
+	  "screen=track vfo=1 toast=Auto_on", 1, false },
+	{ "S tracking: * again stops following", "ok 6 0 1 ok quick", "quick", "screen=track vfo=1 toast=Auto_off", 1, false },
+	{ "S tracking: # while following keeps following", "ok 6 0 1 ok quick", "ctx", "screen=track toast=Retuned", 1, false },
+	{ "S tracking: Back ends following and puts the channel back", "ok 6 0 1 ok quick", "back", "screen=passes vfo=0", 1, false },
+	{ "S tracking: the radio's own frequencies show before any tune", "ok 6 0 1 ok", "", "screen=track vfo=0 shows=RX shows=TX", 0, false },
 	{ "S tracking: the dial the other way", "ok 6 0 1 ok", "down down down", "toast=Dial_-3.0k", 3, false },
 	{ "S tracking: 0 on a DMR channel says FM only", "ok 6 0 1 ok", "0", "monitor=0 toast=Squelch:_FM_only", 1, false },
 	{ "S tracking: 0 opens the squelch", "ok 6 0 1 ok ctx", "0", "monitor=1 toast=Squelch_open", 1, false },
@@ -1550,10 +1556,11 @@ int main(void)
 		for (size_t i = 0; i < sizeof flows / sizeof flows[0]; i++)
 			run_flow(&flows[i], g, runs[r].map, runs[r].name);
 #if CONFIG_SAT
-		// The grid locator on the Tracking screen, on every display with room for it (the 128x64 one has none)
+		// The grid locator on the Tracking screen, on the tall panel; beside the plot it shares the countdown's row only
+		// when it fits, and none of the test displays is wide enough
 		static const flow_t grid_flow = { "S tracking shows your grid locator", "ok 6 0 1 ok", "",
-						  "screen=track shows=Grid shows=FN42li", 1, false };
-		if (runs[r].map != SIM_MAP_M)
+						  "screen=track shows=FN42li", 1, false };
+		if (strcmp(runs[r].geom, "240x320") == 0)
 			run_flow(&grid_flow, g, runs[r].map, runs[r].name);
 #endif
 	}

@@ -203,6 +203,15 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   transmitting or in a hotspot), a frequency in a band the radio receives. A reception in progress goes on, TX is not
   touched (a cross-band split stays), and it doesn't count as the user doing something (no auto-off or roaming reset).
   A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
+- `*` follows the Doppler (`core/sat/sat_follow.c`): once a draw (about a second) the screen asks
+  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (1.5 kHz) or more from
+  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (5 s) ago or more, and the radio is not transmitting;
+  then the screen calls `radio_req_rx_hz`. The wanted frequency is the corrected downlink plus the dial's nudge, and from
+  two minutes before the rise (the service's margin) the shift of the rise, so the receiver is on it when the satellite
+  comes up. There is no wait for a gap in the signal: a retune is a click (4.4), and the squelch may be latched open.
+  Against the reference passes (`satFollowTest`) it retunes 12 or 13 times a pass at 437.8 MHz, never further off than
+  1.5 kHz, with at least 14 s between retunes, and the same with a 5 kHz nudge. It ends with Back, or when the radio
+  leaves the VFO.
 - `0` latches the squelch open (the Quick menu's Monitor tile, `ui_svc_monitor`); Back closes it.
 - The dial (or Up and Down on a radio without one) nudges the downlink 1 kHz a detent, up to 10 kHz either way, added to
   every corrected frequency. A short `#` retunes with the nudge, a held `#` clears it first.
@@ -391,6 +400,6 @@ sets (`pip install sgp4 skyfield`).
 | A real-time clock on other boards | `hal_rtc_read` / `hal_rtc_write` (4.1.1) where the hardware has one. The one written is untested on a radio |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
-| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; automatic Doppler on receive (`*`, [the plan](../dev/satellite-doppler-plan.md) phase 2) and any on transmit (the manual `#` tunes the receiver, 4.5); a short way in (a programmable key) |
+| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler on transmit (`#` and `*` tune the receiver, 4.5; the transmit frequency is not shifted); a short way in (a programmable key) |
 | Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
 | Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The CK803S's is measured (7) |

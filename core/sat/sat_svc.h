@@ -100,7 +100,7 @@ bool sat_svc_row(uint8_t i, sat_row_t *out);
 void sat_svc_track(uint32_t aos, uint32_t los);
 // The satellite is looked at only from this long before the pass's rise to this long after its set (the horizon is
 // reached a little before the rise above the lowest pass elevation): outside it nothing is worked out and sat_svc_live
-// is false. Below the horizon inside it the position is kept but the Doppler isn't worked out
+// is false
 #define SAT_TRACK_MARGIN_S	120u
 // The observer the results are for, 1e-7 degree: the position of the last fix (kept after it is lost). False before one
 bool sat_svc_position(int32_t *lat_e7, int32_t *lon_e7);

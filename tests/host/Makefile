@@ -456,7 +456,7 @@ i18nTestDefault: i18nTest.c $(I18N) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/
 # docs/ux/screens/sheets/). Built without the __attribute__ override above so the weak service stubs
 # (ui_svc_stub.c) give way to the simulator's.
 UIAPP   := $(UI) $(CORE)/ui/ui_app.c $(CORE)/ui/ui_menus.c $(CORE)/ui/ui_find.c $(CORE)/ui/ui_aprs.c $(CORE)/ui/ui_gps.c $(CORE)/ui/ui_dual.c \
-           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
+           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_follow.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
            $(CORE)/codeplug/codeplug_talk.c $(CORE)/codeplug/zone_edit.c $(CORE)/codeplug/zone_shift.c $(CORE)/radio/radio_am.c \
            $(CORE)/radio/radio_bcast.c sim/ui_sim.c sim/ui_png.c
 # The About page's data header, as the firmware build makes it (tools/gen_about.py; the STM32F4 list stands in)
@@ -564,6 +564,16 @@ SAT_SRC := $(filter-out %/sat_store.c %/sat_svc.c,$(sort $(wildcard $(CORE)/sat/
 TESTS   += satTest
 satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
+
+# The automatic Doppler following against the reference passes (core/sat/sat_follow.c)
+TESTS   += satFollowTest
+satFollowTest: satFollowTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satFollowTest.c $(SAT_SRC) -lm
+
+run: run-satFollow
+run-satFollow: satFollowTest
+	./satFollowTest
+.PHONY: run-satFollow
 
 # The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
 # reference values. Without APRS: no GPS to take the observer from

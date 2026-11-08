@@ -206,11 +206,12 @@ int main(void)
 	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);	// asked again: the screen is still there
 	settle(60);
 	CHECK(!sat_svc_live(&live));
-	// Inside the margin but still below the horizon: the position is kept, with no Doppler worked out
+	// Inside the margin but still below the horizon: the position and the Doppler are worked out (the receiver can
+	// be tuned for the rise)
 	in.now = p0->aos - 110.0;
 	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
 	settle(60);
-	CHECK(sat_svc_live(&live) && live.el < 0.0f && live.rx_hz == 0 && live.tx_hz == 0);
+	CHECK(sat_svc_live(&live) && live.el < 0.0f && live.rx_hz != 0 && live.tx_hz != 0);
 	// Up: the Doppler is back
 	in.now = p0->tca;
 	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);

@@ -46,6 +46,7 @@ typedef enum {
 #define SF_FIELD	0x08u	// "field use": at most 3 levels from Home (P4)
 #define SF_FIND		0x10u	// digits type the query (Find)
 #define SF_NO_STRIP	0x20u	// no status strip while the radio is idle (About: the owner's call); RX / TX bring it back
+#define SF_OWN_QUICK	0x80u	// the screen uses * itself, not the quick menu (Tracking: automatic mode)
 #define SF_HOLD_CONTEXT	0x40u	// the screen's key hook gets a long CONTEXT (#) first, before the talk target picker (Tracking)
 
 typedef struct {
