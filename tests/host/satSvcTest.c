@@ -200,6 +200,29 @@ int main(void)
 	sat_svc_track(0, 0);
 	settle(60);
 	CHECK(sat_svc_path_count() == 0 && !sat_svc_live(&live));
+	// Before the pass, past the margin: nothing is looked at, so there is no position
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
+	in.now = p0->aos - (double)SAT_TRACK_MARGIN_S - 60.0;
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);	// asked again: the screen is still there
+	settle(60);
+	CHECK(!sat_svc_live(&live));
+	// Inside the margin but still below the horizon: the position is kept, with no Doppler worked out
+	in.now = p0->aos - 110.0;
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
+	settle(60);
+	CHECK(sat_svc_live(&live) && live.el < 0.0f && live.rx_hz == 0 && live.tx_hz == 0);
+	// Up: the Doppler is back
+	in.now = p0->tca;
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
+	settle(60);
+	CHECK(sat_svc_live(&live) && live.el > 0.0f && live.rx_hz != 0);
+	// Past the set and the margin: nothing again
+	in.now = p0->los + (double)SAT_TRACK_MARGIN_S + 60.0;
+	sat_svc_track((uint32_t)p0->aos, (uint32_t)p0->los);
+	settle(60);
+	CHECK(!sat_svc_live(&live));
+	sat_svc_track(0, 0);
+	settle(60);
 	// After it: the next one, and the pass list starts at it
 	in.now = p0->los + 1.0;
 	settle(60);

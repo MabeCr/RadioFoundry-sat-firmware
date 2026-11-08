@@ -135,6 +135,8 @@ bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el)
 	return true;
 }
 
+_Static_assert(UI_SAT_TRACK_MARGIN_S == SAT_TRACK_MARGIN_S, "the screen and the service use one margin");
+
 // UI_SAT_* and sat_row_state_t are the same values (two enums: compared as numbers)
 #define SAME(a, b)	((int)(a) == (int)(b))
 _Static_assert(SAME(UI_SAT_NO_ORBIT, SAT_ROW_NO_ORBIT) && SAME(UI_SAT_WORKING, SAT_ROW_WORKING) &&

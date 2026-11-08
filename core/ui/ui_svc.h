@@ -232,7 +232,8 @@ typedef struct {
 	uint32_t rx_hz, tx_hz;	// the profile's frequencies with Doppler, 0 none
 } ui_sat_live_t;
 void ui_svc_sat_track(uint32_t aos, uint32_t los);	// track that pass of the opened satellite; 0 stops
-bool ui_svc_sat_live(ui_sat_live_t *out);		// false until worked out
+bool ui_svc_sat_live(ui_sat_live_t *out);		// false until worked out, and outside the margin around the pass
+#define UI_SAT_TRACK_MARGIN_S	120u			// the service looks only this long before the rise and after the set
 uint8_t ui_svc_sat_path_count(void);			// points so far, UI_SAT_PATH when complete
 bool ui_svc_sat_path(uint8_t i, uint16_t *az, int8_t *el);
 #define UI_SAT_PATH	24

@@ -1893,6 +1893,15 @@ bool ui_svc_sat_live(ui_sat_live_t *out)
 	memset(out, 0, sizeof *out);
 	ui_sat_status_t st;
 	ui_svc_sat_status(&st);
+	// As the service: nothing before the rise's margin or after the set's, and below the horizon in it no Doppler
+	if (st.utc + UI_SAT_TRACK_MARGIN_S < sat_trk_aos || st.utc >= sat_trk_los + UI_SAT_TRACK_MARGIN_S)
+		return false;
+	if (st.utc < sat_trk_aos || st.utc >= sat_trk_los) {
+		out->az = 329;
+		out->el = -3;
+		out->range_km = 2400.0f;
+		return true;
+	}
 	unsigned f = st.utc <= sat_trk_aos ? 0u : st.utc >= sat_trk_los ? 100u :
 		(st.utc - sat_trk_aos) * 100u / (sat_trk_los - sat_trk_aos);
 	sim_sat_at(f, 101u, &out->az, &out->el);
