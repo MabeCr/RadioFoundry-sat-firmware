@@ -692,7 +692,6 @@ static void track_draw(void)
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
-	int num_y = ty;		// the first row of the numbers
 	int cd_y = ty;		// the countdown's row (the first row of the numbers when there is no countdown)
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
@@ -747,6 +746,7 @@ static void track_draw(void)
 	bool have_p = ui_svc_sat_profile(&p) && p.down_hz != 0;
 	const radio_view_t *rv = ui_view();
 	bool on = trk_tuned && rv->vfo;
+	int rx_y = ty, rx_end = 0;	// the RX row, and where its text ends: AUTO goes at its right
 	if (rv->ch.rx_hz != 0) {
 		sb_init(&b, buf, sizeof buf);
 		color_t rc = ui_col.fg;
@@ -758,6 +758,7 @@ static void track_draw(void)
 			sb_freq(&b, rv->ch.rx_hz);
 		}
 		trow(x, &ty, "RX", buf, rc);
+		rx_end = x + gfx_text_width(ui_layout.small, "RX") + ui_layout.small->w + gfx_text_width(ui_layout.small, buf);
 	}
 	if (rv->ch.tx_hz != 0) {
 		sb_init(&b, buf, sizeof buf);
@@ -770,12 +771,14 @@ static void track_draw(void)
 		trow(x, &ty, "To", buf, ui_col.dim);	// two letters like RX: a longer label pushes the frequency off a narrow panel
 	}
 	if (trk_follow.on) {
-		if (below) {
-			const font_t *sm = ui_layout.small;
-			gfx_text(sm, w - gfx_text_width(sm, "AUTO") - 2, num_y, "AUTO", ui_col.rx);
-		} else {
+		// On a tall panel "AUTO" ends the RX row (the first row of the numbers is the grid's, or the elevation's); else,
+		// and where the RX text runs too far right for it, an "Auto" row
+		const font_t *sm = ui_layout.small;
+		int ax = w - gfx_text_width(sm, "AUTO") - 2;
+		if (below && rx_end != 0 && rx_end + sm->w <= ax)
+			gfx_text(sm, ax, rx_y, "AUTO", ui_col.rx);
+		else
 			trow(x, &ty, "Auto", TR("on"), ui_col.rx);
-		}
 	}
 	// On a tall panel the locator sits on the countdown's row, right aligned
 	if (below && loc[0] != '\0') {
