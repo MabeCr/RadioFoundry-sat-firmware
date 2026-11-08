@@ -102,6 +102,8 @@ void sat_svc_track(uint32_t aos, uint32_t los);
 // reached a little before the rise above the lowest pass elevation): outside it nothing is worked out and sat_svc_live
 // is false. Below the horizon inside it the position is kept but the Doppler isn't worked out
 #define SAT_TRACK_MARGIN_S	120u
+// The observer the results are for, 1e-7 degree: the position of the last fix (kept after it is lost). False before one
+bool sat_svc_position(int32_t *lat_e7, int32_t *lon_e7);
 bool sat_svc_live(sat_live_t *out);
 // The path's points so far (SAT_SVC_PATH once complete, evenly from aos to los) and point i
 uint8_t sat_svc_path_count(void);

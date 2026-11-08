@@ -1099,6 +1099,16 @@ void radio_req_vfo_set(uint32_t hz)
 	view.ch.tx_hz = vfo_tx_hz;
 	changed();
 }
+#if CONFIG_SAT
+// As the radio core: the VFO's receiver only, no retune of the rest
+void radio_req_rx_hz(uint32_t hz)
+{
+	if (!view.vfo || view.ch.mode == RADIO_MODE_DMR || view.state == RS_TX)
+		return;
+	vfo_rx_hz = view.ch.rx_hz = hz;
+	changed();
+}
+#endif
 void radio_req_vfo_tx(uint32_t hz)
 {
 	if (!view.vfo || sim_tx_band(hz ? hz : vfo_rx_hz) < 0)

@@ -721,6 +721,30 @@ static void test_vfo(void)
 	req(RREQ_VFO_TX, 473000000);
 	CHECK(sm.serial != serial);
 	req(RREQ_VFO_TX, 0);
+#if CONFIG_SAT
+	// Doppler (RREQ_RX_HZ): the VFO's receiver only, one rx() call, TX where it was; refused where it makes no sense
+	req(RREQ_VFO_SET, 440000000);
+	req(RREQ_VFO_TX, 445000000);
+	int calls = hw.rx_calls;
+	req(RREQ_RX_HZ, 440003000);
+	CHECK(hw.rx_hz == 440003000 && hw.rx_calls == calls + 1 && sm.view.vfo);
+	CHECK(sm.view.ch.rx_hz == 440003000 && sm.view.ch.tx_hz == 445000000);	// a cross-band split would stay too
+	calls = hw.rx_calls;
+	req(RREQ_RX_HZ, 440003000);		// where it is: nothing to do
+	req(RREQ_RX_HZ, 0);
+	req(RREQ_RX_HZ, 100000000);		// a frequency the radio can't receive
+	CHECK(hw.rx_calls == calls && hw.rx_hz == 440003000);
+	req(RREQ_PTT, 1);			// not while transmitting
+	req(RREQ_RX_HZ, 440004000);
+	CHECK(hw.rx_calls == calls && sm.view.ch.rx_hz == 440003000);
+	req(RREQ_PTT, 0);
+	req(RREQ_RX_HZ, 440004000);		// and after it again
+	CHECK(hw.rx_hz == 440004000);
+	req(RREQ_VFO, 0);			// on a channel: refused, the channel is not a satellite's
+	calls = hw.rx_calls;
+	req(RREQ_RX_HZ, 440005000);
+	CHECK(hw.rx_calls == calls && !sm.view.vfo);
+#endif
 }
 
 static void test_no_codeplug(void)
@@ -2605,6 +2629,12 @@ static void test_ui_requests(void)
 // requests go straight into the state machine here instead of through radio_task.c's queue ----
 
 uint32_t hal_millis(void) { return now; }
+#if CONFIG_SAT
+// The retune test's timing (core/radio/retune_test.c, linked for radio_sm.c's run of it): the run itself is satLinkTest's
+uint32_t hal_micros(void) { return now * 1000u; }
+void hal_delay_us(uint32_t us) { (void)us; }
+void hal_delay_ms(uint32_t ms) { now += ms; }
+#endif
 void radio_get_view(radio_view_t *v) { *v = sm.view; }
 uint32_t radio_view_serial(void) { return sm.serial; }
 void radio_get_settings(radio_settings_t *s) { *s = sm.set; }
@@ -4246,7 +4276,7 @@ static void test_factory_reset(void)
 	CHECK(settings_flush());
 	n_ev = 0;
 	CHECK(ui_svc_factory_reset());
-	sim_flash_cut_after(432);	// the settings records (page 1: 172 + 4 bytes, page 0: 252 + 4) go in, the native erase fails
+	sim_flash_cut_after(CONFIG_SAT ? 436 : 432);	// the settings records (page 1: 172 + 4 bytes, page 0: 252 + 4; 4 more with the satellite settings) go in, the native erase fails
 	storage_job_poll();
 	sim_flash_power_on();
 	CHECK(n_ev == 1 && strstr(last_ev.text, "native") != NULL);

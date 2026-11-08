@@ -188,6 +188,12 @@ radioCoreTestNoVfoDmr: $(RCORE) $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)
                        $(CORE)/ui/ui_svc.h
 	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_VFO_DMR=0 -o $@ $(RCORE) -lm
 
+# The same with satellite tracking (CONFIG_SAT=1): the Doppler retune request (RREQ_RX_HZ) and the retune test's run
+TESTS   += radioCoreTestSat
+radioCoreTestSat: $(RCORE) $(CORE)/radio/retune_test.c $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)/dmr/call/*.h) \
+                  $(CORE)/dmr/dmrDataService.h $(CORE)/ui/ui_svc.h
+	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_SAT=1 -o $@ $(RCORE) $(CORE)/radio/retune_test.c -lm
+
 # The everyday features (scan, beeps, battery, TOT warning, BCL, roger beep, 1750 Hz burst, VOX, battery saving)
 TESTS   += radioFeaturesTest
 RFTEST  := radioFeaturesTest.c $(CORE)/radio/radio_sm.c $(CORE)/radio/tones.c $(RFEAT) $(CORE)/dmr/call/dmr_call.c \
@@ -281,11 +287,12 @@ boardBandTest: boardBandTest.c $(ROOT)/hal/board.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -Wshadow -o $@ boardBandTest.c
 
 run: run-core
-run-core: radioCoreTest radioCoreTestNoVfoDmr radioFeaturesTest radioFeaturesTestNoDual roamTest radioListenBandsTest inputTest aprsRadioTest quadratureTest serialmicTest miclevelTest \
+run-core: radioCoreTest radioCoreTestNoVfoDmr radioCoreTestSat radioFeaturesTest radioFeaturesTestNoDual roamTest radioListenBandsTest inputTest aprsRadioTest quadratureTest serialmicTest miclevelTest \
           rx2LinkTest keyassignTest powerSwitchTest boardBandTest batteryTest
 	./aprsRadioTest
 	./radioCoreTest
 	./radioCoreTestNoVfoDmr
+	./radioCoreTestSat
 	./radioFeaturesTest
 	./radioFeaturesTestNoDual
 	./roamTest

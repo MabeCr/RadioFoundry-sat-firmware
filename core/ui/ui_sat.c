@@ -12,6 +12,7 @@
 #include "sat/sat_clock.h"
 #include "fmt.h"
 #include "i18n.h"
+#include "radio/radio.h"
 
 static ui_sat_status_t st;		// read once a draw (status())
 static uint32_t st_ms = 1;		// ... the UI's time then
@@ -476,6 +477,136 @@ static void sb_shifted(sbuf_t *b, uint32_t hz, uint32_t nominal)
 	sb_chr(b, 'k');
 }
 
+// --- keys on Tracking: tune the receiver to the downlink, the squelch, the dial's nudge ---
+// docs/dev/satellite-doppler-plan.md. Opening Tracking changes nothing: the first # puts the radio in the VFO on the
+// satellite's profile, later ones follow the Doppler; Back puts the channel and the squelch back
+
+#define TRK_NUDGE_STEP_HZ	1000		// one detent of the dial
+#define TRK_NUDGE_MAX_HZ	10000
+#define TRK_BEHIND_HZ		1500		// the receiver this far from where it should be: shown as behind
+
+static bool trk_tuned;			// # was pressed: the receiver is on this pass's downlink
+static bool trk_entered_vfo;		// Tracking put the radio in the VFO: Back leaves it
+static bool trk_mon_ours;		// Tracking latched the squelch open: Back closes it
+static int32_t trk_nudge_hz;		// the dial's correction, added to every downlink
+
+// Where the receiver should be: the Doppler-corrected downlink while the satellite is up, else the profile's own, and
+// the dial's nudge
+static uint32_t track_want(const ui_sat_profile_t *p)
+{
+	ui_sat_live_t l;
+	uint32_t base = ui_svc_sat_live(&l) && l.el >= 0 && l.rx_hz != 0 ? l.rx_hz : p->down_hz;
+	return (uint32_t)((int32_t)base + trk_nudge_hz);
+}
+
+static void track_enter(void)
+{
+	trk_tuned = trk_entered_vfo = trk_mon_ours = false;
+	trk_nudge_hz = 0;
+}
+
+static void track_leave(void)
+{
+	const radio_view_t *v = ui_view();
+	if (trk_mon_ours && v->monitor)
+		ui_svc_monitor(false);
+	if (trk_entered_vfo && v->vfo)
+		radio_req_vfo(false);	// the channel that was on view
+	track_enter();
+}
+
+static void track_tune(void)
+{
+	const radio_view_t *v = ui_view();
+	ui_sat_profile_t p;
+	if (!ui_svc_sat_profile(&p) || p.down_hz == 0) {
+		ui_toast(TR("No downlink set for this satellite"));
+		return;
+	}
+	if (v->state == RS_TX) {
+		ui_toast(TR("Not while transmitting"));
+		return;
+	}
+	uint32_t hz = track_want(&p);
+	if (trk_tuned && v->vfo) {
+		radio_req_rx_hz(hz);	// a light retune: one rx() call, a reception in progress goes on
+		ui_toast(TR("Retuned"));
+		return;
+	}
+	// The first time: the temporary VFO on the satellite's profile, FM 25 kHz, no receive tone; the uplink as a split
+	// transmit with its tone. The channel on view comes back on Back
+	if (!v->vfo)
+		trk_entered_vfo = true;
+	radio_req_vfo(true);
+	ui_svc_mode(RADIO_MODE_FM);
+	radio_req_bandwidth(RADIO_BW_25K);
+	radio_req_tone(RADIO_TONE_RX, (subtone_t){ TONE_NONE, 0 });
+	radio_req_vfo_set(hz);
+	if (p.up_hz != 0) {
+		radio_req_vfo_tx(p.up_hz);
+		radio_req_tone(RADIO_TONE_TX, p.up_tone != 0 ? (subtone_t){ TONE_CTCSS, p.up_tone } : (subtone_t){ TONE_NONE, 0 });
+	}
+	trk_tuned = true;
+	ui_toast(TR("Tuned to the downlink"));
+}
+
+static void track_squelch(void)
+{
+	const radio_view_t *v = ui_view();
+	if (v->ch.mode == RADIO_MODE_DMR) {
+		ui_toast(TR("Squelch: FM only"));
+		return;
+	}
+	bool on = !v->monitor;
+	if (!ui_svc_monitor(on))
+		return;
+	trk_mon_ours = on;
+	ui_toast(on ? TR("Squelch open") : TR("Squelch normal"));
+}
+
+static void track_nudge(int dir)
+{
+	int32_t n = trk_nudge_hz + dir * TRK_NUDGE_STEP_HZ;
+	trk_nudge_hz = n > TRK_NUDGE_MAX_HZ ? TRK_NUDGE_MAX_HZ : n < -TRK_NUDGE_MAX_HZ ? -TRK_NUDGE_MAX_HZ : n;
+	static char buf[24];	// a toast keeps the pointer it is given
+	sbuf_t b;
+	sb_init(&b, buf, sizeof buf);
+	sb_str(&b, TR("Dial"));
+	sb_chr(&b, ' ');
+	sb_chr(&b, trk_nudge_hz < 0 ? '-' : '+');
+	uint32_t a = (uint32_t)(trk_nudge_hz < 0 ? -trk_nudge_hz : trk_nudge_hz);
+	sb_u32(&b, a / 1000u, 1);
+	sb_chr(&b, '.');
+	sb_u32(&b, a % 1000u / 100u, 1);
+	sb_chr(&b, 'k');
+	ui_toast(buf);
+	ui_sat_profile_t p;
+	if (trk_tuned && ui_view()->vfo && ui_svc_sat_profile(&p) && p.down_hz != 0)
+		radio_req_rx_hz(track_want(&p));
+}
+
+static bool track_key(const input_event_t *ev)
+{
+	bool press = ev->gesture == GESTURE_PRESS, repeat = ev->gesture == GESTURE_REPEAT;
+	if (ev->action == ACT_ENC_STEP && ev->value != 0) {
+		track_nudge(ev->value > 0 ? 1 : -1);
+		return true;
+	}
+	if ((press || repeat) && (ev->action == ACT_NAV_UP || ev->action == ACT_NAV_DOWN)) {	// a radio with no dial
+		track_nudge(ev->action == ACT_NAV_UP ? 1 : -1);
+		return true;
+	}
+	if (press && ev->action == ACT_CONTEXT) {	// #
+		track_tune();
+		return true;
+	}
+	if (press && ev->action == ACT_DIGIT_0) {
+		track_squelch();
+		return true;
+	}
+	return false;
+}
+
 static void track_draw(void)
 {
 	char buf[40];
@@ -538,9 +669,14 @@ static void track_draw(void)
 	ui_sat_profile_t p;
 	if (seen && ui_svc_sat_profile(&p)) {
 		if (live.rx_hz && p.down_hz) {
+			// Tuned (#): the frequency the receiver is on, in the warning color when it is behind where it
+			// should be (the Doppler moved on, or the dial); else the corrected one to tune to
+			bool on = trk_tuned && ui_view()->vfo;
+			uint32_t at = on ? ui_view()->ch.rx_hz : live.rx_hz;
+			int32_t behind = (int32_t)(track_want(&p) - at);
 			sb_init(&b, buf, sizeof buf);
-			sb_shifted(&b, live.rx_hz, p.down_hz);
-			trow(x, &ty, "RX", buf, ui_col.fg);
+			sb_shifted(&b, at, p.down_hz);
+			trow(x, &ty, "RX", buf, !on ? ui_col.fg : (behind >= TRK_BEHIND_HZ || behind <= -TRK_BEHIND_HZ) ? ui_col.warn : ui_col.rx);
 		}
 		if (live.tx_hz && p.up_hz) {
 			sb_init(&b, buf, sizeof buf);
@@ -575,13 +711,13 @@ static void track_draw(void)
 		sb_str(&b, " km");
 		trow(x, &ty, TR("Rng"), buf, ui_col.fg);
 	}
-	ui_draw_bottom(&ui_st, TR("Back"));
+	ui_draw_bottom(&ui_st, trk_tuned ? TR("0 Squelch  # Retune  Back") : TR("0 Squelch  # Tune  Back"));
 	ui_draw_banner(&ui_st);
 }
 
 const ui_scr_def_t ui_sat_track_screen = {
 	// Not a field-use screen (P4): OK on a pass of the list, four levels from Home
-	.name = "track", .flags = 0, .draw = track_draw,
+	.name = "track", .flags = 0, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
 };
 // --- setting the clock (Settings > Location > Set time) ---
 

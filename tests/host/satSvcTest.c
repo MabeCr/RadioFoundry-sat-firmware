@@ -255,6 +255,22 @@ int main(void)
 	CHECK(row_of(25544, &row) >= 0 && (row.state == SAT_ROW_WORKING || row.aos != before));
 	settle(60);
 	CHECK(row_of(25544, &row) >= 0 && (row.state == SAT_ROW_NEXT || row.state == SAT_ROW_UP) && row.aos != before);
+	// The position is published, 1e-7 degree
+	int32_t lat_e7, lon_e7;
+	CHECK(sat_svc_position(&lat_e7, &lon_e7) && lat_e7 == -339000000 && lon_e7 == 184000000);
+	// The fix is lost: the last position stays, so the passes go on and nothing is worked out again
+	uint32_t aos_kept = row.aos;
+	in.pos_ok = false;
+	in.lat = in.lon = 0.0;		// whatever the inputs hold is not used
+	unsigned again = settle(60);
+	CHECK(again <= 1 && sat_svc_state() == SAT_SVC_READY);
+	CHECK(row_of(25544, &row) >= 0 && row.aos == aos_kept && row.state != SAT_ROW_WORKING);
+	CHECK(sat_svc_position(&lat_e7, &lon_e7) && lat_e7 == -339000000 && lon_e7 == 184000000);
+	// Without time it still stops
+	in.time_ok = false;
+	sat_svc_poll(&in, 1);
+	CHECK(sat_svc_state() == SAT_SVC_NO_TIME);
+	in.time_ok = true;
 
 	CHECK(sim_flash_violations() == 0);
 	sim_flash_free();

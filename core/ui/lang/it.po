@@ -748,7 +748,7 @@ msgstr "0-9 scegli  Indietro"
 msgid "Heard"
 msgstr "Sentite"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
 msgid "Back"
 msgstr "Indietro"
 
@@ -3237,6 +3237,38 @@ msgid "No pass above the lowest in 24 h (Settings > Location)"
 msgstr "Nessun passaggio sopra il minimo in 24 h (Impostazioni > Posizione)"
 
 #: core/ui/ui_sat.c
+msgid "No downlink set for this satellite"
+msgstr "Nessun downlink per questo satellite"
+
+#: core/ui/ui_sat.c
+msgid "Not while transmitting"
+msgstr "Non durante la trasmissione"
+
+#: core/ui/ui_sat.c
+msgid "Retuned"
+msgstr "Risintonizzato"
+
+#: core/ui/ui_sat.c
+msgid "Tuned to the downlink"
+msgstr "Sintonizzato sul downlink"
+
+#: core/ui/ui_sat.c
+msgid "Squelch: FM only"
+msgstr "Squelch: solo FM"
+
+#: core/ui/ui_sat.c core/ui/ui_screens.c
+msgid "Squelch open"
+msgstr "Squelch aperto"
+
+#: core/ui/ui_sat.c
+msgid "Squelch normal"
+msgstr "Squelch normale"
+
+#: core/ui/ui_sat.c
+msgid "Dial"
+msgstr "Manopola"
+
+#: core/ui/ui_sat.c
 msgid "Tracking"
 msgstr "Tracciamento"
 
@@ -3251,6 +3283,14 @@ msgstr "Passaggio finito"
 #: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "0 Squelch  # Retune  Back"
+msgstr "0 Squelch  # Risintonizza  Indietro"
+
+#: core/ui/ui_sat.c
+msgid "0 Squelch  # Tune  Back"
+msgstr "0 Squelch  # Sintonizza  Indietro"
 
 #: core/ui/ui_sat.c
 msgid "Local"
@@ -3523,10 +3563,6 @@ msgstr "Altro TG: non riprodotto"
 #: core/ui/ui_screens.c
 msgid "MON: digital monitor"
 msgstr "MON: monitor digitale"
-
-#: core/ui/ui_screens.c
-msgid "Squelch open"
-msgstr "Squelch aperto"
 
 #: core/ui/ui_screens.c
 msgid "Receiving"

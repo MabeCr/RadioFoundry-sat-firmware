@@ -32,6 +32,8 @@ static struct {
 	sat_live_t live;
 	uint8_t npath;
 	sat_path_pt_t path[SAT_SVC_PATH];
+	bool have_pos;			// the observer is known
+	int32_t lat_e7, lon_e7;		// the observer, 1e-7 degree (for the screens: the grid locator)
 } r;
 
 // Requests from the screens
@@ -206,6 +208,20 @@ bool sat_svc_live(sat_live_t *out)
 		s = r.seq;
 		*out = r.live;
 		ok = r.live.ok;
+	} while (SEQ_BUSY(s, tries));
+	return ok && tries < SEQ_TRIES;
+}
+
+bool sat_svc_position(int32_t *lat_e7, int32_t *lon_e7)
+{
+	uint32_t s;
+	unsigned tries = 0;
+	bool ok;
+	do {
+		s = r.seq;
+		ok = r.have_pos;
+		*lat_e7 = r.lat_e7;
+		*lon_e7 = r.lon_e7;
 	} while (SEQ_BUSY(s, tries));
 	return ok && tries < SEQ_TRIES;
 }
@@ -573,7 +589,10 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 
 bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 {
-	uint8_t state = !in->time_ok ? SAT_SVC_NO_TIME : !in->pos_ok ? SAT_SVC_NO_POSITION : SAT_SVC_READY;
+	// A position seen once is kept: after the fix is lost the passes go on for the last one (the observer is set from
+	// it below only while a position is current). Time is not kept: without it nothing is worked out
+	bool pos = in->pos_ok || w.have_obs;
+	uint8_t state = !in->time_ok ? SAT_SVC_NO_TIME : !pos ? SAT_SVC_NO_POSITION : SAT_SVC_READY;
 	if (state != r.state) {
 		begin_write();
 		r.state = state;
@@ -594,14 +613,21 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 	if (state != SAT_SVC_READY)
 		return false;
 
-	double dlat = in->lat - w.lat, dlon = in->lon - w.lon;
+	double dlat = in->pos_ok ? in->lat - w.lat : 0.0, dlon = in->pos_ok ? in->lon - w.lon : 0.0;
 	if (!w.have_obs || dlat > MOVED_DEG || dlat < -MOVED_DEG || dlon > MOVED_DEG || dlon < -MOVED_DEG ||
 	    in->min_el != w.min_el) {
 		w.have_obs = true;
-		w.lat = in->lat;
-		w.lon = in->lon;
 		w.min_el = in->min_el;
-		sat_observer_set(&w.obs, in->lat, in->lon, in->alt_m);
+		if (in->pos_ok) {	// else the last position stays (only the lowest pass changed)
+			w.lat = in->lat;
+			w.lon = in->lon;
+			sat_observer_set(&w.obs, in->lat, in->lon, in->alt_m);
+			begin_write();
+			r.have_pos = true;
+			r.lat_e7 = (int32_t)(in->lat * 1e7 + (in->lat < 0.0 ? -0.5 : 0.5));
+			r.lon_e7 = (int32_t)(in->lon * 1e7 + (in->lon < 0.0 ? -0.5 : 0.5));
+			end_write();
+		}
 		rows_again();
 		open_start();
 		track_start();

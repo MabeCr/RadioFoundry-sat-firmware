@@ -367,6 +367,11 @@ void radio_req_clear_temporary(void);		// BACK on Home: revert temporary changes
 void radio_req_retune(void);			// tune again now, or after the transmission (the reference trim changed)
 #if CONFIG_SAT
 void radio_req_retune_test(void);		// run the retune test queued with retune_test_queue (radio/retune_test.h)
+// Doppler: the receiver goes to hz, one rx() call (about 10 ms until the level is steady, docs/dev/satellite-doppler-plan.md):
+// in the VFO on FM only, not while transmitting, scanning or in a hotspot, hz in a band the radio receives. A reception in
+// progress goes on, TX stays as it is, and the user is not counted as having done something (no auto-off, no
+// roaming reset). The VFO's RX frequency is the new one
+void radio_req_rx_hz(uint32_t hz);
 #endif
 void radio_req_reload(void);			// the settings' preferences changed (squelch, master power, DMR ID)
 // FM bandwidth and sub-audio. On a channel these are temporary changes (P7); in the VFO they change the VFO itself.

@@ -186,6 +186,31 @@ starts it and `RETUNE_RESULT` reads it; the radio goes back to the channel it wa
 transmitting, scanning, on a DMR channel, or in AM or broadcast receive. Take a steady FM carrier such as a weather
 channel (162.400 MHz here) for a base frequency.
 
+### 4.5 Tuning the receiver from Tracking
+
+Measured on a radio ([the plan](../dev/satellite-doppler-plan.md)): a retune is one `rx()` call of about 1.5 ms and the
+level is steady about 10 ms later, whatever the step (2 and 10 kHz settled alike), with a few milliseconds of no carrier. A
+frequency error costs signal: 2 kHz none, 10 kHz 21 dB on a 25 kHz channel. So a retune every 30 to 60 seconds is a
+click, and the receiver is kept within about 2 kHz.
+
+The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic mode comes after a real pass):
+
+- `#` the first time puts the radio in the VFO on the satellite's profile: FM, 25 kHz, no receive tone, the downlink as
+  receive, the uplink as a split transmit with its tone. The frequency is the Doppler-corrected downlink while the
+  satellite is above the horizon, else the profile's own, plus the dial's nudge. The channel that was on view comes back
+  on Back. Later presses call `radio_req_rx_hz` (`RREQ_RX_HZ`).
+- `RREQ_RX_HZ` is the light retune: one `rx()` call, in the VFO on FM only (not on DMR, AM or broadcast receive, scanning,
+  transmitting or in a hotspot), a frequency in a band the radio receives. A reception in progress goes on, TX is not
+  touched (a cross-band split stays), and it doesn't count as the user doing something (no auto-off or roaming reset).
+  A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
+- `0` latches the squelch open (the Quick menu's Monitor tile, `ui_svc_monitor`); Back closes it.
+- The dial (or Up and Down on a radio without one) nudges the downlink 1 kHz a detent, up to 10 kHz either way, added to
+  every corrected frequency.
+
+The service keeps the last position: after the fix is lost the passes go on for it (`sat_svc_poll` sets the observer
+only from a current position). Time is required, without it nothing is worked out. `sat_svc_position` gives the screens
+that position (the grid locator).
+
 ## 5. Pass prediction
 
 `sat_pass_next(s, o, from, span, min_el, ...)` finds the first pass that hasn't set by `from` and rises within `span`
@@ -366,6 +391,6 @@ sets (`pip install sgp4 skyfield`).
 | A real-time clock on other boards | `hal_rtc_read` / `hal_rtc_write` (4.1.1) where the hardware has one. The one written is untested on a radio |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
-| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler applied to receive and transmit through the core (the screen only shows the corrected frequencies); a short way in (a programmable key) |
+| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; automatic Doppler on receive (`*`, [the plan](../dev/satellite-doppler-plan.md) phase 2) and any on transmit (the manual `#` tunes the receiver, 4.5); a short way in (a programmable key) |
 | Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
 | Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The CK803S's is measured (7) |

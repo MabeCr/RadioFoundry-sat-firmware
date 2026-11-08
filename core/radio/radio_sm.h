@@ -149,6 +149,7 @@ typedef enum {
 	RREQ_RETUNE,		// tune the current frequency again (the reference trim changed: radio/ref_trim.h)
 	RREQ_VFO_TX,		// arg: the VFO's TX Hz, 0 = simplex (its RX frequency)
 	RREQ_RETUNE_TEST,	// run the queued retune test (CONFIG_SAT; radio/retune_test.h), then tune the channel again
+	RREQ_RX_HZ,		// Doppler (CONFIG_SAT): arg = RX Hz; the VFO's receiver only, a light retune (radio_req_rx_hz)
 } radio_req_type_t;
 
 // RREQ_TONE's argument: which (RADIO_TONE_*) in bits 25:24, the tone type in 23:16, the value in 15:0
