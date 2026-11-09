@@ -178,9 +178,19 @@ static void cp_question_gone(uint8_t from)
 	}
 }
 
+// A screen that changed the radio puts it back when it goes (Tracking leaves the VFO and the squelch)
+static void leave_screens(uint8_t from)
+{
+	for (uint8_t i = sp; i >= from && i > 0; i--) {
+		if (ui_scr[stack[i].scr]->leave != NULL)
+			ui_scr[stack[i].scr]->leave();
+	}
+}
+
 void ui_pop(void)
 {
 	cp_question_gone(sp);
+	leave_screens(sp);
 	if (sp > 0)
 		sp--;
 	if (ui_scr[stack[sp].scr]->flags & SF_FILTER)
@@ -196,6 +206,7 @@ void ui_pop(void)
 void ui_go_home(void)
 {
 	cp_question_gone(1);
+	leave_screens(1);
 	sp = 0;
 	ui_st.quick_edit = false;
 	entry_cancel();
@@ -1979,6 +1990,9 @@ void ui_app_key(const input_event_t *ev)
 		ui_go_home();
 		return;
 	}
+	if (ev->action == ACT_CONTEXT && ev->gesture == GESTURE_LONG && (ui_scr[stack[sp].scr]->flags & SF_HOLD_CONTEXT) &&
+	    ui_scr[stack[sp].scr]->key != NULL && ui_scr[stack[sp].scr]->key(ev))
+		return;
 	if (ev->action == ACT_CONTEXT && ev->gesture == GESTURE_LONG) {
 		if (!CONFIG_DMR || view->ch.mode != RADIO_MODE_DMR)
 			ui_toast(TR("Talk target: DMR channels only"));
@@ -2077,7 +2091,7 @@ void ui_app_key(const input_event_t *ev)
 	// QUICK opens quick settings from any screen; BACK returns to where the user was
 	const ui_scr_def_t *d = ui_scr[stack[sp].scr];
 	if (ev->action == ACT_QUICK && ev->gesture == GESTURE_PRESS && stack[sp].scr != SCR_QUICK &&
-			stack[sp].scr != SCR_DIAG && stack[sp].scr != SCR_HOME && !typing) {
+			stack[sp].scr != SCR_DIAG && stack[sp].scr != SCR_HOME && !(d->flags & SF_OWN_QUICK) && !typing) {
 		ui_push(SCR_QUICK, 0);
 		return;
 	}

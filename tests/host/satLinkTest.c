@@ -8,6 +8,7 @@
 #include <string.h>
 #include "debuglink/debuglink.h"
 #include "debuglink/debuglink_proto.h"
+#include "radio/retune_test.h"
 #include "sat/sat_clock.h"
 #include "sat/sat_tle.h"
 #include "sim/sim_flash.h"
@@ -32,7 +33,59 @@ static const hal_flash_map_t map = {
 	.sat_addr = 0x1B000u, .sat_size = 0x1000u,
 };
 
-const board_t board = { .name = "test", .flash = &sim_flash };
+// A receiver for the retune test: after each rx() the level is far from the steady one for settle_time_us (a retune
+// dropping the signal), then steady: -70 dBm on the base frequency, -73 on the other. The two first tunes (the test's
+// steady levels) are never disturbed. never_in_band makes rx() refuse the frequency
+#define BASE_HZ 162400000u
+static uint32_t rx_hz, rx_at_us, settle_time_us;
+static unsigned rx_calls;
+static bool never_in_band;
+static uint32_t rx_call_us = 40;	// what an rx() costs on the fake clock
+
+static bool fake_rx(uint32_t hz, radio_bw_t bw, const subtone_t *tone)
+{
+	(void)bw;
+	(void)tone;
+	if (never_in_band)
+		return false;
+	rx_hz = hz;
+	rx_at_us = fake_us;
+	rx_calls++;
+	fake_us += rx_call_us;
+	return true;
+}
+
+static void fake_status(radio_status_t *st)
+{
+	bool settled = rx_calls <= 2 || fake_us - rx_at_us >= settle_time_us;
+	st->rssi_dbm = settled ? (rx_hz == BASE_HZ ? -70 : -73) : -100;
+	st->noise = settled ? 20 : 90;
+	st->carrier = settled;
+	st->tone_ok = true;
+	fake_us += 30;		// a read costs a little
+}
+
+static const hal_radio_t fake_radio = { .rx = fake_rx, .status = fake_status };
+
+const board_t board = { .name = "test", .flash = &sim_flash, .radio = &fake_radio };
+
+void hal_delay_ms(uint32_t ms)
+{
+	fake_us += ms * 1000u;
+}
+
+void hal_delay_us(uint32_t us)
+{
+	fake_us += us;
+}
+
+// The radio task, run on the spot: what the request does there (radio_sm.c RREQ_RETUNE_TEST)
+static bool task_allows = true;
+static uint8_t task_why;
+void radio_req_retune_test(void)
+{
+	retune_test_run(task_allows, task_why);
+}
 
 uint32_t hal_millis(void)
 {
@@ -180,6 +233,92 @@ static void test_store(void)
 	load(0);
 }
 
+static size_t retune_args(uint8_t *req, uint32_t base, int32_t step, uint8_t count, uint16_t gap, uint8_t wide)
+{
+	req[0] = DL_SAT_OP_RETUNE_TEST;
+	memcpy(req + 1, &base, 4);
+	memcpy(req + 5, &step, 4);
+	req[9] = count;
+	req[10] = (uint8_t)gap;
+	req[11] = (uint8_t)(gap >> 8);
+	req[12] = wide;
+	return 13;
+}
+
+static uint16_t i16(const uint8_t *p)
+{
+	return (uint16_t)(p[0] | p[1] << 8);
+}
+
+// A result: state, reason, count, levels, noise, then ten bytes a retune
+static void retune_test_part(uint8_t *req)
+{
+	// Nothing yet
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	CHECK(cmd(req, 1) == 2 && out[0] == DL_ST_OK && out[1] == RETUNE_IDLE);
+	CHECK(cmd(req, 2) == 1 && out[0] == DL_ST_BAD_ARG);
+	// Bad arguments: a wrong length, no count, too many, a gap out of range, too long a test, no step, no frequency
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 4, 100, 1) - 1) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 0, 100, 1)) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 33, 100, 1)) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 4, 19, 1)) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 32, 400, 1)) == 1 && out[0] == DL_ST_BAD_ARG);	// 12.8 s
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 0, 4, 100, 1)) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, 0, 2000, 4, 100, 1)) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 4, 100, 2)) == 1 && out[0] == DL_ST_BAD_ARG);
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	CHECK(cmd(req, 1) == 2 && out[1] == RETUNE_IDLE);	// none of them started anything
+
+	// A quick settle: the level is back at the second read after each retune
+	settle_time_us = 500;
+	rx_calls = 0;
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 6, 50, 1)) == 1 && out[0] == DL_ST_OK);
+	CHECK(rx_calls == 2 + 6);	// the two steady levels first, then each retune
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	size_t n = cmd(req, 1);
+	CHECK(n == 9 + 6 * 10 && out[0] == DL_ST_OK && out[1] == RETUNE_DONE && out[2] == RETUNE_WHY_NONE && out[3] == 6);
+	CHECK((int16_t)i16(out + 4) == -70 && (int16_t)i16(out + 6) == -73 && out[8] == 20);
+	for (int i = 0; i < 6; i++) {
+		const uint8_t *h = out + 9 + i * 10;
+		uint32_t settle = u32(h + 2);
+		CHECK(i16(h) >= rx_call_us && i16(h) < rx_call_us + 100);		// the rx() call itself
+		CHECK(settle != RETUNE_TEST_NEVER && settle >= 500 && settle < 1000);	// the first read after the drop starts the streak
+		CHECK((int16_t)i16(h + 6) == -100 && h[8] == 90 && h[9] >= 1 && h[9] <= 5);	// the low reads: level, noise, no carrier
+	}
+	// Started again before it is asked for: a new test is accepted once the last is done
+	// An immediate settle: no read is off
+	settle_time_us = 0;
+	rx_calls = 0;
+	CHECK(cmd(req, retune_args(req, BASE_HZ, -3000, 2, 20, 0)) == 1 && out[0] == DL_ST_OK);
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	n = cmd(req, 1);
+	CHECK(n == 9 + 2 * 10 && out[1] == RETUNE_DONE && u32(out + 9 + 2) < 200 && (int16_t)i16(out + 9 + 6) >= -73 && out[9 + 9] == 0);
+	// A level that never comes back: the hop says so, after the 100 ms timeout
+	settle_time_us = 10000000u;
+	rx_calls = 0;
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 5000, 1, 20, 1)) == 1 && out[0] == DL_ST_OK);
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	n = cmd(req, 1);
+	CHECK(n == 9 + 10 && out[1] == RETUNE_DONE && u32(out + 9 + 2) == RETUNE_TEST_NEVER && out[9 + 9] > 100);
+	// The radio task refuses: busy transmitting, not FM
+	settle_time_us = 0;
+	task_allows = false;
+	task_why = RETUNE_WHY_NOT_FM;
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 4, 100, 1)) == 1 && out[0] == DL_ST_OK);
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	n = cmd(req, 1);
+	CHECK(n == 9 && out[1] == RETUNE_REFUSED && out[2] == RETUNE_WHY_NOT_FM && out[3] == 0);
+	task_allows = true;
+	// A frequency the receiver won't take: refused for the band
+	never_in_band = true;
+	CHECK(cmd(req, retune_args(req, BASE_HZ, 2000, 4, 100, 1)) == 1 && out[0] == DL_ST_OK);
+	req[0] = DL_SAT_OP_RETUNE_RESULT;
+	CHECK(cmd(req, 1) >= 4 && out[1] == RETUNE_REFUSED && out[2] == RETUNE_WHY_BAND);
+	never_in_band = false;
+	// A test left queued (the radio task has not run it) blocks another
+	task_allows = true;
+}
+
 int main(void)
 {
 	uint8_t req[DL_REQ_MAX];
@@ -321,6 +460,9 @@ int main(void)
 	req[1] = 0xE9;
 	req[2] = 0x03;		// 1001
 	CHECK(cmd(req, 3) == 1 && out[0] == DL_ST_BAD_ARG);
+
+	// The retune test: receive only, timed on the radio's clock
+	retune_test_part(req);
 
 	// An observer out of range
 	int32_t la = 910000000, lo = 0;

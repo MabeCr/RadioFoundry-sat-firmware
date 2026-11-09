@@ -46,6 +46,8 @@ typedef enum {
 #define SF_FIELD	0x08u	// "field use": at most 3 levels from Home (P4)
 #define SF_FIND		0x10u	// digits type the query (Find)
 #define SF_NO_STRIP	0x20u	// no status strip while the radio is idle (About: the owner's call); RX / TX bring it back
+#define SF_OWN_QUICK	0x80u	// the screen uses * itself, not the quick menu (Tracking: automatic mode)
+#define SF_HOLD_CONTEXT	0x40u	// the screen's key hook gets a long CONTEXT (#) first, before the talk target picker (Tracking)
 
 typedef struct {
 	uint8_t scr;
@@ -78,6 +80,7 @@ typedef struct {
 	bool (*key)(const input_event_t *ev);		// screen keys before the list's own (true: used)
 	void (*draw)(void);				// own drawing instead of the list
 	void (*enter)(void);				// on push
+	void (*leave)(void);				// when the screen is popped or the stack goes Home (NULL: nothing to undo)
 	// Filtered lists (SF_FILTER): rows before filtering and the text each is matched by
 	uint16_t (*raw_count)(void);
 	bool (*raw_label)(uint16_t raw, char *buf, uint8_t len);

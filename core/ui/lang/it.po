@@ -748,7 +748,7 @@ msgstr "0-9 scegli  Indietro"
 msgid "Heard"
 msgstr "Sentite"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
 msgid "Back"
 msgstr "Indietro"
 
@@ -3237,6 +3237,50 @@ msgid "No pass above the lowest in 24 h (Settings > Location)"
 msgstr "Nessun passaggio sopra il minimo in 24 h (Impostazioni > Posizione)"
 
 #: core/ui/ui_sat.c
+msgid "No downlink set for this satellite"
+msgstr "Nessun downlink per questo satellite"
+
+#: core/ui/ui_sat.c
+msgid "Not while transmitting"
+msgstr "Non durante la trasmissione"
+
+#: core/ui/ui_sat.c
+msgid "Dial cleared"
+msgstr "Manopola azzerata"
+
+#: core/ui/ui_sat.c
+msgid "Retuned"
+msgstr "Risintonizzato"
+
+#: core/ui/ui_sat.c
+msgid "Tuned to the downlink"
+msgstr "Sintonizzato sul downlink"
+
+#: core/ui/ui_sat.c
+msgid "Auto off"
+msgstr "Auto disattivato"
+
+#: core/ui/ui_sat.c
+msgid "Auto on: following the Doppler"
+msgstr "Auto attivo: segue il Doppler"
+
+#: core/ui/ui_sat.c
+msgid "Squelch: FM only"
+msgstr "Squelch: solo FM"
+
+#: core/ui/ui_sat.c core/ui/ui_screens.c
+msgid "Squelch open"
+msgstr "Squelch aperto"
+
+#: core/ui/ui_sat.c
+msgid "Squelch normal"
+msgstr "Squelch normale"
+
+#: core/ui/ui_sat.c
+msgid "Dial"
+msgstr "Manopola"
+
+#: core/ui/ui_sat.c
 msgid "Tracking"
 msgstr "Tracciamento"
 
@@ -3249,8 +3293,24 @@ msgid "Pass over"
 msgstr "Passaggio finito"
 
 #: core/ui/ui_sat.c
+msgid "on"
+msgstr "attivo"
+
+#: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "{0 Squelch  # Retune  * Stop  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
+msgstr "{0 Squelch  # Risintonizza  * Ferma  Indietro|0 Sql  # Sint  * Ferma  Indietro|# Sint  * Ferma  Indietro}"
+
+#: core/ui/ui_sat.c
+msgid "{0 Squelch  # Retune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Risintonizza  * Auto  Indietro|0 Sql  # Sint  * Auto  Indietro|# Sint  * Auto  Indietro}"
+
+#: core/ui/ui_sat.c
+msgid "{0 Squelch  # Tune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Sintonizza  * Auto  Indietro|0 Sql  # Sint  * Auto  Indietro|# Sint  * Auto  Indietro}"
 
 #: core/ui/ui_sat.c
 msgid "Local"
@@ -3523,10 +3583,6 @@ msgstr "Altro TG: non riprodotto"
 #: core/ui/ui_screens.c
 msgid "MON: digital monitor"
 msgstr "MON: monitor digitale"
-
-#: core/ui/ui_screens.c
-msgid "Squelch open"
-msgstr "Squelch aperto"
 
 #: core/ui/ui_screens.c
 msgid "Receiving"

@@ -29,6 +29,9 @@
 #endif
 #include "radio/beep.h"	// beep_t (beep_play only with CONFIG_BEEP)
 #include "radio/vibe.h"	// vibe_t (vibe_play only with CONFIG_VIBRATE)
+#if CONFIG_SAT
+#include "radio/retune_test.h"
+#endif
 #if CONFIG_NET_USRP || CONFIG_APRS_RX
 #include "usbaudio/audio_mux.h"	// the PCM stream shared with a host audio session and APRS
 #endif
@@ -4846,12 +4849,25 @@ static bool retunes(uint8_t type)
 	}
 }
 
+#if CONFIG_SAT
+// noinline: the task's loop calls it, and its frame must not join the loop's (make stack-check)
+__attribute__((noinline)) void radio_sm_retune_test(radio_sm_t *sm, uint32_t now_ms)
+{
+	uint8_t why = (uint8_t)(sm->retune_test - 1u);
+	sm->retune_test = 0;
+	retune_test_run(why == RETUNE_WHY_NONE, why);	// blocks this task for the length of the test
+	if (why == RETUNE_WHY_NONE)
+		tune(sm, now_ms);	// the channel as it was
+}
+#endif
+
 void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 {
 	// A beep or a vibration is an alert, not the user doing something; the volume changes nothing on air or on the
 	// channel, so it neither gives way to nor cancels anything either
+	// (A Doppler retune is the satellite screen's, possibly its automatic mode's: not the user doing something either)
 	bool alert = req->type == RREQ_BEEP || req->type == RREQ_VIBRATE || req->type == RREQ_VOLUME ||
-		     req->type == RREQ_VOLUME_OVERRIDE;
+		     req->type == RREQ_VOLUME_OVERRIDE || req->type == RREQ_RX_HZ;
 	if (!alert && req->type != RREQ_DMR_FOCUS && req->type != RREQ_SETTINGS && req->type != RREQ_RETUNE) {
 		aprs_rf_abort(sm, now_ms);	// the user does something: an APRS transmission gives way
 	}
@@ -4980,6 +4996,21 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 #endif
 		break;
 	}
+#if CONFIG_SAT
+	case RREQ_RX_HZ: {
+		// One rx() call and nothing else (not tune(): it ends a reception, resets the tone detector and sets the mode
+		// up again). TX is left alone, so a cross-band split stays. Only an FM VFO on a plain receive frequency
+		uint32_t hz = (uint32_t)req->arg;
+		if (busy || req->arg <= 0 || !sm->view.vfo || sm->view.ch.mode == RADIO_MODE_DMR || sm->view.am || sm->view.bcast ||
+		    scan_on(&sm->scan) || !board_in_band(hz, false) || listen_band(hz) || hz == sm->view.ch.rx_hz)
+			break;
+		sm->vfo_ch.rx_hz = hz;
+		sm->view.ch.rx_hz = hz;
+		board.radio->rx(hz, (radio_bw_t)sm->view.ch.bw, &sm->view.ch.rx_tone);
+		changed(sm);
+		break;
+	}
+#endif
 #if CONFIG_AM_RX
 	case RREQ_VFO_STEP_SIZE:
 		if ((req->arg == 0 || (req->arg >= 1000 && req->arg <= 1000000)) && (uint32_t)req->arg != sm->vfo_step_set) {
@@ -5101,6 +5132,15 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 			changed(sm);
 		}
 		break;
+#if CONFIG_SAT
+	case RREQ_RETUNE_TEST: {	// receive only, FM only, on an idle receiver; blocks this task for the length of the test
+		uint8_t why = busy ? RETUNE_WHY_BUSY : sm->view.scan != 0 ? RETUNE_WHY_SCANNING :
+			(sm->view.ch.mode != RADIO_MODE_FM || sm->board_mode != RADIO_MODE_FM) ? RETUNE_WHY_NOT_FM :
+			(sm->view.am || sm->view.bcast) ? RETUNE_WHY_OTHER_RX : RETUNE_WHY_NONE;
+		sm->retune_test = (uint8_t)(1u + why);	// radio_task.c runs it, outside this function's deep frame (stack-check)
+		break;
+	}
+#endif
 	case RREQ_RETUNE:	// a board that applies its reference trim when it tunes (hal_radio_t.ref_trim)
 		sm->retune_due = true;	// radio_sm_poll: once the trim stops changing
 		sm->retune_due_ms = now_ms + RADIO_RETUNE_SETTLE_MS;

@@ -84,6 +84,7 @@ Keys from Home: **OK** opens the menu, **6** is Tools, **7** is Settings.
 | 12 | GPS outdoors (Settings > Location > GPS On) | the top bar shows a hollow square while searching, a solid one with a fix; the time and position come by themselves |
 | 13 | `sat look`, `sat pass` (after `sat recall 0`, `sat time`, `sat observer LAT LON ALT`) | compare with the tracker of step 8 |
 | 14 | `python3 -m pytest tests/hil/test_task_stacks.py tests/hil/test_sat.py -v -rs --radio-port <port>` | all pass; a skip says why. Needs the cable to itself, and more setup on Windows |
+| 15 | The retune test (receive only), from the [TLE page](../dev/sat-tle-web-tool.md)'s *Retune test* section, or `sat retune-test 162.400 2 12 150` | On an FM channel or the VFO, with a steady FM carrier: a NOAA weather channel (162.400 to 162.550 MHz; the page's frequency is yours to set). A table of how long each retune took to settle and whether the signal dipped; the radio goes back to its channel. Listen while it runs: it clicks at each retune, and whether the audio drops is what to report. Try steps of 1, 2, 5 and 10 kHz and both widths. Send the table and what you heard |
 
 Clean up when done (optional): `sat delete 25544` removes a satellite, `sat clear` empties the store.
 

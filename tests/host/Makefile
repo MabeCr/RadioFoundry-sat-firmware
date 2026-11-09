@@ -188,6 +188,12 @@ radioCoreTestNoVfoDmr: $(RCORE) $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)
                        $(CORE)/ui/ui_svc.h
 	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_VFO_DMR=0 -o $@ $(RCORE) -lm
 
+# The same with satellite tracking (CONFIG_SAT=1): the Doppler retune request (RREQ_RX_HZ) and the retune test's run
+TESTS   += radioCoreTestSat
+radioCoreTestSat: $(RCORE) $(CORE)/radio/retune_test.c $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)/dmr/call/*.h) \
+                  $(CORE)/dmr/dmrDataService.h $(CORE)/ui/ui_svc.h
+	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_SAT=1 -o $@ $(RCORE) $(CORE)/radio/retune_test.c -lm
+
 # The everyday features (scan, beeps, battery, TOT warning, BCL, roger beep, 1750 Hz burst, VOX, battery saving)
 TESTS   += radioFeaturesTest
 RFTEST  := radioFeaturesTest.c $(CORE)/radio/radio_sm.c $(CORE)/radio/tones.c $(RFEAT) $(CORE)/dmr/call/dmr_call.c \
@@ -281,11 +287,12 @@ boardBandTest: boardBandTest.c $(ROOT)/hal/board.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -Wshadow -o $@ boardBandTest.c
 
 run: run-core
-run-core: radioCoreTest radioCoreTestNoVfoDmr radioFeaturesTest radioFeaturesTestNoDual roamTest radioListenBandsTest inputTest aprsRadioTest quadratureTest serialmicTest miclevelTest \
+run-core: radioCoreTest radioCoreTestNoVfoDmr radioCoreTestSat radioFeaturesTest radioFeaturesTestNoDual roamTest radioListenBandsTest inputTest aprsRadioTest quadratureTest serialmicTest miclevelTest \
           rx2LinkTest keyassignTest powerSwitchTest boardBandTest batteryTest
 	./aprsRadioTest
 	./radioCoreTest
 	./radioCoreTestNoVfoDmr
+	./radioCoreTestSat
 	./radioFeaturesTest
 	./radioFeaturesTestNoDual
 	./roamTest
@@ -449,7 +456,7 @@ i18nTestDefault: i18nTest.c $(I18N) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/
 # docs/ux/screens/sheets/). Built without the __attribute__ override above so the weak service stubs
 # (ui_svc_stub.c) give way to the simulator's.
 UIAPP   := $(UI) $(CORE)/ui/ui_app.c $(CORE)/ui/ui_menus.c $(CORE)/ui/ui_find.c $(CORE)/ui/ui_aprs.c $(CORE)/ui/ui_gps.c $(CORE)/ui/ui_dual.c \
-           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
+           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_follow.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
            $(CORE)/codeplug/codeplug_talk.c $(CORE)/codeplug/zone_edit.c $(CORE)/codeplug/zone_shift.c $(CORE)/radio/radio_am.c \
            $(CORE)/radio/radio_bcast.c sim/ui_sim.c sim/ui_png.c
 # The About page's data header, as the firmware build makes it (tools/gen_about.py; the STM32F4 list stands in)
@@ -558,12 +565,22 @@ TESTS   += satTest
 satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
 
+# The automatic Doppler following against the reference passes (core/sat/sat_follow.c)
+TESTS   += satFollowTest
+satFollowTest: satFollowTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satFollowTest.c $(SAT_SRC) -lm
+
+run: run-satFollow
+run-satFollow: satFollowTest
+	./satFollowTest
+.PHONY: run-satFollow
+
 # The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
 # reference values. Without APRS: no GPS to take the observer from
 TESTS   += satLinkTest
-SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
+SATLINK := satLinkTest.c $(CORE)/debuglink/debuglink_sat.c $(CORE)/debuglink/dl_fmt.c $(CORE)/radio/retune_test.c $(SAT_SRC) $(CORE)/sat/sat_store.c \
 	   $(CORE)/storage/storage.c sim/sim_flash.c
-satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/debuglink/debuglink.h \
+satLinkTest: $(SATLINK) sat_ref.h $(wildcard $(CORE)/sat/*.h) $(CORE)/radio/retune_test.h $(CORE)/debuglink/debuglink.h \
 	     $(CORE)/debuglink/debuglink_proto.h sim/sim_flash.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -DCONFIG_SAT=1 -DCONFIG_APRS=0 -o $@ $(SATLINK) -lm
 

@@ -166,6 +166,60 @@ f in Hz and v the range rate:
 Both round to the hertz; the radio's tuning step applies after. `sat_locator_to_deg` gives the center of a 4- or
 6-character Maidenhead locator, for an observer typed in without a position fix.
 
+### 4.4 The retune test
+
+A Doppler correction retunes the receiver every few seconds, and a retune can drop the audio for as long as the synthesizer
+takes to lock and the chip to settle: a property of the radio, measured before the correction is designed
+([the plan](../dev/satellite-doppler-plan.md)). `radio/retune_test.c` steps the receiver between a base frequency and an
+offset of it, `count` times, `gap` apart (the radio task runs it, FM only, on an idle receiver; receive only, nothing is
+transmitted), and times each retune on the radio's own clock:
+
+| Reading | Meaning |
+|---|---|
+| call | the `rx()` call itself |
+| settle | from the call until the signal level is within 3 dB of its steady value on that frequency, for three reads in a row |
+| lowest, noise, no carrier | the lowest level and highest noise reading meanwhile, and the reads in which the chip said no carrier |
+
+The steady value on each frequency is measured first (300 ms after tuning it, eight reads averaged). A frequency without
+a steady carrier gives the call times only. A `RETUNE_TEST` request on the debug link ([debuglink.md](debuglink.md) 3.24)
+starts it and `RETUNE_RESULT` reads it; the radio goes back to the channel it was on. The test refuses while
+transmitting, scanning, on a DMR channel, or in AM or broadcast receive. Take a steady FM carrier such as a weather
+channel (162.400 MHz here) for a base frequency.
+
+### 4.5 Tuning the receiver from Tracking
+
+Measured on a radio ([the plan](../dev/satellite-doppler-plan.md)): a retune is one `rx()` call of about 1.5 ms and the
+level is steady about 10 ms later, whatever the step (2 and 10 kHz settled alike), with a few milliseconds of no carrier. A
+frequency error costs signal: 2 kHz none, 10 kHz 21 dB on a 25 kHz channel. So a retune every 30 to 60 seconds is a
+click, and the receiver is kept within about 2 kHz.
+
+The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic mode comes after a real pass):
+
+- `#` the first time puts the radio in the VFO on the satellite's profile: FM, 25 kHz, no receive tone, the downlink as
+  receive, the uplink as a split transmit with its tone. The frequency is the Doppler-corrected downlink while the
+  satellite is above the horizon, else the profile's own, plus the dial's nudge. The channel that was on view comes back
+  on Back. Later presses call `radio_req_rx_hz` (`RREQ_RX_HZ`).
+- `RREQ_RX_HZ` is the light retune: one `rx()` call, in the VFO on FM only (not on DMR, AM or broadcast receive, scanning,
+  transmitting or in a hotspot), a frequency in a band the radio receives. A reception in progress goes on, TX is not
+  touched (a cross-band split stays), and it doesn't count as the user doing something (no auto-off or roaming reset).
+  A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
+- `*` follows the Doppler (`core/sat/sat_follow.c`): once a draw (about a second) the screen asks
+  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (1.5 kHz) or more from
+  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (5 s) ago or more, and the radio is not transmitting;
+  then the screen calls `radio_req_rx_hz`. The wanted frequency is the corrected downlink plus the dial's nudge, and from
+  two minutes before the rise (the service's margin) the shift of the rise, so the receiver is on it when the satellite
+  comes up. There is no wait for a gap in the signal: a retune is a click (4.4), and the squelch may be latched open.
+  Against the reference passes (`satFollowTest`) it retunes 12 or 13 times a pass at 437.8 MHz, never further off than
+  1.5 kHz, with at least 14 s between retunes, and the same with a 5 kHz nudge. It ends with Back, or when the radio
+  leaves the VFO.
+- `0` latches the squelch open (the Quick menu's Monitor tile, `ui_svc_monitor`); Back closes it.
+- The dial (or Up and Down on a radio without one) nudges the downlink 1 kHz a detent, up to 10 kHz either way, added to
+  every corrected frequency. A short `#` retunes with the nudge, a held `#` clears it first.
+
+The service keeps the last position: after the fix is lost the passes go on for it (`sat_svc_poll` sets the observer
+only from a current position). Time is required, without it nothing is worked out. `sat_svc_position` gives the screens
+that position (the grid locator).
+
 ## 5. Pass prediction
 
 `sat_pass_next(s, o, from, span, min_el, ...)` finds the first pass that hasn't set by `from` and rises within `span`
@@ -346,6 +400,6 @@ sets (`pip install sgp4 skyfield`).
 | A real-time clock on other boards | `hal_rtc_read` / `hal_rtc_write` (4.1.1) where the hardware has one. The one written is untested on a radio |
 | Getting element sets in | Keypad entry with the check digits, and data over audio. The debug link loads and stores them already |
 | Satellite areas on other boards | A `sat_addr` / `sat_size` in each board's flash map where it has room |
-| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler applied to receive and transmit through the core (the screen only shows the corrected frequencies); a short way in (a programmable key) |
+| Tracking, the rest | The arming countdown on the screen and the arming carrier keyed through the radio core; Doppler on transmit (`#` and `*` tune the receiver, 4.5; the transmit frequency is not shifted); a short way in (a programmable key) |
 | Editing profiles on the radio | Frequencies and tones of a stored satellite; for now they come with SAVE over the debug link |
 | Speed on other radios | `sat bench` or `tests/hil/test_sat.py` on each radio: the time per model run (7). The CK803S's is measured (7) |

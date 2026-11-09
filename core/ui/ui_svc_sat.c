@@ -12,9 +12,6 @@
 #include "sat/sat_clock.h"
 #include "sat/sat_store.h"
 #include "sat/sat_svc.h"
-#if CONFIG_APRS
-#include "aprs/aprs.h"
-#endif
 
 bool ui_svc_sat_status(ui_sat_status_t *out)
 {
@@ -26,12 +23,7 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 	out->utc = sat_clock_now(&sat_utc, hal_millis(), &now) ? (uint32_t)now : 0u;
 	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
 	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
-#if CONFIG_APRS
-	// The same source the satellite task works the passes out for (core/app/sat_task.c inputs)
-	uint32_t err_m;
-	bool dmr_gps;
-	out->pos_ok = aprs_position_now(&out->lat_e7, &out->lon_e7, &err_m, &dmr_gps);
-#endif
+	out->pos_ok = sat_svc_position(&out->lat_e7, &out->lon_e7);	// the position the passes are worked out for
 	return true;
 }
 

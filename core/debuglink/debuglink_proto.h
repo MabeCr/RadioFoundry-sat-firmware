@@ -55,6 +55,11 @@ enum {
 	DL_SAT_OP_RECALL	= 10,	// slot u16 -> sgp4 u8 (0 = loaded), catalog u32: a stored satellite into the tracker
 	DL_SAT_OP_DELETE	= 11,	// catalog u32: its record out of the store
 	DL_SAT_OP_CLEAR		= 12,	// token u32 (DL_SAT_CLEAR_TOKEN): erase the whole store, foreign bytes included
+	DL_SAT_OP_RETUNE_TEST	= 13,	// base u32 (Hz), step i32 (Hz), count u8, gap u16 (ms), wide u8 (1: 25 kHz): queue the retune
+					// test (receive only; radio/retune_test.h), the radio task runs it
+	DL_SAT_OP_RETUNE_RESULT	= 14,	// none -> state u8 (retune_state_t), and with a result (done, refused): reason u8, count u8,
+					// base level i16, step level i16 (dBm), base noise u8, then count x {call us u16, settle us u32
+					// (0xFFFFFFFF: never), lowest level i16, highest noise u8, reads without carrier u8}
 };
 #define DL_SAT_CLEAR_TOKEN	0x43544153u	// 'SATC'
 
