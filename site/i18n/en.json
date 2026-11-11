@@ -316,6 +316,7 @@
  "screen.satellites_no_time": "Satellites before the time is known",
  "screen.satellite_passes": "One satellite's passes",
  "screen.satellite_track": "Tracking a pass",
+ "screen.satellite_frequency": "Tracking on a frequency of your own",
  "screen.satellite_set_time": "Setting the clock",
  "screen.satellites": "Satellites and their next passes",
  "screen.gps_signal": "GPS signal bars",

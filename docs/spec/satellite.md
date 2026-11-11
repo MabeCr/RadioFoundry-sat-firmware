@@ -212,6 +212,12 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   Against the reference passes (`satFollowTest`) it retunes 12 or 13 times a pass at 437.8 MHz, never further off than
   1.5 kHz, with at least 14 s between retunes, and the same with a 5 kHz nudge. It ends with Back, or when the radio
   leaves the VFO.
+- `OK` opens the Frequency screen: a downlink typed for the satellite replaces the profile's as the base the Doppler works
+  on. The screen works the shift out itself from the live range rate (`sat_doppler_rx_hz`, `sat_doppler.h`), so it needs
+  nothing from the service for a frequency the profile doesn't hold. A typed frequency is a downlink, so the VFO is made
+  receive only: `RREQ_VFO_RX_ONLY` (`radio_req_vfo_rx_only`) sets the VFO's `rx_only` flag, which refuses PTT as on a
+  receive-only channel (`TXDENY_RX_ONLY`); Tracking clears it on Back. A profile with no uplink is receive only the same way
+  (before, its VFO was simplex on the downlink and PTT would have transmitted there).
 - `0` latches the squelch open (the Quick menu's Monitor tile, `ui_svc_monitor`); Back closes it.
 - The dial (or Up and Down on a radio without one) nudges the downlink 1 kHz a detent, up to 10 kHz either way, added to
   every corrected frequency. A short `#` retunes with the nudge, a held `#` clears it first.

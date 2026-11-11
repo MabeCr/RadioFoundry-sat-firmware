@@ -744,6 +744,23 @@ static void test_vfo(void)
 	calls = hw.rx_calls;
 	req(RREQ_RX_HZ, 440005000);
 	CHECK(hw.rx_calls == calls && !sm.view.vfo);
+	// RREQ_VFO_RX_ONLY: the VFO only listens (PTT refused as on a receive-only channel), and the flag is cleared again
+	bool ch_rx_only = sm.view.ch.rx_only;	// the channel's own, whatever it is
+	req(RREQ_VFO_SET, 446000000);
+	req(RREQ_VFO_RX_ONLY, 1);
+	CHECK(sm.view.vfo && sm.view.ch.rx_only);
+	req(RREQ_PTT, 1);
+	CHECK(sm.view.state == RS_TX_DENIED && sm.view.tx_deny == TXDENY_RX_ONLY);
+	req(RREQ_PTT, 0);
+	req(RREQ_VFO, 0);			// off the VFO the channel is not affected
+	CHECK(!sm.view.vfo && sm.view.ch.rx_only == ch_rx_only);
+	req(RREQ_VFO, 1);			// the VFO still has the flag when it opens again
+	CHECK(sm.view.ch.rx_only);
+	req(RREQ_VFO_RX_ONLY, 0);
+	CHECK(!sm.view.ch.rx_only);
+	req(RREQ_PTT, 1);
+	CHECK(sm.view.state == RS_TX);
+	req(RREQ_PTT, 0);
 #endif
 }
 
