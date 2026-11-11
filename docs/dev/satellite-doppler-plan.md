@@ -21,6 +21,13 @@ downlink. Decisions come from the owner's answers; open items are at the end.
 | Position | The satellite task keeps the last position it saw: after a fix is lost it goes on with that one. Time is required: without it nothing is tuned |
 | Display | The Tracking screen's receive line shows the tuned frequency and, when the radio is behind the needed one, by how much |
 
+## A downlink of your own (2026-11-11)
+
+Special events use frequencies a profile doesn't hold (an SSTV event is a downlink only on another frequency, a beacon
+has its own). OK on Tracking opens a Frequency screen: the owner types the downlink, Doppler works on it, and it is
+receive only. Kept per satellite in RAM until power off; saving it in the satellite's record, and a list of modes per
+satellite chosen by date, are left for later. The radio doesn't decode the picture: the audio goes to a decoder.
+
 ## Keys on the Tracking screen
 
 Decided 2026-11-08. Only keys the screen has no other use for; the radio's own keys keep working (Monitor held opens

@@ -9,9 +9,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "sat/sat_doppler.h"
 #include "sat/sgp4.h"
-
-#define SAT_C_KMS	299792.458	// speed of light, km/s
 
 typedef struct {
 	double lat, lon;	// geodetic, radians (east positive)
@@ -34,11 +33,6 @@ void sat_observer_set(sat_observer_t *o, double lat_deg, double lon_deg, double 
 void sat_look(const sat_observer_t *o, const sgp4_state_t *st, double unix_s, sat_look_t *out);
 // Propagate and look in one step: false when SGP4 can't give a state (decayed, elements out of range)
 bool sat_look_at(const sgp4_t *s, const sat_observer_t *o, double unix_s, sat_look_t *out);
-
-// The frequency to receive a downlink sent on f_hz, and to send on so the satellite hears the uplink on f_hz, at a
-// range rate (km/s): f (1 - v / c) and f / (1 - v / c), rounded to the hertz
-uint32_t sat_doppler_rx_hz(uint32_t f_hz, double range_rate);
-uint32_t sat_doppler_tx_hz(uint32_t f_hz, double range_rate);
 
 // The center of a 4- or 6-character Maidenhead locator ("FN31", "FN31pr"), case-insensitive, in degrees. False for a
 // malformed locator

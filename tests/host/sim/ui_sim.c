@@ -1108,6 +1108,14 @@ void radio_req_rx_hz(uint32_t hz)
 	vfo_rx_hz = view.ch.rx_hz = hz;
 	changed();
 }
+// As the radio core: a flag of the VFO, refusing PTT
+void radio_req_vfo_rx_only(bool on)
+{
+	if (view.vfo) {
+		view.ch.rx_only = on;
+		changed();
+	}
+}
 #endif
 void radio_req_vfo_tx(uint32_t hz)
 {
