@@ -631,6 +631,10 @@ static const flow_t flows[] = {
 	  10, false },
 	{ "S set time back leaves it", "ok 7 5 up ok", "back", "screen=group", 1, false },
 	{ "S time zone setting", "ok 7 5", "up up", "screen=group shows=Time_zone shows=UTC-6", 2, false },
+	{ "S pass times in UTC: the row follows Time zone", "ok 7 5", "up up up", "screen=group shows=Pass_times_in_UTC", 3, false },
+	{ "S pass times in UTC: the satellite screens show UTC, not the offset", "ok 7 5 up up up ok long:back", "ok 6 0",
+	  "screen=satellites shows=UTC hides=UTC-6", 3, false },
+	{ "S pass times in local time again", "ok 7 5 up up up ok ok long:back", "ok 6 0", "screen=satellites shows=UTC-6", 3, false },
 	{ "S next pass on the Tools row", "ok 6", "up", "shows=Satellites shows=ISS_up", 1, false },
 #endif
 	{ "A KISS on USB", "ok 6 8", "up up ok", "aprs_kiss=1", 3, false },

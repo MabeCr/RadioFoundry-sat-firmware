@@ -42,7 +42,7 @@ enum {
 	DL_SAT_OP_LOAD		= 1,	// none -> tle u8, sgp4 u8 (the errors, 0 = ok), catalog u32
 	DL_SAT_OP_OBSERVER	= 2,	// lat i32, lon i32 (1e-7 degree), alt i16 (m)
 	DL_SAT_OP_OBSERVER_GPS	= 3,	// none: the GPS fix's position
-	DL_SAT_OP_TIME		= 4,	// unix u32: the clock, until the next NMEA sentence
+	DL_SAT_OP_TIME		= 4,	// unix u32 [, zone i16: minutes from UTC, -720..+840 in steps of 15]: the clock, until the next NMEA sentence; and the Time zone setting
 	DL_SAT_OP_LOOK		= 5,	// unix u32 (0 now), ms u16 -> az u16, el i16 (0.01 deg), range u32 (m), range rate i32
 					// (mm/s), rx u32, tx u32 (Hz), us u32
 	DL_SAT_OP_PASS		= 6,	// from u32 (0 now), span u16 (s, <= 3600), min el i8 -> found u8, aos u32, tca u32,

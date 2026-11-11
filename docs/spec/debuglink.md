@@ -781,7 +781,7 @@ a time of 0 is the radio's clock now.
 | 1 | LOAD | none | TLE error u8, SGP4 error u8 (`tle_err_t`, `sgp4_err_t`, 0 = loaded), catalog number u32 (0 when not loaded). A failed load keeps the satellite already loaded |
 | 2 | OBSERVER | lat i32, lon i32 (1e-7 degree, east positive), height i16 (m) | none |
 | 3 | OBSERVER_GPS | none | none; status 4 without a GPS fix |
-| 4 | TIME | Unix seconds u32 | none. Sets the clock until the next NMEA sentence ([satellite.md](satellite.md) 4.1): for a bench without a fix |
+| 4 | TIME | Unix seconds u32, optionally the time zone i16 (minutes from UTC, -720 to +840, a multiple of 15) | none. Sets the clock until the next NMEA sentence ([satellite.md](satellite.md) 4.1): for a bench without a fix. With a zone it also sets the Time zone setting (Settings > Location), so a phone that knows its own offset, daylight saving included, can set it with the clock. Status 2 for a zone off the grid or out of range, and then nothing changes; a firmware from before the zone answers 2 to the longer request |
 | 5 | LOOK | Unix seconds u32, ms u16 | azimuth u16, elevation i16 (0.01 degree), range u32 (m), range rate i32 (mm/s), downlink and uplink with Doppler u32 (Hz, 0 without a profile), the run's us u32 |
 | 6 | PASS | from u32, span u16 (s, 1-3600), lowest peak i8 (degrees) | found u8, rise, peak, set u32 (Unix seconds, 0 when none), peak elevation i16, azimuth at rise and at set u16 (0.01 degree), model runs u16, us u32 |
 | 7 | BENCH | runs u16 (1-1000) | runs done u16, us u32: the model run that many times, or for 250 ms, whichever ends first |

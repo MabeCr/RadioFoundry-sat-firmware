@@ -21,7 +21,8 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 	out->count = sat_svc_count();
 	out->store = sat_store_slots() != 0;
 	out->utc = sat_clock_now(&sat_utc, hal_millis(), &now) ? (uint32_t)now : 0u;
-	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
+	// Pass times in UTC: no offset, so every screen that adds it shows UTC and its label says so
+	out->utc_offset_min = ui_svc_setting_get(UI_SET_SAT_UTC) != 0 ? 0 : (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
 	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
 	out->pos_ok = sat_svc_position(&out->lat_e7, &out->lon_e7);	// the position the passes are worked out for
 	return true;

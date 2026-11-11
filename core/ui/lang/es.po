@@ -2841,6 +2841,10 @@ msgid "Time zone"
 msgstr "Zona horaria"
 
 #: core/ui/ui_menus.c
+msgid "Pass times in UTC"
+msgstr "Horas de pases en UTC"
+
+#: core/ui/ui_menus.c
 msgid "Lowest pass"
 msgstr "Pase mínimo"
 

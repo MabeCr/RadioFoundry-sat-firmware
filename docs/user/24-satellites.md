@@ -114,7 +114,10 @@ rules as `rfoundry_debug.py sat update` and never changes what a satellite is se
 **Settings > Location** ([Settings](17-settings.md)):
 
 - **Time zone**: your offset from UTC, for the times on these screens. There is no daylight saving rule: change it when
-  the clocks change.
+  the clocks change, or let the [TLE page](../dev/sat-tle-web-tool.md) set it: when it sets the clock from your phone it
+  sends the phone's own offset (daylight saving included) too.
+- **Pass times in UTC**: on, the times on these screens are UTC and the title says so; off, they are in your Time zone.
+  The Time zone setting is kept either way.
 - **Set time**: the date and time in UTC, for when there's no GPS fix. Up and Down (or the knob) change the field,
   digits type it, **#** moves to the next field, **OK** sets it. Pick the next minute from a phone's clock, and press OK
   as it reaches :00. The radio keeps it while off (on a radio with a battery-backed clock), so you set it once; a GPS fix

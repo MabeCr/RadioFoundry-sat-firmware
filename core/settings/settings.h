@@ -232,7 +232,7 @@ typedef struct {
 	// one's struct goes, and the next save writes this build's length
 	int16_t utc_offset_min;		// local time: minutes from UTC, -720..+840 in steps of 15
 	uint8_t sat_min_el;		// the lowest pass listed: 0 = the default (10 degrees), else degrees + 1
-	uint8_t reserved9;		// 0
+	uint8_t sat_flags;		// SETTINGS_SAT_* (was reserved9: 0 = local time, as before)
 #endif
 } settings_t;
 
@@ -304,6 +304,7 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 // theme (4, terminal) has its bit 2 in updown_home bit 7, the one spare bit: a firmware from before reads the low bits,
 // 0, and shows the dark theme
 #define SETTINGS_SMALL_MASK	0x03u
+#define SETTINGS_SAT_UTC	0x01u	// sat_flags: the satellite screens show times in UTC, not local time (Pass times in UTC)
 #define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
 #define SETTINGS_THEME_MAX	7u
 static inline uint8_t settings_theme(const settings_t *s)

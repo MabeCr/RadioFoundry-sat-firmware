@@ -2841,6 +2841,10 @@ msgid "Time zone"
 msgstr "Fuso orario"
 
 #: core/ui/ui_menus.c
+msgid "Pass times in UTC"
+msgstr "Orari dei passaggi in UTC"
+
+#: core/ui/ui_menus.c
 msgid "Lowest pass"
 msgstr "Passaggio min."
 
