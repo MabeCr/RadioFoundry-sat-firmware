@@ -7,8 +7,9 @@ In a build with satellite tracking (`CONFIG_SAT`, off in the standard images), t
 satellites you store pass over you. It works the passes out itself, from each satellite's orbital elements (a TLE) and
 your position and time. Which radios can store satellites: [Feature matrix](../feature-matrix.md).
 
-Status: the satellite list and the pass list are built and tested in the simulator, untested on a radio. Tracking a
-pass with Doppler correction is not built yet.
+Status: the satellite list, the pass list and the Tracking screen with Doppler correction are built and tested in the
+simulator. The newest options (the frequency you type and **OK** to swap to it, UTC or local times, the time zone from
+the phone) are less tested on a radio than the rest. A quick start is in the [README](../../README.md#satellite-tracking).
 
 <img src="../ux/screens/240x320i10x5/satellites.png" width="200" alt="The satellite list">
 <img src="../ux/screens/240x320i10x5/satellite_passes.png" width="200" alt="One satellite's passes">

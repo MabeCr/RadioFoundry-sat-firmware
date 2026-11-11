@@ -92,6 +92,43 @@ by the UI simulator (`make -C tests/host ui-gallery`).</sub>
 What each radio supports is in the [feature matrix](docs/feature-matrix.md). Every feature that costs flash has a
 build switch ([build-config](docs/build-config.md)).
 
+## Satellite tracking
+
+This fork adds satellite tracking: the radio works out when amateur satellites pass over you, shows a sky plot, and
+retunes the receiver for Doppler shift. It is not in the standard release images (`CONFIG_SAT` is off). The DM-32UV is
+the radio it is built and tried on. The full guide is [Satellites](docs/user/24-satellites.md).
+
+**Get started**
+
+1. **Install the satellite build.** On this repository's [Releases](https://github.com/MabeCr/RadioFoundry-sat-firmware/releases) page, download
+   `rfoundry_dm32_satellite.bin` from the newest `satellite-<commit>` pre-release (it works from a phone's browser).
+   Back up the radio first, then give the file to the web installer's own-firmware upload. Update mode is **PTT + SK1**
+   held while turning the radio on ([steps and recovery](docs/testing/dm32-satellite-bringup.md#2-install)).
+2. **Give the radio the time and your position.** A GPS fix gives both. Without one, set the time in **Settings >
+   Location > Set time** and your position under **Tools > APRS**.
+3. **Load fresh orbit data.** Open the [satellite page](https://mabecr.github.io/sat-tle-tools/) in Chrome or Edge
+   (on Android the programming cable goes on an OTG adapter), connect to the radio, set its clock from the phone, and
+   update the element sets. Do this every week or two: low-orbit satellites drift out of date. If CelesTrak is down, the
+   page uses a copy kept on the site and says how old it is.
+4. **See the passes.** On the radio press **OK**, **6** (Tools), **0**. **OK** on a satellite lists its passes. **OK**
+   on a pass (or hold **OK** on a satellite) opens Tracking.
+5. **Track.** Before the pass, press **#** to tune the receiver, or **\*** to let the radio follow the Doppler itself.
+
+**On the Tracking screen**
+
+| Key | Does |
+|---|---|
+| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. Press again to retune; hold to clear your dial nudge |
+| **\*** | Follows the Doppler by itself (**AUTO**). Press again to stop |
+| **1** | Types a downlink of your own, for example an SSTV or beacon frequency. It is receive only |
+| **OK** | Swaps between the satellite's own downlink and the one you typed |
+| **0** | Holds the squelch open to hear the whole pass |
+| Dial, **Up**, **Down** | Nudges the downlink 1 kHz a click |
+
+Times show in your **Time zone** or in UTC (**Settings > Location > Pass times in UTC**). The TLE page sets the zone
+along with the clock. Nothing here transmits on its own: the radio keeps the transmit frequency the satellite's own
+uplink and refuses PTT on a downlink you typed.
+
 ## Interoperability
 
 **Across hardware.** One core runs on every radio, and never checks which radio it's on. A board file picks the chips
