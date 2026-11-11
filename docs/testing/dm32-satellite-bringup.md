@@ -110,6 +110,7 @@ A log by hand, newest last. Nothing here is a support claim.
 | 2026-11-05 | Tracking on the radio | displayed and plausible; the arrow was in the wrong place (fixed) |
 | 2026-11-05 | A Tracking soak of a few minutes | **the UI task hung 3 s (watchdog, `crash.kind=5`, `crash.task=ui`) after 681 s**: a reader waited on a write it had preempted. Fixed (readers give up after 50 tries); not yet retested |
 | 2026-11-05 | The browser page: connect (FT231X cable, WebUSB, Android phone), set the radio's clock, stored list, diagnostics | works |
+| 2026-11-11 | A real pass with the automatic mode (`*`) | the receiver followed the Doppler in steps about every 30 s; **no click heard** at the retunes. By ear, one pass; the squelch state wasn't recorded |
 | | The battery-backed clock across a power cycle, Set time, the GPS mark, a 15 minute Tracking soak on the fixed build | **untested** (steps 10 to 12) |
 
 ## 6. What to send back

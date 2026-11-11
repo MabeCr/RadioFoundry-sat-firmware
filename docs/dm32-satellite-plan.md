@@ -295,7 +295,7 @@ The main feature. The radio retunes receive and transmit continuously during a p
 - Resolution: 10 Hz units, so correction is effectively smooth.
 - Transmit: the single synthesizer retunes when keyed, so the corrected uplink applies at each key-up.
 - Feasibility: high in principle. Test receive-only first.
-- Unknown: whether retuning during receive causes clicks or audio drops.
+- Retuning during receive: no click was heard on a real pass with the automatic mode (by ear, one pass, 2026-11-11). A recording would confirm it.
 
 ### Drift detection and frequency calibration
 
@@ -498,7 +498,7 @@ Other:
 | Does the GPS get an outdoor fix? | NMEA arrives on the radio. A fix outdoors is still to check |
 | Board revision, stock firmware version, vocoder variant | Open: needs the radio |
 | Data flash free for profiles, TLEs, logs and recordings | Open |
-| Does retuning during receive cause clicks or audio drops? | Open |
+| Does retuning during receive cause clicks or audio drops? | No click heard on a real pass (by ear, one pass, 2026-11-11); not recorded |
 | How fast does the FD6818 settle after a retune? | Open |
 | Can the CPU read mic samples with the transmitter off? | Open. The VOX mic level reading is suspect |
 | Can an offset reading be fast and steady enough for drift correction? | Open |

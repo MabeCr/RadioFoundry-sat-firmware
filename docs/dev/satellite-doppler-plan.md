@@ -46,8 +46,9 @@ on a tall panel, fewer words on a small one, as other screens do with their text
 toggle, and the status line carries MON. No modal prompt.
 
 With the squelch latched open there is no gap in the signal to retune in, so the automatic mode (phase 2) must not wait
-for one then: it retunes on the threshold and the minimum interval alone, and the measurement from phase 0 says
-whether the audio click of a retune is acceptable. Until then `*` with the squelch open is the open question below.
+for one then: it retunes on the threshold and the minimum interval alone. On a real pass the automatic retunes were not
+heard as a click (by ear, one pass, reported 2026-11-11; whether the squelch was latched open then wasn't recorded), so
+the interval below stands. A recording or a high-pass listen would show what the ear can't.
 
 ## Phases, with a gate between each
 
@@ -100,7 +101,8 @@ Proposed numbers for phase 2, to adjust after a real pass: retune when the neede
 
 ## Open items
 
-- Whether the audio drops or clicks during a retune (listen with a second radio nearby).
+- Whether the audio drops or clicks during a retune: **no click was heard** on a real pass with `*` (by ear, one pass,
+  2026-11-11). Still open: a recording or high-pass listen, and a pass with the squelch latched open.
 - Whether the synthesizer's swing between bands at key-up (the split) is quick enough for a satellite's key-up: a transmit
   test, with a dummy load, after phase 1.
 - The automatic mode's threshold and interval (proposed above), from a real pass.

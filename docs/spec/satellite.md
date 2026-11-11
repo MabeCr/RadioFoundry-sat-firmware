@@ -191,7 +191,8 @@ channel (162.400 MHz here) for a base frequency.
 Measured on a radio ([the plan](../dev/satellite-doppler-plan.md)): a retune is one `rx()` call of about 1.5 ms and the
 level is steady about 10 ms later, whatever the step (2 and 10 kHz settled alike), with a few milliseconds of no carrier. A
 frequency error costs signal: 2 kHz none, 10 kHz 21 dB on a 25 kHz channel. So a retune every 30 to 60 seconds is a
-click, and the receiver is kept within about 2 kHz.
+click, and the receiver is kept within about 2 kHz. On a real pass with the automatic mode no click was heard (by ear, one
+pass, 2026-11-11), so the interval stands.
 
 The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic mode comes after a real pass):
 
