@@ -4977,6 +4977,7 @@ static const set_item_t s_location[] = {
 	// Satellite tracking (Tools > Satellites, docs/spec/satellite.md 5.1): local time for its pass times, and the
 	// lowest pass it lists
 	NUMBER(TRN("Time zone"), "UTC offset local time clock", UI_SET_UTC_OFFSET, -720, 840, 15, NULL),
+	TOGGLE(TRN("Pass times in UTC"), "local time zone utc clock", UI_SET_SAT_UTC),
 	NUMBER(TRN("Lowest pass"), "satellite elevation horizon", UI_SET_SAT_MIN_EL, 0, 60, 5, GLYPH_DEGREE),
 	ACTION(TRN("Set time"), "clock date utc rtc", SA_SET_TIME),
 #endif

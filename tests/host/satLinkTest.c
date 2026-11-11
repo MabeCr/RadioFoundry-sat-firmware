@@ -10,6 +10,7 @@
 #include "debuglink/debuglink_proto.h"
 #include "radio/retune_test.h"
 #include "sat/sat_clock.h"
+#include "settings/settings.h"
 #include "sat/sat_tle.h"
 #include "sim/sim_flash.h"
 #include "storage/storage.h"
@@ -21,6 +22,11 @@ static int failures;
 #define COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
 static uint32_t fake_ms, fake_us;
+
+// The settings the Time zone goes into (core/settings): one copy, nothing is saved
+static settings_t fake_settings;
+settings_t *settings_begin(void) { return &fake_settings; }
+void settings_end(uint32_t now_ms) { (void)now_ms; }
 
 void storage_lock(void) {}
 void storage_unlock(void) {}
@@ -450,6 +456,26 @@ int main(void)
 	memcpy(req + 1, &now, 4);
 	memset(req + 1, 0, 4);
 	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_BAD_ARG);	// 0 is no time
+	// The time zone with the clock: an offset in steps of 15 minutes sets the Time zone setting (a phone's, daylight saving
+	// included); one off the grid, out of range or cut short is refused and changes nothing
+	memcpy(req + 1, &now, 4);
+	int16_t zone = -360;
+	memcpy(req + 5, &zone, 2);
+	CHECK(cmd(req, 7) == 1 && out[0] == DL_ST_OK && fake_settings.utc_offset_min == -360);
+	zone = 345;				// Nepal
+	memcpy(req + 5, &zone, 2);
+	CHECK(cmd(req, 7) == 1 && out[0] == DL_ST_OK && fake_settings.utc_offset_min == 345);
+	zone = 100;				// not a multiple of 15
+	memcpy(req + 5, &zone, 2);
+	CHECK(cmd(req, 7) == 1 && out[0] == DL_ST_BAD_ARG && fake_settings.utc_offset_min == 345);
+	zone = 900;				// past +14:00
+	memcpy(req + 5, &zone, 2);
+	CHECK(cmd(req, 7) == 1 && out[0] == DL_ST_BAD_ARG && fake_settings.utc_offset_min == 345);
+	zone = -780;
+	memcpy(req + 5, &zone, 2);
+	CHECK(cmd(req, 7) == 1 && out[0] == DL_ST_BAD_ARG);
+	CHECK(cmd(req, 6) == 1 && out[0] == DL_ST_BAD_ARG);	// half a zone
+	CHECK(cmd(req, 5) == 1 && out[0] == DL_ST_OK && fake_settings.utc_offset_min == 345);	// no zone: the setting stays
 
 	// The bench: the runs asked for, or 250 ms of them
 	req[0] = DL_SAT_OP_BENCH;

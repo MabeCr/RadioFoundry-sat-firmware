@@ -15,6 +15,7 @@
 #include "radio/radio.h"
 #include "radio/retune_test.h"
 #include "sat/sat_clock.h"
+#include "settings/settings.h"
 #include "sat/sat_pass.h"
 #include "sat/sat_store.h"
 #include "sat/sat_track.h"
@@ -374,11 +375,22 @@ size_t debuglink_cmd_sat(const uint8_t *req, uint16_t len, uint8_t *out, size_t 
 		return op_observer(req, len, out);
 	case DL_SAT_OP_OBSERVER_GPS:
 		return len == 1 ? op_observer_gps(out) : status(out, DL_ST_BAD_ARG);
-	case DL_SAT_OP_TIME:
-		if (len != 5 || get32(req + 1) == 0)
+	case DL_SAT_OP_TIME: {
+		// unix u32, then optionally the local time zone as an i16 of minutes from UTC (-720..+840, steps of 15): the
+		// Time zone setting, so a phone that knows its own offset (daylight saving included) can set it with the clock
+		if ((len != 5 && len != 7) || get32(req + 1) == 0)
+			return status(out, DL_ST_BAD_ARG);
+		int16_t zone = len == 7 ? (int16_t)get16(req + 5) : 0;
+		if (len == 7 && (zone < -720 || zone > 840 || zone % 15 != 0))
 			return status(out, DL_ST_BAD_ARG);
 		sat_clock_set_unix(&sat_utc, get32(req + 1), hal_millis());
+		if (len == 7) {
+			settings_t *st = settings_begin();
+			st->utc_offset_min = zone;
+			settings_end(hal_millis());
+		}
 		return status(out, DL_ST_OK);
+	}
 	case DL_SAT_OP_LOOK:
 		return op_look(req, len, out);
 	case DL_SAT_OP_PASS:

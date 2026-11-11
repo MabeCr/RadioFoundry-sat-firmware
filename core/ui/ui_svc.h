@@ -192,7 +192,7 @@ typedef struct {
 	uint8_t count;		// satellites stored
 	bool store;		// the radio has a satellite store (else satellites are loaded over the cable, to RAM)
 	uint32_t utc;		// UTC now, Unix seconds (0 without the time)
-	int16_t utc_offset_min;	// the Time zone setting
+	int16_t utc_offset_min;	// minutes to add to UTC for the times shown: the Time zone setting, or 0 with "Pass times in UTC"
 	uint8_t min_el;		// the Lowest pass setting
 	bool pos_ok;		// the observer's position is known (the one the passes are worked out for)
 	int32_t lat_e7, lon_e7;	// that position, 1e-7 degree
@@ -388,9 +388,10 @@ typedef enum {
 	UI_SET_LANGUAGE,	// the UI's language, i18n.h lang_value: "en" English, 0 never picked (Settings > Display; settings_t.lang)
 #if CONFIG_SAT
 	// Satellite tracking (Settings > Location, CONFIG_SAT; docs/spec/satellite.md 5.1): local time as minutes from UTC
-	// (-720..+840, steps of 15; settings_t.utc_offset_min), the lowest pass listed in degrees (0..60; settings_t.sat_min_el).
+	// (-720..+840, steps of 15; settings_t.utc_offset_min), the lowest pass listed in degrees (0..60; settings_t.sat_min_el),
+	// and whether its times are shown in UTC instead of local time (0/1; settings_t.sat_flags SETTINGS_SAT_UTC).
 	// Only in a build with satellites: the RAM table of the settings has a word for each
-	UI_SET_UTC_OFFSET, UI_SET_SAT_MIN_EL,
+	UI_SET_UTC_OFFSET, UI_SET_SAT_MIN_EL, UI_SET_SAT_UTC,
 #endif
 	UI_SET_COUNT
 } ui_setting_t;

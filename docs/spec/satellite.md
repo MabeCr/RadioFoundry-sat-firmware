@@ -260,6 +260,11 @@ preempted would never let it finish (the watchdog caught this once on the radio:
 gives up for that draw and asks again at the next. The slow arithmetic of a result (Doppler, heading) is done before its
 write, which then holds only stores.
 
+The times the screens show are UTC plus `ui_sat_status_t.utc_offset_min`: the Time zone setting, or 0 with Pass times in
+UTC (`UI_SET_SAT_UTC`, `settings_t.sat_flags`), where the title's "UTC-6" reads "UTC". The model and the service work in UTC
+either way. The Time zone can be set from the debug link with the clock (`TIME` with a zone, [debuglink.md](debuglink.md)
+3.24): the TLE page sends its device's offset, daylight saving included.
+
 The tracked satellite is looked at only from `SAT_TRACK_MARGIN_S` (120 s) before the pass's rise to the same after its
 set; outside that `sat_svc_live` is false and the screen draws the path alone and works nothing out. The horizon is
 reached a little before the rise above the lowest pass elevation, so inside the margin the position is kept while the

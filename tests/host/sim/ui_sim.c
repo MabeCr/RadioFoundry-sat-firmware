@@ -1827,7 +1827,7 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 	out->store = true;
 	out->utc = sat_sim.set_utc != 0 ? sat_sim.set_utc + (uint32_t)((hal_millis() - sat_sim.set_ms) / 1000u) :
 		sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
-	out->utc_offset_min = (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
+	out->utc_offset_min = ui_svc_setting_get(UI_SET_SAT_UTC) != 0 ? 0 : (int16_t)ui_svc_setting_get(UI_SET_UTC_OFFSET);
 	out->min_el = (uint8_t)ui_svc_setting_get(UI_SET_SAT_MIN_EL);
 	out->pos_ok = sat_sim.state != UI_SAT_NO_POSITION;
 	out->lat_e7 = 423601000;	// the simulator's GPS fix (ui_svc_position)
@@ -2175,6 +2175,7 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	sat_sim.state = UI_SAT_READY;
 	ui_svc_setting_set(UI_SET_UTC_OFFSET, -360);	// UTC-6, as the mockups
 	ui_svc_setting_set(UI_SET_SAT_MIN_EL, 10);
+	ui_svc_setting_set(UI_SET_SAT_UTC, 0);	// local time
 #endif
 	ui_svc_setting_set(UI_SET_DUAL_B, 0);
 	memset(sim_dual, 0, sizeof sim_dual);

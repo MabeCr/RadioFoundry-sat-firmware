@@ -609,9 +609,13 @@ class DebugLink:
     def sat_observer_gps(self):
         self.request(SAT, bytes([SAT_OP_OBSERVER_GPS]))
 
-    def sat_time(self, unix_s=None):
-        """Set the radio's UTC (until its next NMEA sentence): unix seconds, default the host's clock"""
-        self.request(SAT, struct.pack("<BI", SAT_OP_TIME, int(time.time() if unix_s is None else unix_s)))
+    def sat_time(self, unix_s=None, zone_min=None):
+        """Set the radio's UTC (until its next NMEA sentence): unix seconds, default the host's clock. With zone_min (minutes
+        from UTC, -720..+840 in steps of 15) also its Time zone setting"""
+        pay = struct.pack("<BI", SAT_OP_TIME, int(time.time() if unix_s is None else unix_s))
+        if zone_min is not None:
+            pay += struct.pack("<h", int(zone_min))
+        self.request(SAT, pay)
 
     def sat_look(self, unix_s=0.0):
         """Where the satellite is at unix_s (0: the radio's clock now): {az, el, range_km, range_rate, rx_hz, tx_hz, us}"""
@@ -1782,7 +1786,7 @@ def cmd_sat(link, a):
         else:
             raise DebugLinkError("sat observer: LAT LON [ALT_M], or nothing for the GPS fix")
     elif a.op == "time":
-        link.sat_time(int(a.args[0]) if a.args else None)
+        link.sat_time(int(a.args[0]) if a.args else None, int(a.args[1]) if len(a.args) > 1 else None)
     elif a.op == "look":
         for k, v in link.sat_look(float(a.args[0]) if a.args else 0.0).items():
             print(f"{k}={v}")

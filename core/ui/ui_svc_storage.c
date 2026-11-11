@@ -193,6 +193,9 @@ int32_t ui_svc_setting_get(uint8_t id)
 	case UI_SET_SAT_MIN_EL:
 		settings_read(&st);
 		return st.sat_min_el == 0 ? ui_svc_ram_get(id) : clamp16(st.sat_min_el - 1, 0, 90);
+	case UI_SET_SAT_UTC:
+		settings_read(&st);
+		return (st.sat_flags & SETTINGS_SAT_UTC) != 0;
 #endif
 	case UI_SET_VFO_STEP:
 		settings_read(&st);
@@ -445,6 +448,11 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 	case UI_SET_SAT_MIN_EL:
 		st = settings_begin();
 		st->sat_min_el = (uint8_t)(clamp16(value, 0, 90) + 1);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_UTC:
+		st = settings_begin();
+		st->sat_flags = (uint8_t)(value != 0 ? st->sat_flags | SETTINGS_SAT_UTC : st->sat_flags & ~SETTINGS_SAT_UTC);
 		settings_end(hal_millis());
 		return true;
 #endif
