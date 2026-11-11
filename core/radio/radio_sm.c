@@ -337,6 +337,20 @@ static void reset_tone(radio_sm_t *sm)
 // The APRS job's phases (aprs_phase)
 enum { APRS_RF_OFF = 0, APRS_RF_LISTEN, APRS_RF_KEYUP, APRS_RF_SEND };
 
+#if CONFIG_BCAST_FM || CONFIG_SAT
+// Whether a scan or dual watch is running: never in a build without scanning (radio_sm_t has no scan state then).
+// Guarded as its callers are (the broadcast listening state, the Doppler retune)
+static bool scan_running(const radio_sm_t *sm)
+{
+#if CONFIG_SCAN
+	return scan_on(&sm->scan);
+#else
+	(void)sm;
+	return false;
+#endif
+}
+#endif
+
 // A broadcast station is listened to, not squelched: the state stays RX (so the screen shows the level and the LED is on)
 // whatever the signal, and the audio plays. A scan keeps the squelch to stop on stations
 static bool bcast_listening(const radio_sm_t *sm)
@@ -346,7 +360,7 @@ static bool bcast_listening(const radio_sm_t *sm)
 #if CONFIG_APRS
 	own_rx = sm->aprs_phase == APRS_RF_OFF;
 #endif
-	return own_rx && sm->view.bcast && !sm->view.bcast_fault && !scan_on(&sm->scan);
+	return own_rx && sm->view.bcast && !sm->view.bcast_fault && !scan_running(sm);
 #else
 	(void)sm;
 	return false;
@@ -5002,7 +5016,7 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 		// up again). TX is left alone, so a cross-band split stays. Only an FM VFO on a plain receive frequency
 		uint32_t hz = (uint32_t)req->arg;
 		if (busy || req->arg <= 0 || !sm->view.vfo || sm->view.ch.mode == RADIO_MODE_DMR || sm->view.am || sm->view.bcast ||
-		    scan_on(&sm->scan) || !board_in_band(hz, false) || listen_band(hz) || hz == sm->view.ch.rx_hz)
+		    scan_running(sm) || !board_in_band(hz, false) || listen_band(hz) || hz == sm->view.ch.rx_hz)
 			break;
 		sm->vfo_ch.rx_hz = hz;
 		sm->view.ch.rx_hz = hz;
