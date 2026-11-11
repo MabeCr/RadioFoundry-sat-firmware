@@ -227,12 +227,16 @@ typedef struct {
 #if CONFIG_SAT
 	// Satellite tracking's settings (Settings > Location, docs/spec/satellite.md 5.1; appended for sat); 0 in an older
 	// record: UTC and the default lowest pass. Only in a build with satellites: settings_t is kept in six copies in
-	// RAM, and a radio whose default image has next to no RAM to spare (docs/feature-matrix.md) can't afford 24 bytes
+	// RAM, and a radio whose default image has next to no RAM to spare (docs/feature-matrix.md) can't afford 32 bytes
 	// for a feature it leaves off (settings-store.md 3). A record from the other kind of build is read as far as this
 	// one's struct goes, and the next save writes this build's length
 	int16_t utc_offset_min;		// local time: minutes from UTC, -720..+840 in steps of 15
 	uint8_t sat_min_el;		// the lowest pass listed: 0 = the default (10 degrees), else degrees + 1
 	uint8_t sat_flags;		// SETTINGS_SAT_* (was reserved9: 0 = local time, as before)
+	// A downlink typed on the Tracking screen for one satellite (docs/spec/satellite.md 4.5), kept so it is there at the
+	// next pass: the satellite's catalog number and the frequency in Hz, 0 = none
+	uint32_t sat_alt_norad;
+	uint32_t sat_alt_hz;
 #endif
 } settings_t;
 

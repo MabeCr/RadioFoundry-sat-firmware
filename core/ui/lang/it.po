@@ -3317,16 +3317,24 @@ msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq 
 msgstr "{0 Squelch  # Sintonizza  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  Indietro|# Sint  * Auto  Indietro}"
 
 #: core/ui/ui_sat.c
-msgid "The satellite's own frequency"
-msgstr "La frequenza del satellite"
-
-#: core/ui/ui_sat.c
 msgid "Listening on"
 msgstr "In ascolto su"
 
 #: core/ui/ui_sat.c
 msgid ": RX only"
 msgstr ": solo RX"
+
+#: core/ui/ui_sat.c
+msgid "The satellite's own frequency"
+msgstr "La frequenza del satellite"
+
+#: core/ui/ui_sat.c
+msgid "Its own"
+msgstr "Propria"
+
+#: core/ui/ui_sat.c
+msgid "Yours"
+msgstr "La tua"
 
 #: core/ui/ui_sat.c
 msgid "Downlink to listen on,"
@@ -3341,16 +3349,8 @@ msgid "Receive only"
 msgstr "Solo ricezione"
 
 #: core/ui/ui_sat.c
-msgid "Its own"
-msgstr "Propria"
-
-#: core/ui/ui_sat.c
-msgid "Yours"
-msgstr "La tua"
-
-#: core/ui/ui_sat.c
-msgid "{0-9 type  OK its own  Back|0-9 type  OK own  Back}"
-msgstr "{0-9 digita  OK propria  Indietro|0-9 digita  OK sua  Indietro}"
+msgid "{0-9 type  OK close  Back|0-9 type  Back}"
+msgstr "{0-9 digita  OK chiudi  Indietro|0-9 digita  Indietro}"
 
 #: core/ui/ui_sat.c
 msgid "{0-9 type  OK set  Back: delete|0-9  OK set  Back del}"

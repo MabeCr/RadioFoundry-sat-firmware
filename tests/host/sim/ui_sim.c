@@ -2184,6 +2184,8 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	ui_svc_setting_set(UI_SET_UTC_OFFSET, -360);	// UTC-6, as the mockups
 	ui_svc_setting_set(UI_SET_SAT_MIN_EL, 10);
 	ui_svc_setting_set(UI_SET_SAT_UTC, 0);	// local time
+	ui_svc_setting_set(UI_SET_SAT_ALT_NORAD, 0);	// no frequency typed for any satellite
+	ui_svc_setting_set(UI_SET_SAT_ALT_HZ, 0);
 #endif
 	ui_svc_setting_set(UI_SET_DUAL_B, 0);
 	memset(sim_dual, 0, sizeof sim_dual);

@@ -392,6 +392,9 @@ typedef enum {
 	// and whether its times are shown in UTC instead of local time (0/1; settings_t.sat_flags SETTINGS_SAT_UTC).
 	// Only in a build with satellites: the RAM table of the settings has a word for each
 	UI_SET_UTC_OFFSET, UI_SET_SAT_MIN_EL, UI_SET_SAT_UTC,
+	// The downlink typed for a satellite on its Tracking screen: its catalog number and the frequency in Hz, 0 none
+	// (settings_t.sat_alt_norad / sat_alt_hz)
+	UI_SET_SAT_ALT_NORAD, UI_SET_SAT_ALT_HZ,
 #endif
 	UI_SET_COUNT
 } ui_setting_t;

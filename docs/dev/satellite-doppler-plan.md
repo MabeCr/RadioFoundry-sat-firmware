@@ -24,9 +24,10 @@ downlink. Decisions come from the owner's answers; open items are at the end.
 ## A downlink of your own (2026-11-11)
 
 Special events use frequencies a profile doesn't hold (an SSTV event is a downlink only on another frequency, a beacon
-has its own). OK on Tracking opens a Frequency screen: the owner types the downlink, Doppler works on it, and it is
-receive only. Kept per satellite in RAM until power off; saving it in the satellite's record, and a list of modes per
-satellite chosen by date, are left for later. The radio doesn't decode the picture: the audio goes to a decoder.
+has its own). The owner types the downlink once (`1` on Tracking, the Frequency screen), it is saved in the settings
+(one frequency, with its satellite), and OK on Tracking swaps between it and the satellite's own during a pass: the
+first trial, going back and forth between SSTV and a repeater, showed retyping was too much. Doppler works on it, and it
+is receive only. A list of modes per satellite, kept in the satellite's record and chosen by date, is left for later. The radio doesn't decode the picture: the audio goes to a decoder.
 
 ## Keys on the Tracking screen
 

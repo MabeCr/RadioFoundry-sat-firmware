@@ -496,18 +496,26 @@ static int32_t trk_nudge_hz;		// the dial's correction, added to every downlink
 static sat_follow_t trk_follow;		// * : the receiver follows the Doppler by itself (core/sat/sat_follow.c)
 static uint32_t trk_tune_ms;		// when # last asked the radio to tune: the view takes a moment to follow
 static bool trk_rx_only;		// Tracking made the VFO receive only (a typed frequency, a satellite with no uplink)
-static uint32_t ovr_norad, ovr_hz;	// a downlink typed for a satellite (the Frequency screen), kept until the radio is off
+static uint32_t alt_hz;			// the downlink saved for this satellite (the Frequency screen, settings), 0 none
+static bool trk_alt_on;			// OK swapped to it: the Doppler works on it, and the VFO only listens
 
-// The downlink the Doppler works on: the one typed for this satellite, else the profile's
+// The downlink the Doppler works on: the one saved for this satellite when OK swapped to it, else the profile's
 static uint32_t track_base(const ui_sat_profile_t *p)
 {
-	return ovr_hz != 0 && ovr_norad == open_norad ? ovr_hz : p->down_hz;
+	return trk_alt_on && alt_hz != 0 ? alt_hz : p->down_hz;
 }
 
 // A typed frequency has nothing to transmit on, and neither has a satellite with no uplink: the VFO only listens
 static bool track_listen_only(const ui_sat_profile_t *p)
 {
-	return p->up_hz == 0 || (ovr_hz != 0 && ovr_norad == open_norad);
+	return p->up_hz == 0 || (trk_alt_on && alt_hz != 0);
+}
+
+// The frequency saved for the satellite that is open: the settings hold one, with its catalog number
+static uint32_t alt_load(void)
+{
+	return (uint32_t)ui_svc_setting_get(UI_SET_SAT_ALT_NORAD) == open_norad && open_norad != 0 ?
+		(uint32_t)ui_svc_setting_get(UI_SET_SAT_ALT_HZ) : 0u;
 }
 
 // Where the receiver should be: the Doppler-corrected downlink while the satellite is up, else the profile's own, and
@@ -524,7 +532,8 @@ static uint32_t track_want(const ui_sat_profile_t *p)
 
 static void track_enter(void)
 {
-	trk_tuned = trk_entered_vfo = trk_mon_ours = trk_rx_only = false;
+	trk_tuned = trk_entered_vfo = trk_mon_ours = trk_rx_only = trk_alt_on = false;
+	alt_hz = alt_load();
 	trk_nudge_hz = 0;
 	trk_follow.on = false;
 	trk_follow.last_ms = 0;
@@ -660,6 +669,8 @@ static void track_nudge(int dir)
 		radio_req_rx_hz(track_want(&p));
 }
 
+static void track_alt_swap(void);	// below, with the Frequency screen
+
 static bool track_key(const input_event_t *ev)
 {
 	bool press = ev->gesture == GESTURE_PRESS, repeat = ev->gesture == GESTURE_REPEAT;
@@ -675,7 +686,11 @@ static bool track_key(const input_event_t *ev)
 		track_tune(false);
 		return true;
 	}
-	if (press && ev->action == ACT_SELECT) {	// OK: a frequency of your own
+	if (press && ev->action == ACT_SELECT) {	// OK: swap to your frequency and back (type one first when there is none)
+		track_alt_swap();
+		return true;
+	}
+	if (press && ev->action == ACT_DIGIT_1) {	// 1: type a frequency, or change the saved one
 		ui_push(SCR_SAT_FREQ, 0);
 		return true;
 	}
@@ -796,6 +811,12 @@ static void track_draw(void)
 			sb_freq(&b, rv->ch.tx_hz);
 		trow(x, &ty, "TX", buf, none ? ui_col.dim : ui_col.fg);
 	}
+	if (alt_hz != 0 && ui_svc_sat_profile(&p) && p.down_hz != 0) {
+		// What OK swaps to: the frequency not listened on now (two letters like RX: a longer label pushes it off a narrow panel)
+		sb_init(&b, buf, sizeof buf);
+		sb_freq(&b, trk_alt_on ? p.down_hz : alt_hz);
+		trow(x, &ty, "OK", buf, ui_col.dim);
+	}
 	if (!on && have_p) {
 		sb_init(&b, buf, sizeof buf);
 		sb_shifted(&b, track_want(&p), track_base(&p));
@@ -834,8 +855,9 @@ static void track_draw(void)
 
 // --- a downlink of your own (OK on Tracking) ---
 // The satellite's profile gives the frequency to track on; a pass can use another (an SSTV event on 145.800 MHz, a
-// beacon). Typed digits as on the VFO, OK sets it, nothing typed and OK goes back to the satellite's own. Doppler works on
-// it as on the profile's, and it is receive only: the typed frequency is a downlink, so the VFO is made to refuse PTT.
+// beacon). Typed digits as on the VFO, OK sets it: it is saved for the satellite (settings), listened on now, and OK on
+// Tracking swaps between it and the satellite's own from then on. Doppler works on it as on the profile's, and it is
+// receive only: the typed frequency is a downlink, so the VFO is made to refuse PTT.
 
 static char fq_digits[UI_ENTRY_MAX + 1];
 static uint8_t fq_len;
@@ -846,11 +868,10 @@ static void freq_enter(void)
 	fq_digits[0] = '\0';
 }
 
-// A new base for the downlink (0: the satellite's own): the receiver follows when it is tuned already
-static void track_override(uint32_t hz)
+// The base the Doppler works on changed (OK swapped, or a frequency was typed): the receiver follows when it is tuned
+// already, and the VFO's receive-only flag with it
+static void track_alt_apply(void)
 {
-	ovr_norad = open_norad;
-	ovr_hz = hz;
 	const radio_view_t *v = ui_view();
 	ui_sat_profile_t p;
 	if (trk_tuned && v->vfo && ui_svc_sat_profile(&p) && track_base(&p) != 0) {
@@ -859,6 +880,39 @@ static void track_override(uint32_t hz)
 		radio_req_rx_hz(track_want(&p));
 		sat_follow_retuned(&trk_follow, ui_st.now_ms);
 	}
+}
+
+// What a swap says: the frequency now listened on
+static void alt_toast(const ui_sat_profile_t *p)
+{
+	static char msg[40];
+	sbuf_t b;
+	sb_init(&b, msg, sizeof msg);
+	if (trk_alt_on) {
+		sb_str(&b, TR("Listening on"));
+		sb_chr(&b, ' ');
+		sb_freq(&b, alt_hz);
+		sb_str(&b, TR(": RX only"));
+	} else {
+		sb_str(&b, TR("The satellite's own frequency"));
+		(void)p;
+	}
+	ui_toast(msg);
+}
+
+// OK: swap between the satellite's own downlink and the one saved for it; with none saved, type one
+static void track_alt_swap(void)
+{
+	if (alt_hz == 0) {
+		ui_push(SCR_SAT_FREQ, 0);
+		return;
+	}
+	trk_alt_on = !trk_alt_on;
+	track_alt_apply();
+	ui_sat_profile_t p;
+	if (!ui_svc_sat_profile(&p))
+		memset(&p, 0, sizeof p);
+	alt_toast(&p);
 }
 
 static bool freq_key(const input_event_t *ev)
@@ -874,7 +928,6 @@ static bool freq_key(const input_event_t *ev)
 		return true;
 	}
 	if (ev->action == ACT_SELECT || ev->action == ACT_CONTEXT) {
-		static char msg[40];
 		uint32_t hz = 0;
 		if (fq_len != 0) {
 			hz = ui_freq_entry_hz(fq_digits, fq_len);
@@ -882,18 +935,18 @@ static bool freq_key(const input_event_t *ev)
 				return true;	// its toast says why (too few digits, not a band)
 		}
 		ui_pop();
-		track_override(hz);
-		if (hz == 0) {
-			ui_toast(TR("The satellite's own frequency"));
-		} else {
-			sbuf_t b;
-			sb_init(&b, msg, sizeof msg);
-			sb_str(&b, TR("Listening on"));
-			sb_chr(&b, ' ');
-			sb_freq(&b, hz);
-			sb_str(&b, TR(": RX only"));
-			ui_toast(msg);
-		}
+		if (hz == 0)
+			return true;	// nothing typed: nothing changes (OK on Tracking swaps)
+		// Saved for this satellite (one frequency in the settings: the last typed), and listened on now
+		alt_hz = hz;
+		(void)ui_svc_setting_set(UI_SET_SAT_ALT_NORAD, (int32_t)open_norad);
+		(void)ui_svc_setting_set(UI_SET_SAT_ALT_HZ, (int32_t)hz);
+		trk_alt_on = true;
+		track_alt_apply();
+		ui_sat_profile_t p;
+		if (!ui_svc_sat_profile(&p))
+			memset(&p, 0, sizeof p);
+		alt_toast(&p);
 		return true;
 	}
 	return false;
@@ -920,8 +973,27 @@ static void freq_draw(void)
 	int tw = gfx_text_width(big, buf);
 	gfx_text(big, (w - tw) / 2, y, buf, fq_len != 0 ? ui_col.warn : ui_col.dim);
 	y += big->h + 6;
-	// What each is for, as far as the panel has rows (the 128x64 one has the digits and a line or two)
+	// The two frequencies first, then what the screen is for, as far as the panel has rows (the 128x64 one has the digits
+	// and a line or two)
 	const int hy = ui_layout.hint_y;
+	ui_sat_profile_t p;
+	if (ui_svc_sat_profile(&p) && p.down_hz != 0 && y + sm->h <= hy) {
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Its own"));
+		sb_chr(&b, ' ');
+		sb_freq(&b, p.down_hz);
+		gfx_text(sm, 2, y, buf, trk_alt_on || alt_hz == 0 ? ui_col.dim : ui_col.rx);
+		y += sm->h + 1;
+	}
+	if (alt_hz != 0 && y + sm->h <= hy) {
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Yours"));
+		sb_chr(&b, ' ');
+		sb_freq(&b, alt_hz);
+		gfx_text(sm, 2, y, buf, trk_alt_on ? ui_col.rx : ui_col.dim);
+		y += sm->h + 1;
+	}
+	y += 3;
 	if (y + sm->h <= hy)
 		gfx_text(sm, 2, y, TR("Downlink to listen on,"), ui_col.fg);
 	y += sm->h + 1;
@@ -930,24 +1002,7 @@ static void freq_draw(void)
 	y += sm->h + 4;
 	if (y + sm->h <= hy)
 		gfx_text(sm, 2, y, TR("Receive only"), ui_col.dim);
-	y += sm->h + 4;
-	ui_sat_profile_t p;
-	if (ui_svc_sat_profile(&p) && p.down_hz != 0 && y + sm->h <= hy) {
-		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Its own"));
-		sb_chr(&b, ' ');
-		sb_freq(&b, p.down_hz);
-		gfx_text(sm, 2, y, buf, ui_col.dim);
-		y += sm->h + 1;
-	}
-	if (ovr_hz != 0 && ovr_norad == open_norad && y + sm->h <= hy) {
-		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Yours"));
-		sb_chr(&b, ' ');
-		sb_freq(&b, ovr_hz);
-		gfx_text(sm, 2, y, buf, ui_col.rx);
-	}
-	ui_draw_bottom(&ui_st, fq_len == 0 ? TR(TEXT_ALT_OPEN "0-9 type  OK its own  Back" TEXT_ALT_NEXT "0-9 type  OK own  Back" TEXT_ALT_CLOSE) :
+	ui_draw_bottom(&ui_st, fq_len == 0 ? TR(TEXT_ALT_OPEN "0-9 type  OK close  Back" TEXT_ALT_NEXT "0-9 type  Back" TEXT_ALT_CLOSE) :
 		       TR(TEXT_ALT_OPEN "0-9 type  OK set  Back: delete" TEXT_ALT_NEXT "0-9  OK set  Back del" TEXT_ALT_CLOSE));
 	ui_draw_banner(&ui_st);
 }
