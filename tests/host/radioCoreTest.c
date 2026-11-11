@@ -4293,7 +4293,7 @@ static void test_factory_reset(void)
 	CHECK(settings_flush());
 	n_ev = 0;
 	CHECK(ui_svc_factory_reset());
-	sim_flash_cut_after(CONFIG_SAT ? 436 : 432);	// the settings records (page 1: 172 + 4 bytes, page 0: 252 + 4; 4 more with the satellite settings) go in, the native erase fails
+	sim_flash_cut_after(CONFIG_SAT ? 444 : 432);	// the settings records (page 1: 172 + 4 bytes, page 0: 252 + 4; 12 more with the satellite settings) go in, the native erase fails
 	storage_job_poll();
 	sim_flash_power_on();
 	CHECK(n_ev == 1 && strstr(last_ev.text, "native") != NULL);

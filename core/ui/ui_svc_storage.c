@@ -196,6 +196,12 @@ int32_t ui_svc_setting_get(uint8_t id)
 	case UI_SET_SAT_UTC:
 		settings_read(&st);
 		return (st.sat_flags & SETTINGS_SAT_UTC) != 0;
+	case UI_SET_SAT_ALT_NORAD:
+		settings_read(&st);
+		return (int32_t)st.sat_alt_norad;
+	case UI_SET_SAT_ALT_HZ:
+		settings_read(&st);
+		return (int32_t)st.sat_alt_hz;
 #endif
 	case UI_SET_VFO_STEP:
 		settings_read(&st);
@@ -453,6 +459,16 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 	case UI_SET_SAT_UTC:
 		st = settings_begin();
 		st->sat_flags = (uint8_t)(value != 0 ? st->sat_flags | SETTINGS_SAT_UTC : st->sat_flags & ~SETTINGS_SAT_UTC);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_ALT_NORAD:
+		st = settings_begin();
+		st->sat_alt_norad = value > 0 ? (uint32_t)value : 0u;
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_ALT_HZ:
+		st = settings_begin();
+		st->sat_alt_hz = value > 0 ? (uint32_t)value : 0u;
 		settings_end(hal_millis());
 		return true;
 #endif
