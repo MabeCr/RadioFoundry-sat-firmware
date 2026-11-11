@@ -372,6 +372,10 @@ void radio_req_retune_test(void);		// run the retune test queued with retune_tes
 // progress goes on, TX stays as it is, and the user is not counted as having done something (no auto-off, no
 // roaming reset). The VFO's RX frequency is the new one
 void radio_req_rx_hz(uint32_t hz);
+// The VFO only listens (true): PTT is refused with "RX only", as on a receive-only channel. For a frequency typed on the
+// satellite screen (a downlink: nothing there to transmit on) and a satellite with no uplink. Not kept: the screen
+// clears it (false) when it leaves, and a power cycle does
+void radio_req_vfo_rx_only(bool on);
 #endif
 void radio_req_reload(void);			// the settings' preferences changed (squelch, master power, DMR ID)
 // FM bandwidth and sub-audio. On a channel these are temporary changes (P7); in the VFO they change the VFO itself.

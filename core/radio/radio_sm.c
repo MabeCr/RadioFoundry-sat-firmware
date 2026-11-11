@@ -4867,7 +4867,7 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 	// channel, so it neither gives way to nor cancels anything either
 	// (A Doppler retune is the satellite screen's, possibly its automatic mode's: not the user doing something either)
 	bool alert = req->type == RREQ_BEEP || req->type == RREQ_VIBRATE || req->type == RREQ_VOLUME ||
-		     req->type == RREQ_VOLUME_OVERRIDE || req->type == RREQ_RX_HZ;
+		     req->type == RREQ_VOLUME_OVERRIDE || req->type == RREQ_RX_HZ || req->type == RREQ_VFO_RX_ONLY;
 	if (!alert && req->type != RREQ_DMR_FOCUS && req->type != RREQ_SETTINGS && req->type != RREQ_RETUNE) {
 		aprs_rf_abort(sm, now_ms);	// the user does something: an APRS transmission gives way
 	}
@@ -5010,6 +5010,16 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 		changed(sm);
 		break;
 	}
+#endif
+#if CONFIG_SAT
+	case RREQ_VFO_RX_ONLY:
+		// The VFO's own flag, as a channel's "RX only" (tx_denied_reason): kept in vfo_ch so the VFO shows it when it opens
+		sm->vfo_ch.rx_only = req->arg != 0;
+		if (sm->view.vfo) {
+			sm->view.ch.rx_only = sm->vfo_ch.rx_only;
+			changed(sm);
+		}
+		break;
 #endif
 #if CONFIG_AM_RX
 	case RREQ_VFO_STEP_SIZE:

@@ -82,16 +82,6 @@ bool sat_look_at(const sgp4_t *s, const sat_observer_t *o, double unix_s, sat_lo
 	return true;
 }
 
-uint32_t sat_doppler_rx_hz(uint32_t f_hz, double range_rate)
-{
-	return (uint32_t)((double)f_hz * (1.0 - range_rate / SAT_C_KMS) + 0.5);
-}
-
-uint32_t sat_doppler_tx_hz(uint32_t f_hz, double range_rate)
-{
-	return (uint32_t)((double)f_hz / (1.0 - range_rate / SAT_C_KMS) + 0.5);
-}
-
 static int up(char c)
 {
 	return c >= 'a' && c <= 'z' ? c - 'a' + 'A' : c;

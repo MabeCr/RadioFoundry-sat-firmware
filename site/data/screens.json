@@ -723,6 +723,12 @@
     "SAT"
    ]
   },
+  "satellite_frequency": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
   "satellite_set_time": {
    "group": "settings",
    "needs": [

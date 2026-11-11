@@ -632,7 +632,7 @@ msgstr "Enviar posición ya"
 msgid "Automatic beacons"
 msgstr "Balizas automáticas"
 
-#: core/ui/ui_aprs.c
+#: core/ui/ui_aprs.c core/ui/ui_sat.c
 msgid "Frequency"
 msgstr "Frecuencia"
 
@@ -1580,7 +1580,7 @@ msgstr "Número"
 msgid "Mode"
 msgstr "Modo"
 
-#: core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_screens.c
 msgid "RX only"
 msgstr "Solo RX"
 
@@ -3301,16 +3301,56 @@ msgid "Rng"
 msgstr "Dist"
 
 #: core/ui/ui_sat.c
-msgid "{0 Squelch  # Retune  * Stop  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
-msgstr "{0 Squelch  # Resintonizar  * Parar  Atrás|0 Sql  # Sint  * Parar  Atrás|# Sint  * Parar  Atrás}"
+msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
+msgstr "{0 Squelch  # Resintonizar  * Parar  OK Frec  Atrás|0 Sql  # Sint  * Parar  OK Frec  Atrás|0 Sql  # Sint  * Parar  Atrás|# Sint  * Parar  Atrás}"
 
 #: core/ui/ui_sat.c
-msgid "{0 Squelch  # Retune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr "{0 Squelch  # Resintonizar  * Auto  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
+msgid "{0 Squelch  # Retune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Resintonizar  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
 
 #: core/ui/ui_sat.c
-msgid "{0 Squelch  # Tune  * Auto  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr "{0 Squelch  # Sintonizar  * Auto  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
+msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
+msgstr "{0 Squelch  # Sintonizar  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
+
+#: core/ui/ui_sat.c
+msgid "The satellite's own frequency"
+msgstr "La frecuencia del satélite"
+
+#: core/ui/ui_sat.c
+msgid "Listening on"
+msgstr "Escuchando en"
+
+#: core/ui/ui_sat.c
+msgid ": RX only"
+msgstr ": solo RX"
+
+#: core/ui/ui_sat.c
+msgid "Downlink to listen on,"
+msgstr "Bajada en la que escuchar,"
+
+#: core/ui/ui_sat.c
+msgid "before the Doppler shift"
+msgstr "antes del desplazamiento Doppler"
+
+#: core/ui/ui_sat.c
+msgid "Receive only"
+msgstr "Solo recepción"
+
+#: core/ui/ui_sat.c
+msgid "Its own"
+msgstr "La suya"
+
+#: core/ui/ui_sat.c
+msgid "Yours"
+msgstr "La tuya"
+
+#: core/ui/ui_sat.c
+msgid "{0-9 type  OK its own  Back|0-9 type  OK own  Back}"
+msgstr "{0-9 teclear  OK la suya  Atrás|0-9 teclear  OK suya  Atrás}"
+
+#: core/ui/ui_sat.c
+msgid "{0-9 type  OK set  Back: delete|0-9  OK set  Back del}"
+msgstr "{0-9 teclear  OK fijar  Atrás: borrar|0-9  OK fijar  Atrás borrar}"
 
 #: core/ui/ui_sat.c
 msgid "Local"
