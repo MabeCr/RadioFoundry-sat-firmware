@@ -896,6 +896,20 @@ switches per burst. As a user it reports both copies of a call (gotchas 14.15).
 | DMR RX audio | CPU writes 160 bytes of decoded 8 kHz PCM to 0x180000A0 per 10 ms and sets AUDIO_CONTROL bit 5; PCM_rd interrupt (vector 59) asks for the next block; clear with INTERP_CLEAR bit 5 |
 | Beeps / prompts | 64 bytes (32 samples, low byte first, 8 kHz) at a time to the prompt FIFO 0x16000980 while AUDIO_CONTROL bit 31 (`ring_full_two`) is 0; enable with AUDIO_CONTROL bit 7 (`ring_play_ctrl`). high byte first sounds distorted (`modem-hrc7000.md` 8.4); not yet heard on this radio |
 
+### 9.0 Mic level with the transmitter off (untested)
+
+`hal_power_t.mic_level` is `HRC_MIC_LEVEL`, the meter on the mic PCM that the other HR_C7000 radios use for VOX
+(`platform/hrc7000/audio_pcm.c`; build with `CONFIG_VOX=y`, on in the satellite build). Whether AUDIO_CONTROL b4 delivers
+mic samples in receive on this radio has not been checked: GPIO 0x2E is driven to its complement outside transmit, which
+points the mic at the DMR path and the codec, but nobody has read the samples. The earlier VOX reading through the ADC
+(the ADC table in section 3) is suspect and is not this one.
+
+The programming cable is in the same jack as the microphone and cuts it, so the level can't be read over the debug link
+while sound is played at the radio. The diagnostics page has a line `mic lvl L pk P n N on|off` (level 0-100, the last
+10 ms half's peak, halves measured, running). Reading the line asks for the meter, so it runs with VOX off and nothing
+keys. N should grow by about 100 a second; L and P should rise when sound reaches the microphone. The steps are in
+[the sound transfer plan](../dm32-sound-transfer-plan.md).
+
 ### 9.1 Internal audio codec registers (byte registers at 0x160009C0 + offset)
 
 Values written at init; field meanings from the datasheet:

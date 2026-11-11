@@ -78,4 +78,5 @@ const hal_power_t dm32_power = {
 	.volume = volume,
 	.switch_on = switch_on,
 	.led = led,
+	.mic_level = HRC_MIC_LEVEL,	// the mic PCM (platform/hrc7000/audio_pcm.c); NULL without CONFIG_VOX. Untested on this radio
 };

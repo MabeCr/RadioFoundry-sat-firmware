@@ -169,6 +169,28 @@ bool dm32_diag_line(uint8_t i, char *buf, uint8_t len)
 			put(&o, "none");
 		}
 		break;
+#if CONFIG_VOX
+	case 12: {
+		// The mic meter on the mic PCM (audio_pcm.c): level 0-100, the last 10 ms half's peak, halves measured, running.
+		// Reading this line asks for the meter (it stops about a second after the last read), so the page shows the level
+		// with VOX off and nothing keys. The programming cable cuts the mic: read it with the cable out
+		// (docs/dm32-sound-transfer-plan.md)
+		uint8_t lvl;
+		(void)hrc_audio_pcm_mic_level();
+		uint16_t pk;
+		uint32_t halves;
+		bool on;
+		hrc_audio_pcm_mic_stats(&lvl, &pk, &halves, &on);
+		put(&o, "mic lvl ");
+		put_u(&o, lvl);
+		put(&o, " pk ");
+		put_u(&o, pk);
+		put(&o, " n ");
+		put_u(&o, halves);
+		put(&o, on ? " on" : " off");
+		break;
+	}
+#endif
 #endif
 	default:
 		return false;

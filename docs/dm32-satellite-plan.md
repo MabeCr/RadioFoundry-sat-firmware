@@ -214,7 +214,7 @@ Steps 1-4 can start in the simulator. Step 5 is the first real-hardware mileston
 | 5 | Radio arrives: back up, install, confirm revert to stock. Then `pytest tests/hil/test_sat.py`: the model's speed on this CPU | Done: installed over the standard release, the model costs 3.76 ms a run. `test_sat.py` itself has not been run on Windows |
 | 6 | Receive-only auto Doppler, then transmit Doppler | Not started |
 | 7 | Crystal calibration and drift display | Not started |
-| 8 | Keypad TLE entry, then sound transfer | Not started |
+| 8 | Keypad TLE entry, then sound transfer | Not started. Sound transfer has [its own plan](dm32-sound-transfer-plan.md); its first experiment, the mic probe, is built and not yet run on the radio |
 | 9 | Pass signal plot and contact markers | Not started |
 | 10 | Voice-recorded callsigns | Not started |
 | 11 | ID timer | Not started |
@@ -326,7 +326,7 @@ transfer.
 
 | Option | How it works | Works with | Status |
 |---|---|---|---|
-| Sound transfer | A web page plays a data tone into the mic, and the radio decodes it without transmitting | Any phone, no cable | Needs mic samples with the transmitter off. Untested. The stock VOX mic level reading is suspect ([hardware-dm32.md](spec/hardware-dm32.md)) and `VOX` isn't written here, so check this early |
+| Sound transfer | A web page plays a data tone into the mic, and the radio decodes it without transmitting | Any phone, no cable | Needs mic samples with the transmitter off. Untested: [the plan](dm32-sound-transfer-plan.md) starts with a mic probe on the diagnostics page. The stock VOX mic level reading is suspect ([hardware-dm32.md](spec/hardware-dm32.md)), so the probe uses the mic PCM meter the other HR_C7000 radios use |
 | Phone cable | A web page sends TLEs over USB OTG and the programming cable | Android with Chrome 148 or later | See below |
 | Keypad entry | Type the TLE digits. Each line's check digit catches typos | Always | About 130 digits per satellite. Tedious, but a guaranteed fallback |
 
