@@ -3305,6 +3305,18 @@ msgid "Pass over"
 msgstr "Pase terminado"
 
 #: core/ui/ui_sat.c
+msgid "Sets in"
+msgstr "Se pone en"
+
+#: core/ui/ui_sat.c
+msgid "Rises in"
+msgstr "Sale en"
+
+#: core/ui/ui_sat.c
+msgid "Tune"
+msgstr "Sintonía"
+
+#: core/ui/ui_sat.c
 msgid "on"
 msgstr "activo"
 

@@ -854,7 +854,10 @@ static void track_draw(void)
 			sb_str(&b, ev);
 			cands[nc++] = c2;
 		}
-		trow_fit(x, &ty, st.utc >= trk_los ? "" : up ? "LOS" : "AOS", cands, nc, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
+		// Beside the plot the label is the event (its time is in the row); on a tall panel the times row below has AOS and LOS,
+		// so this one says what the countdown is to, in words
+		const char *lab = st.utc >= trk_los ? "" : below ? (up ? TR("Sets in") : TR("Rises in")) : up ? "LOS" : "AOS";
+		trow_fit(x, &ty, lab, cands, nc, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
 	}
 	bool late = false;	// the times go after the frequencies, one to a row
 	if (below && times) {
@@ -938,7 +941,16 @@ static void track_draw(void)
 	if (!on && have_p) {
 		sb_init(&b, buf, sizeof buf);
 		sb_shifted(&b, track_want(&p), track_base(&p));
-		trow(x, &ty, "To", buf, ui_col.dim);	// two letters like RX: a longer label pushes the frequency off a narrow panel
+		// What # tunes to. A narrow panel has no room for the word beside the whole frequency: a ">" stands in for it there, and
+		// the shift is the first to go
+		char fq[16];
+		str_copy(fq, sizeof fq, buf);
+		char *sp = strchr(fq, ' ');
+		if (sp != NULL)
+			*sp = '\0';
+		const char *word = TR("Tune");
+		bool room = x + gfx_text_width(ui_layout.small, word) + ui_layout.small->w + gfx_text_width(ui_layout.small, fq) <= gfx_width();
+		trow(x, &ty, room ? word : ">", buf, ui_col.dim);
 	}
 	if (trk_follow.on) {
 		// On a tall panel "AUTO" ends the RX row (the first row of the numbers is the grid's, or the elevation's); else,
