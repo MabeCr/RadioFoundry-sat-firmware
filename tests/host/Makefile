@@ -561,6 +561,13 @@ run-ambe: ambeFecTest ambeVoiceTest micGainTest refTrimTest
 # as the firmware builds it: the model is double precision, and a float slipping in costs digits
 # The library without the store and the service, which need core/storage (satStoreTest, satSvcTest)
 SAT_SRC := $(filter-out %/sat_store.c %/sat_svc.c,$(sort $(wildcard $(CORE)/sat/*.c)))
+# Element sets by sound: the frame, the shared vectors and whole transfers through the AFSK audio (tools/sat_sound.py)
+TESTS   += satSoundTest
+satSoundTest: satSoundTest.c $(CORE)/sat/sat_sound.c $(CORE)/sat/sat_tle.c $(CORE)/aprs/ax25.c $(CORE)/aprs/hdlc.c \
+              $(CORE)/aprs/afsk.c $(CORE)/sat/sat_sound.h ../data/sat_sound_vectors.json
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satSoundTest.c $(CORE)/sat/sat_sound.c $(CORE)/sat/sat_tle.c \
+		$(CORE)/aprs/ax25.c $(CORE)/aprs/hdlc.c $(CORE)/aprs/afsk.c -lm
+
 TESTS   += satTest
 satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satTest.c $(SAT_SRC) -lm
@@ -598,9 +605,10 @@ satSvcTest: $(SATSVC) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) 
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(sort $(SATSVC)) -lm
 
 run: run-sat
-run-sat: satTest satLinkTest satStoreTest satSvcTest
+run-sat: satTest satLinkTest satStoreTest satSvcTest satSoundTest
 	./satTest
 	./satLinkTest
+	./satSoundTest
 	./satStoreTest
 	./satSvcTest
 .PHONY: run-sat

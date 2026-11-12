@@ -17,6 +17,7 @@ Past bugs, by subsystem: [gotchas.md](gotchas.md). Contributors read [docs/dev](
 | [airband-and-broadcast.md](airband-and-broadcast.md) | Air band AM receive and broadcast FM receive, chosen by the frequency |
 | [aprs.md](aprs.md) | APRS on FM and over DMR |
 | [satellite.md](satellite.md) | Satellite tracking: TLEs, the SGP4 orbit model, passes, Doppler, satellite profiles and repeater arming |
+| [sound-transfer.md](sound-transfer.md) | Element sets by sound: the AFSK signal, the frame and a transfer |
 | [ui.md](ui.md) | The user interface as built: screens, keys, the drawing layer ([docs/ux](../ux/) has the design) |
 
 ## DMR

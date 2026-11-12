@@ -342,6 +342,13 @@ for f in sys.argv[1:]:
 		tail -5 "$OUT/sat-vectors.log"
 		bad "satellite update vectors (see $OUT/sat-vectors.log)"
 	fi
+	# The vectors the C frame code and the page's sound encoder share with tools/sat_sound.py (docs/spec/sound-transfer.md)
+	if python3 tools/sat_sound.py --check > "$OUT/sat-sound-vectors.log" 2>&1; then
+		ok "satellite sound vectors: $(tail -1 "$OUT/sat-sound-vectors.log")"
+	else
+		tail -5 "$OUT/sat-sound-vectors.log"
+		bad "satellite sound vectors (see $OUT/sat-sound-vectors.log)"
+	fi
 	if command -v node > /dev/null; then
 		if RFOUNDRY_SITE_FIXTURES="$OUT/site-tests" site/tests/run.sh > "$OUT/site-tests.log" 2>&1; then
 			ok "web flasher tests: $(grep -E '^. pass' "$OUT/site-tests.log" | sed 's/^. //') against rfoundry"
