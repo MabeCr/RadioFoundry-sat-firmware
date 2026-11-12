@@ -901,7 +901,9 @@ switches per burst. As a user it reports both copies of a call (gotchas 14.15).
 `hal_power_t.mic_level` is `HRC_MIC_LEVEL`, the meter on the mic PCM that the other HR_C7000 radios use for VOX
 (`platform/hrc7000/audio_pcm.c`; build with `CONFIG_VOX=y`, on in the satellite build). Whether AUDIO_CONTROL b4 delivers
 mic samples in receive on this radio has not been checked: GPIO 0x2E is driven to its complement outside transmit, which
-points the mic at the DMR path and the codec, but nobody has read the samples. The earlier VOX reading through the ADC
+is meant to point the mic at the codec, but `speaker_source` drives it to the analog FM path outside transmit whenever
+the squelch is closed, and the first probe (2026-11-12) read all zeros with samples flowing. The meter's read now holds the
+switch on the codec (`dm32_mic_level`). Whether that gets sound through is the second probe's question. The earlier VOX reading through the ADC
 (the ADC table in section 3) is suspect and is not this one.
 
 The programming cable is in the same jack as the microphone and cuts it, so the level can't be read over the debug link

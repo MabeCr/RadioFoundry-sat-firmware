@@ -8,7 +8,12 @@ cable. It is the route for a phone that can't use the programming cable (an iPho
 nothing but a speaker and a web page. This is the plan and its first experiment. Nothing here transmits. The wider plan
 is [dm32-satellite-plan.md](dm32-satellite-plan.md) (phase 8, "sound transfer").
 
-Status: **phase 0, the mic probe, is built and not yet run on a radio.** Nothing else is started.
+Status: **phase 0, the mic probe, first run on the radio 2026-11-12.** Samples flow with the transmitter off (`n` counts
+up, `on`), so the mic PCM path itself runs. The level stayed at 0 with a phone tone at the mic: the mic wasn't reaching
+the codec. The code explains it: outside transmit the mic switch (GPIO 0x2E) follows the speaker source and sits on the
+**analog FM path** whenever the squelch is closed (`speaker_source` in `radio_dm32.c`). The second probe build holds the
+switch on the codec while the meter is asked for, and adds diagnostics lines to see the switch, AUDIO_CONTROL and the
+codec registers. Not yet run. Nothing else is started.
 
 ## What the firmware already has
 
@@ -68,6 +73,12 @@ the page stops reading it.
 | L and P rise only at full volume, or flat-top at the same P whatever the volume | The codec clips or its AGC squashes the tones | A lower codec gain or the AGC setting, then repeat |
 
 Also record the quiet floor and the P you get with the phone at its normal volume, so the decoder's levels can be set.
+
+**Second build** (the mic switch held on the codec while the meter runs): the page has more lines. `mic sw S ac XXXXXXXX`
+(S: 1 the analog FM path, 0 the codec; `ac`: AUDIO_CONTROL, b4 = mic PCM to the CPU) and four `cd NN ...` lines, the
+codec's byte registers (CR_MIC1 0x0B, CR_MIC2 0x0C, CR_ADC 0x0F with b7 muting the mic). With the page open, `mic sw`
+should read 0 and L and P should rise with sound. If they still read 0, send a photo of the page: those lines say
+whether the codec's mic input, its mute bit or the ADC is the next thing to look at.
 
 A hardware test of the same path exists: `pytest tests/hil/test_radio_features.py -k mic_level` (it needs the programming
 cable, so it checks the meter runs and counts halves, not the sound).

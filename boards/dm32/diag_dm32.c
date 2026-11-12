@@ -176,7 +176,7 @@ bool dm32_diag_line(uint8_t i, char *buf, uint8_t len)
 		// with VOX off and nothing keys. The programming cable cuts the mic: read it with the cable out
 		// (docs/dm32-sound-transfer-plan.md)
 		uint8_t lvl;
-		(void)hrc_audio_pcm_mic_level();
+		(void)dm32_mic_level();
 		uint16_t pk;
 		uint32_t halves;
 		bool on;
@@ -188,6 +188,24 @@ bool dm32_diag_line(uint8_t i, char *buf, uint8_t len)
 		put(&o, " n ");
 		put_u(&o, halves);
 		put(&o, on ? " on" : " off");
+		break;
+	}
+	case 13:
+		// Where the mic goes: the switch (1 = the analog FM path, 0 = the codec) and AUDIO_CONTROL (b4 = mic PCM to the CPU)
+		put(&o, "mic sw ");
+		put_u(&o, dm32_mic_path() ? 1 : 0);
+		put(&o, " ac ");
+		put_x(&o, dm32_audio_control(), 8);
+		break;
+	case 14: case 15: case 16: case 17: {
+		// The codec's 64 byte registers, 16 per line (as the DM-1801 Pro's page): CR_MIC1/2 at 0B/0C, CR_ADC at 0F (b7 mutes the mic)
+		uint8_t base = (uint8_t)((i - 14u) * 16u);
+		put(&o, "cd ");
+		put_x(&o, base, 2);
+		put(&o, " ");
+		for (uint8_t k = 0; k < 16; k++) {
+			put_x(&o, dm32_codec_byte((uint8_t)(base + k)), 2);
+		}
 		break;
 	}
 #endif

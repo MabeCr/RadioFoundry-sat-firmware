@@ -53,6 +53,12 @@ typedef struct {
 	uint32_t fd_writes;
 } dm32_radio_diag_t;
 void dm32_radio_diag(dm32_radio_diag_t *d);
+uint8_t dm32_codec_byte(uint8_t reg);	// the HR_C7000's internal codec, byte registers 0x00-0x3F
+uint32_t dm32_audio_control(void);	// AUDIO_CONTROL now
+bool dm32_mic_path(void);		// the mic switch as last written: true = the analog FM path
+#if CONFIG_DMR && CONFIG_VOX
+uint8_t dm32_mic_level(void);		// hal_power_t.mic_level: the mic PCM meter, with the mic switch on the codec while it is asked for
+#endif
 bool dm32_diag_line(uint8_t i, char *buf, uint8_t len);
 void dm32_diag_reset(void);
 
