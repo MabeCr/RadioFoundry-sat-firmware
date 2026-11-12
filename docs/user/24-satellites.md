@@ -99,7 +99,7 @@ Keys on the Tracking screen:
 | The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune, manual or automatic |
 
 Opening the screen changes nothing: the radio keeps what it was playing until you press **#** or **\***. A retune takes
-about 10 ms, which is a click, and following retunes about once a minute on 70 cm, less often on 2 m. The transmit
+about 10 ms, and on a real pass the automatic retunes could not be heard. Following retunes about once a minute on 70 cm, less often on 2 m. The transmit
 frequency is the satellite's own uplink: the radio does not shift it. A satellite with no uplink in its profile, and a
 frequency you type, are receive only.
 
