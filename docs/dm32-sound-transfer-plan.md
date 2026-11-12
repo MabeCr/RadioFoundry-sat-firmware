@@ -10,7 +10,9 @@ nothing but a speaker and a web page. Nothing here transmits. The wider plan is
 
 Status: **phase 0, the mic probe, is done (2026-11-12): the mic can be read with the transmitter off, in the modem's DMR
 work mode, and the tones come through at a usable level.** The probe's firmware was temporary and is not in the tree
-(see phase 0). The frame format and the page are next; nothing of them is built.
+(see phase 0). Step 1 is built: the signal, the frame, the reference sender and the host tests are in
+[sound-transfer.md](spec/sound-transfer.md), `core/sat/sat_sound.c`, `tools/sat_sound.py` and `tests/host/satSoundTest.c`. The
+radio's Receive sound screen and the page's encoder are not built.
 
 ## What the firmware already has
 
@@ -74,6 +76,10 @@ phone is enough, and the codec's mic gain (a set-up value, 11 dB) needs no raisi
 a noisy room or a moving phone changes it.
 
 ## Phase 1: the format and the page (no radio)
+
+Built, apart from the page's encoder (it lives in the page's own repository): the frame, the AFSK signal, the transfer rules
+and the reference sender are specified in [sound-transfer.md](spec/sound-transfer.md). One satellite is about 1.4 s, so 32 are
+about 45 s a pass and 90 s with the repeat. The notes below are the plan's original ones.
 
 - A frame format on the existing HDLC framing: one satellite a frame (its name and two TLE lines, about 150 bytes), a
   sequence number and a count, so a missing frame is known. Every frame is sent twice, with a gap (decided 2026-11-12, to
