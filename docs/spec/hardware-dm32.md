@@ -896,23 +896,25 @@ switches per burst. As a user it reports both copies of a call (gotchas 14.15).
 | DMR RX audio | CPU writes 160 bytes of decoded 8 kHz PCM to 0x180000A0 per 10 ms and sets AUDIO_CONTROL bit 5; PCM_rd interrupt (vector 59) asks for the next block; clear with INTERP_CLEAR bit 5 |
 | Beeps / prompts | 64 bytes (32 samples, low byte first, 8 kHz) at a time to the prompt FIFO 0x16000980 while AUDIO_CONTROL bit 31 (`ring_full_two`) is 0; enable with AUDIO_CONTROL bit 7 (`ring_play_ctrl`). high byte first sounds distorted (`modem-hrc7000.md` 8.4); not yet heard on this radio |
 
-### 9.0 Mic level with the transmitter off (untested)
+### 9.0 Mic level with the transmitter off (measured 2026-11-12)
 
-`hal_power_t.mic_level` is `HRC_MIC_LEVEL`, the meter on the mic PCM that the other HR_C7000 radios use for VOX
-(`platform/hrc7000/audio_pcm.c`; build with `CONFIG_VOX=y`, on in the satellite build). Whether AUDIO_CONTROL b4 delivers
-mic samples in receive on this radio has not been checked: GPIO 0x2E is driven to its complement outside transmit, which
-is meant to point the mic at the codec, but `speaker_source` drives it to the analog FM path outside transmit whenever
-the squelch is closed, and the first probe (2026-11-12) read all zeros with samples flowing. The meter's read now holds the
-switch on the codec (`dm32_mic_level`). With the switch on the codec and the codec registers at their set-up values, the mic PCM still read zeros in FM receive, and read
-live on a DMR channel (measured 2026-11-12, no transmission): the mic PCM tap runs in the DMR work mode (0x6E), not the FM one
-(0x80). The earlier VOX reading through the ADC
-(the ADC table in section 3) is suspect and is not this one.
+The mic PCM tap (AUDIO_CONTROL b4, 80 samples every 10 ms at 0x18000000, PIC 28) delivers the microphone with the
+transmitter off **in the modem's DMR work mode (0x6E)**. In FM receive (work mode 0x80) the interrupt runs and the
+buffer is all zeros, with the mic switch (GPIO 0x2E) on the codec and the codec's registers at their set-up values.
+Measured with temporary builds (the VOX mic level meter on the mic PCM, `platform/hrc7000/audio_pcm.c`, shown on the
+diagnostics page), on a DMR channel with no transmission and a phone speaker at the microphone:
 
-The programming cable is in the same jack as the microphone and cuts it, so the level can't be read over the debug link
-while sound is played at the radio. The diagnostics page has a line `mic lvl L pk P n N on|off` (level 0-100, the last
-10 ms half's peak, halves measured, running). Reading the line asks for the meter, so it runs with VOX off and nothing
-keys. N should grow by about 100 a second; L and P should rise when sound reaches the microphone. The steps are in
-[the sound transfer plan](../dm32-sound-transfer-plan.md).
+| Sound | P (peak of a 10 ms half, 0 to 32767) |
+|---|---|
+| Quiet room | 4 to 8 |
+| 1200 Hz, phone volume low, medium, high | 50, 210, 450 |
+| 2200 Hz, phone volume low, medium | 65, 360 |
+
+The readings rise with volume and nothing is near full scale. Outside transmit `speaker_source` drives the mic switch to
+the analog FM path whenever the squelch is closed; whether the DMR mode needs the switch on the codec was not tested on
+its own. The programming cable is in the microphone's jack and cuts the mic, so the level can't be read over the debug
+link while sound is played. The earlier VOX reading through the ADC (the ADC table in section 3) is suspect and is not
+this one. The use of this path: [the sound transfer plan](../dm32-sound-transfer-plan.md).
 
 ### 9.1 Internal audio codec registers (byte registers at 0x160009C0 + offset)
 

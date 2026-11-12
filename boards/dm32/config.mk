@@ -19,9 +19,7 @@ CONFIG_DISPLAY_INSET_LEFT ?= 10
 CONFIG_DISPLAY_INSET_RIGHT ?= 10
 CONFIG_DISPLAY_INSET_TOP ?= 5
 CONFIG_DISPLAY_INSET_BOTTOM ?= 5
-# VOX reads the microphone level through hal_power_t.mic_level (the mic PCM meter, platform/hrc7000/audio_pcm.c). The hook
-# is written but not checked on this radio; VOX stays off in the default image, which has no RAM to spare, and is on in
-# the satellite build, where the sound transfer plan needs the meter (docs/dm32-sound-transfer-plan.md)
+# VOX reads the microphone level through hal_power_t.mic_level, which this board doesn't have yet
 CONFIG_VOX ?= n
 # The platform's three TCP connections; a fourth costs about 1.4 KB of main RAM. ci's maximal configuration has
 # every switch but USB and USB_NETWORK (platform/hrc7000/config.mk), and NAND_STORAGE (below), and also keeps about
@@ -29,6 +27,7 @@ CONFIG_VOX ?= n
 BOARD_UNSUPPORTED += NAND_STORAGE	# the data flash is SPI NOR, GD25Q128 class (docs/spec/hardware-dm32.md 10)
 # What the hardware can do but this radio's driver or glue doesn't yet (docs/build-config.md, "Unsupported, not
 # written, unconfirmed"): off by default, and off in ci's maximal configuration too
+BOARD_NOT_WRITTEN += VOX	# no hal_power_t.mic_level hook yet
 BOARD_NOT_WRITTEN += AUDIO_PROBE	# no board.audio_tap yet
 
 # Satellite tracking costs this radio about 2.8 KB of RAM and 2 KB more RTOS heap (freertos_board.h), and the default image
@@ -44,4 +43,4 @@ SATELLITE_CUTS := CONFIG_SFR=n CONFIG_SFR_CWID=n CONFIG_SFR_DUALPATH_RX=n CONFIG
 MAXIMAL_VARS := $(SATELLITE_CUTS)
 # The satellite build to flash (tools/satellite.sh, the cloud image): the radio's own defaults (English only, no vibration
 # alerts) plus satellite tracking and the cuts
-SATELLITE_VARS := CONFIG_SAT=y CONFIG_VOX=y $(SATELLITE_CUTS)
+SATELLITE_VARS := CONFIG_SAT=y $(SATELLITE_CUTS)

@@ -5,24 +5,12 @@
 
 Goal: update the satellite element sets (TLEs) by playing a sound from a phone at the radio's microphone, with no
 cable. It is the route for a phone that can't use the programming cable (an iPhone has no Web Serial), and it needs
-nothing but a speaker and a web page. This is the plan and its first experiment. Nothing here transmits. The wider plan
-is [dm32-satellite-plan.md](dm32-satellite-plan.md) (phase 8, "sound transfer").
+nothing but a speaker and a web page. Nothing here transmits. The wider plan is
+[dm32-satellite-plan.md](dm32-satellite-plan.md) (phase 8, "sound transfer").
 
-Status: **phase 0, the mic probe, first run on the radio 2026-11-12.** Samples flow with the transmitter off (`n` counts
-up, `on`), so the mic PCM path itself runs. The level stayed at 0 with a phone tone at the mic: the mic wasn't reaching
-the codec. The code explains it: outside transmit the mic switch (GPIO 0x2E) follows the speaker source and sits on the
-**analog FM path** whenever the squelch is closed (`speaker_source` in `radio_dm32.c`). The second probe build holds the
-switch on the codec while the meter is asked for, and adds diagnostics lines to see the switch, AUDIO_CONTROL and the
-codec registers. **Second probe, same day:** `mic sw 0` (the switch is on the codec), `ac 00000012` (b4 set: mic PCM
-to the CPU), `n` counting, and the level and peak still 0 with a phone tone at the mic. So the routing and the PCM tap are
-as intended and the samples are still silent. The codec registers that could be read match their set-up values (AICR_DAC
-and AICR_ADC C0, CR_VIC 0C, CR_CK 40, GCR_ADCL 8B, DR_ADC_AGC 34); the mic registers (0B, 0C, 0F) were cut off by the
-page's width. The third build shows them, and the modem's work mode: the mic tap may run only in the DMR voice path
-(work mode 0x6E), not in FM receive (0x80). **Confirmed the same day:** on a DMR channel, with no transmission, L and P
-jump with sound at the mic. So **the mic can be read with the transmitter off, in the DMR work mode**; in FM receive the
-mic PCM is silent. For sound transfer the radio has to be in the DMR work mode while the Receive sound screen is open
-(a DMR channel, or the screen putting the modem there itself, receive only). The tone levels are measured (below).
-Nothing else is started.
+Status: **phase 0, the mic probe, is done (2026-11-12): the mic can be read with the transmitter off, in the modem's DMR
+work mode, and the tones come through at a usable level.** The probe's firmware was temporary and is not in the tree
+(see phase 0). The frame format and the page are next; nothing of them is built.
 
 ## What the firmware already has
 
@@ -34,63 +22,37 @@ Nothing else is started.
 | Store of up to 32 satellites | `core/sat`, `debuglink_sat.c` | The same store the cable fills |
 | Mic PCM: 80 samples every 10 ms at 8 kHz in RAM, with AUDIO_CONTROL b4 | `platform/hrc7000/audio_pcm.c` | The samples to decode. A meter on them exists for VOX |
 
-## What is not known
+## What was not known, and what the probe found
 
-| Question | Why it matters |
+| Question | Answer |
 |---|---|
-| Does the mic PCM deliver samples while the radio is **not transmitting**? | The decoder needs them. The transmit path uses them, and the mic switch (GPIO 0x2E) points at the DMR path outside transmit, but nobody has read the samples ([hardware-dm32.md](spec/hardware-dm32.md) 9.0) |
-| How does the codec's gain and AGC treat a phone's tones? | Clipping or squashing hurts the 1200 and 2200 Hz tones |
-| How much does room noise and the phone's distance matter? | Decides the baud rate and how often each frame repeats |
-| Is there RAM for a decoder next to the satellite task? | The satellite build links with about 23.7 KB free; the demodulator is small, but this is checked |
+| Does the mic PCM deliver samples while the radio is **not transmitting**? | Yes in the modem's DMR work mode (0x6E). In FM receive (0x80) the samples flow but are all zeros |
+| How does the codec's gain and AGC treat a phone's tones? | Well: the levels rise with phone volume and nothing is near clipping (table below) |
+| How much does room noise matter? | The quiet floor is about 8 times lower than the quietest tone tried (table below). A noisy room or a moving phone is for the tuning step |
+| Is there RAM for a decoder next to the satellite task? | Not yet checked: the satellite build links with about 23 KB free; the demodulator is small |
 
-**The programming cable is in the microphone's jack and cuts the mic.** So the level can't be read over the debug link
-while sound is played at the radio. Every check below is read **on the radio's screen with the cable out**. That is also
-how the feature would be used: no cable.
+**The programming cable is in the microphone's jack and cuts the mic**, so the level can't be read over the debug link
+while sound is played at the radio. That is also how the feature is used: no cable.
 
-## Phase 0: the mic probe (built)
+## Phase 0: the mic probe (done)
 
-The satellite build has `CONFIG_VOX=y` (the mic level hook for this radio) and the diagnostics page has a line:
+Three temporary builds (the pre-releases `satellite-f6c9b2d`, `satellite-6c04388` and `satellite-0694445`, from commits
+of the branch `feat/mic-probe`) wired the VOX mic level meter on the mic PCM (`platform/hrc7000/audio_pcm.c`) and
+showed it, the mic switch, AUDIO_CONTROL, the modem's work mode and the codec's registers on the diagnostics page, read
+on the radio's screen with the cable out. What they found, in order:
 
-```
-mic lvl L pk P n N on|off
-```
+1. **FM channel:** `mic lvl 0 pk 0` with `n` counting up (about 100 halves a second). The mic PCM tap runs, the samples are
+   zeros.
+2. **Why, first guess:** outside transmit the mic switch (GPIO 0x2E) follows the speaker source and sits on the analog FM
+   path while the FM squelch is closed (`speaker_source` in `radio_dm32.c`). A build held the switch on the codec while the
+   meter ran: `mic sw 0`, `ac 00000012` (AUDIO_CONTROL b4 = mic PCM to the CPU), still zeros. The codec registers that
+   were readable matched their set-up values.
+3. **DMR channel, no transmission:** L and P jump with sound. The mic PCM tap runs in the DMR work mode, not the FM one.
+   The mic switch hold and the DMR mode changed together in that test, so whether the hold is needed in the DMR mode was
+   not tested on its own.
 
-L is the level (0-100), P the peak of the last 10 ms half, N the halves measured, and on or off whether the meter runs.
-Reading the line asks for the meter, so it runs with VOX off, and nothing keys. The meter stops about a second after
-the page stops reading it.
-
-**Steps** (receive only; leave the antenna on and PTT alone):
-
-1. Back up the radio ([dm32-satellite-bringup.md](testing/dm32-satellite-bringup.md) section 2), then install the
-   satellite build from this branch's pre-release.
-2. Leave VOX off in Settings. Pick an FM channel (the meter runs in the state VOX would run it in). Take the
-   programming cable **out**.
-3. **OK**, **6**, **7** (Tools > Diagnostics). Find the `mic lvl` line.
-4. Quiet room: write down L, P and how N changes over 10 seconds.
-5. Play a steady 1 kHz tone from a phone, the speaker 2 cm from the radio's microphone hole, at low, medium and full
-   volume. Write down L and P for each.
-6. Play the 1200 Hz and 2200 Hz tones the same way. Write down L and P.
-7. Talk at the radio. Write down L and P.
-
-**Reading the result**
-
-| What you see | Means | Next |
-|---|---|---|
-| `on`, N grows by about 100 a second, L and P rise with the sound | The mic PCM works with the transmitter off, and the tones reach it | Phase 1 |
-| `on`, N grows, L and P stay at the noise floor with any sound | Samples flow but the mic isn't connected to them outside transmit | Check the mic switch (GPIO 0x2E) and the codec ADC input in receive, then repeat |
-| `off`, or N stuck | The PCM interrupt or AUDIO_CONTROL b4 isn't running in this state | The `c7 ac` register view, then repeat |
-| L and P rise only at full volume, or flat-top at the same P whatever the volume | The codec clips or its AGC squashes the tones | A lower codec gain or the AGC setting, then repeat |
-
-Also record the quiet floor and the P you get with the phone at its normal volume, so the decoder's levels can be set.
-
-**Second build** (the mic switch held on the codec while the meter runs): the page has more lines. `mic sw S ac XXXXXXXX`
-(S: 1 the analog FM path, 0 the codec; `ac`: AUDIO_CONTROL, b4 = mic PCM to the CPU) and four `cd NN ...` lines, the
-codec's byte registers (CR_MIC1 0x0B, CR_MIC2 0x0C, CR_ADC 0x0F with b7 muting the mic). With the page open, `mic sw`
-should read 0 and L and P should rise with sound. If they still read 0, send a photo of the page: those lines say
-whether the codec's mic input, its mute bit or the ADC is the next thing to look at.
-
-A hardware test of the same path exists: `pytest tests/hil/test_radio_features.py -k mic_level` (it needs the programming
-cable, so it checks the meter runs and counts halves, not the sound).
+The firmware was removed from the branch afterward: it existed only to take these readings. It is in the branch's
+history, and `git log feat/mic-probe` finds it.
 
 ## Phase 0 result: tones through the mic (2026-11-12, DMR channel, no transmission, phone speaker at the mic hole)
 
@@ -114,14 +76,19 @@ a noisy room or a moving phone changes it.
 ## Phase 1: the format and the page (no radio)
 
 - A frame format on the existing HDLC framing: one satellite a frame (its name and two TLE lines, about 150 bytes), a
-  sequence number and a count, so a missing frame is known. Every frame is sent twice, with a gap. Draft; it is fixed
-  after phase 0 says what the channel can carry.
+  sequence number and a count, so a missing frame is known. Every frame is sent twice, with a gap (decided 2026-11-12, to
+  start with; the repeat count is tuned in phase 3). The format is a draft until it is built and tested.
 - At 1200 baud a satellite is about 1.2 seconds: 32 satellites take about 40 seconds, 80 with every frame sent twice.
 - The page makes the audio with WebAudio (so it works on an iPhone) and plays it, with a volume check.
 - Host tests: the encoder's WAV decoded by `afsk.c`, with noise, clipping, a level change and a drifting clock added.
 
 ## Phase 2: the radio side
 
+- The Receive sound screen puts the modem in the DMR work mode while it is open (receive only), and back after. Likely the
+  mic switch has to be on the codec too (the probe didn't test it alone). The codec's set-up values (mic gain 11 dB) are
+  enough: no new gain.
+- The mic samples are the 10 ms PCM halves of `audio_pcm.c`; a decoder takes them in the same task that runs the vocoder
+  callback, or a ring read by the satellite task.
 - Tools > Satellites > **Receive sound**: a level meter, the frames heard, the satellites stored. It listens only while
   the screen is open.
 - Every frame goes through the same checks as `sat update`: a bad line, a different catalog number, or an older epoch is

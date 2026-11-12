@@ -57,15 +57,6 @@ static bool rx_am_on;		// the FD6818 plays its AM demodulator (rx_am, the air ba
 static bool asleep;		// the receiver is powered down between listen windows (rx_sleep)
 static bool aprs_listen;	// APRS takes the HR_C7000's FM audio (aprs_listen_route)
 static bool afsk_tx;		// APRS tones play through the prompt FIFO into the modulator (afsk_tx_route)
-// The mic switch (PTB14, PIN_MIC_PATH) as last written, and the mic meter's hold on it (mic_route_poll)
-static bool mic_path_level = true;
-#if CONFIG_DMR && CONFIG_VOX
-static volatile bool mic_asked;		// the meter has been asked for since the start
-static volatile uint32_t mic_last;	// hal_millis() of the last ask
-#endif
-static bool mic_held;			// the radio task keeps the mic on the codec
-#define MIC_HOLD_MS		1500u	// a little over the meter's own second without a reader
-static void mic_path(bool analog);
 
 // The speaker amplifier is on while any user wants it
 #define AMP_RADIO	0x01u	// receive audio
@@ -346,7 +337,7 @@ static bool tx(uint32_t hz, radio_bw_t bw, uint8_t power, const subtone_t *tone)
 		// 8.5 "Enter DMR TX": the PA select and drive wait for the PA one-shot of each burst. Between bursts the radio
 		// receives: the FD6818 in RX and the LNA on until the RF TX interrupt switches to the first burst
 		// (dmr_rf_switch). In TX here, the hotspot, which keys to listen, heard nothing until its first burst
-		mic_path(false);
+		hrc_pin_write(PIN_MIC_PATH, false);
 		lna(have_rx ? rx_hz : hz, true);
 		fd6818_set_bandwidth(&fd, FD6818_BW_DMR);
 		fd6818_set_state(&fd, FD6818_STATE_RX);
@@ -359,7 +350,7 @@ static bool tx(uint32_t hz, radio_bw_t bw, uint8_t power, const subtone_t *tone)
 		hrc7000_set_subtone(&modem, true, c7_tone(tone != NULL ? tone->type : TONE_NONE),
 			tone != NULL ? tone->value : 0);	// before FM_PTT: the modem takes the DCS code then
 		hrc7000_fm_tx(&modem, tx_wide);
-		mic_path(true);
+		hrc_pin_write(PIN_MIC_PATH, true);
 		fd6818_set_bandwidth(&fd, fm_bw_reg(bw));
 		fd6818_set_state(&fd, FD6818_STATE_TX);
 		pa_key();
@@ -428,50 +419,8 @@ static bool tx_dtmf(char digit)
 }
 #endif
 
-#if CONFIG_DMR && CONFIG_VOX
-// hal_power_t.mic_level: the mic PCM meter, and a hold on the mic switch while it is wanted. Any task may call it
-uint8_t dm32_mic_level(void)
-{
-	mic_last = hal_millis();
-	mic_asked = true;
-	return hrc_audio_pcm_mic_level();
-}
-
-// In the radio task, every status poll: keep the mic on the codec while the meter is asked for, and give the switch
-// back to the speaker source a moment after the last ask. Never while transmitting: tx() owns the switch then
-static void mic_route_poll(void)
-{
-	bool held = mic_asked && (uint32_t)(hal_millis() - mic_last) < MIC_HOLD_MS;
-	if (held != mic_held) {
-		mic_held = held;
-		if (!transmitting) {
-			speaker_source();
-		}
-	}
-}
-#endif
-
-// Bench readings for the diagnostics page: the codec's byte registers, a modem register and the mic switch as last written
-uint8_t dm32_codec_byte(uint8_t reg)
-{
-	return hrc7000_codec_rd(&modem, reg);
-}
-
-uint32_t dm32_modem_word(uint32_t reg)
-{
-	return hrc7000_rd(&modem, reg);
-}
-
-bool dm32_mic_path(void)
-{
-	return mic_path_level;
-}
-
 static void status(radio_status_t *st)
 {
-#if CONFIG_DMR && CONFIG_VOX
-	mic_route_poll();
-#endif
 	uint16_t r67 = fd6818_read(&fd, FD_REG_RSSI);
 	uint16_t r65 = fd6818_read(&fd, FD_REG_NOISE);
 	last_rssi_raw = fd6818_rssi_raw(r67);
@@ -480,12 +429,6 @@ static void status(radio_status_t *st)
 	st->noise = fd6818_noise(r65);	// the chip's floor lifted above the core's squelch levels (fd6818.h)
 	st->carrier = false;
 	st->tone_ok = mode != RADIO_MODE_FM || fd6818_rx_tone_ok(&fd, fd_tone(rx_tone.type));
-}
-
-static void mic_path(bool analog)
-{
-	mic_path_level = analog;
-	hrc_pin_write(PIN_MIC_PATH, analog);
 }
 
 // The speaker hears one of two sources (PTB15, checked on the radio): 1 = the FD6818's audio output directly (FM
@@ -503,10 +446,7 @@ static void speaker_source(void)
 	bool analog = fm_open && !aprs_listen;
 	hrc_pin_write(PIN_SPK_SOURCE, analog);
 	if (!transmitting) {
-		// Outside transmit the switch follows the speaker source: on the analog FM path whenever the squelch is closed,
-		// which leaves the codec's ADC (and the mic PCM) with silence. While the mic meter is asked for it stays on
-		// the codec (docs/dm32-sound-transfer-plan.md)
-		mic_path(mic_held ? false : !analog);
+		hrc_pin_write(PIN_MIC_PATH, !analog);
 	}
 	if (mode == RADIO_MODE_FM && !transmitting) {
 		bool play = fm_open && aprs_listen;
