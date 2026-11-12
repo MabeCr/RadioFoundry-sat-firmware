@@ -828,6 +828,25 @@ static void track_draw(void)
 	tw[1] = gfx_text_width(fs, "MAX") + fs->w + gfx_text_width(fs, t_max_s);
 	tw[2] = gfx_text_width(fs, "LOS") + fs->w + gfx_text_width(fs, t_los);
 	bool t_cols = below && times && tw[0] + tw[1] + tw[2] + 2 * fs->w <= w;
+	// Too wide in the usual text: the narrowest text, with a thin gap between a label and its time, to keep all three on a row
+	const font_t *tf = fs;
+	int tgap = fs->w, twm[3];
+	if (below && times && !t_cols) {
+		const font_t *mf = ui_layout.micro;
+		const char *tl[3] = { "AOS", "MAX", "LOS" }, *tv[3] = { t_aos, t_max_s, t_los };
+		int tot = 0;
+		for (int k = 0; k < 3; k++) {
+			twm[k] = gfx_text_width(mf, tl[k]) + mf->w / 2 + gfx_text_width(mf, tv[k]);
+			tot += twm[k];
+		}
+		if (tot + 2 * mf->w <= w) {
+			t_cols = true;
+			tf = mf;
+			tgap = mf->w / 2;
+			for (int k = 0; k < 3; k++)
+				tw[k] = twm[k];
+		}
+	}
 	bool t_pair = !t_cols && tw[0] + tw[1] + 2 * fs->w <= w;
 	int t_rows = !below || !times ? 0 : t_cols ? 1 : t_pair ? 2 : 3;
 	// The azimuth: on a tall panel at the right of the countdown's row when the worst case countdown leaves room for it
@@ -958,15 +977,15 @@ static void track_draw(void)
 	// The pass's times (a tall panel; beside the plot they come after the frequencies, below)
 	if (below && times) {
 		int gap = t_cols ? (w - tw[0] - tw[1] - tw[2]) / 2 : 0;
-		if (t_cols && ty + fs->h <= ui_layout.hint_y) {
+		if (t_cols && ty + tf->h <= ui_layout.hint_y) {
 			const char *lab[3] = { "AOS", "MAX", "LOS" }, *val[3] = { t_aos, t_max_s, t_los };
 			int px = 0;
 			for (int k = 0; k < 3; k++) {
-				int lx = gfx_text(fs, px, ty, lab[k], ui_col.dim);
-				gfx_text(fs, lx + fs->w, ty, val[k], ui_col.fg);
+				int lx = gfx_text(tf, px, ty, lab[k], ui_col.dim);
+				gfx_text(tf, lx + tgap, ty, val[k], ui_col.fg);
 				px += tw[k] + gap;
 			}
-			ty += rh;
+			ty += tf->h + 3;
 		} else if (t_pair) {
 			if (ty + fs->h <= ui_layout.hint_y) {
 				int lx = gfx_text(fs, 0, ty, "AOS", ui_col.dim);
