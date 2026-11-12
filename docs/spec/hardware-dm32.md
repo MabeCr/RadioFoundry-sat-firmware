@@ -903,7 +903,9 @@ switches per burst. As a user it reports both copies of a call (gotchas 14.15).
 mic samples in receive on this radio has not been checked: GPIO 0x2E is driven to its complement outside transmit, which
 is meant to point the mic at the codec, but `speaker_source` drives it to the analog FM path outside transmit whenever
 the squelch is closed, and the first probe (2026-11-12) read all zeros with samples flowing. The meter's read now holds the
-switch on the codec (`dm32_mic_level`). Whether that gets sound through is the second probe's question. The earlier VOX reading through the ADC
+switch on the codec (`dm32_mic_level`). With the switch on the codec and the codec registers at their set-up values, the mic PCM still read zeros in FM receive, and read
+live on a DMR channel (measured 2026-11-12, no transmission): the mic PCM tap runs in the DMR work mode (0x6E), not the FM one
+(0x80). The earlier VOX reading through the ADC
 (the ADC table in section 3) is suspect and is not this one.
 
 The programming cable is in the same jack as the microphone and cuts it, so the level can't be read over the debug link

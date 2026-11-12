@@ -18,7 +18,11 @@ to the CPU), `n` counting, and the level and peak still 0 with a phone tone at t
 as intended and the samples are still silent. The codec registers that could be read match their set-up values (AICR_DAC
 and AICR_ADC C0, CR_VIC 0C, CR_CK 40, GCR_ADCL 8B, DR_ADC_AGC 34); the mic registers (0B, 0C, 0F) were cut off by the
 page's width. The third build shows them, and the modem's work mode: the mic tap may run only in the DMR voice path
-(work mode 0x6E), not in FM receive (0x80). A quick check needing no new build: read the same line on a DMR channel.
+(work mode 0x6E), not in FM receive (0x80). **Confirmed the same day:** on a DMR channel, with no transmission, L and P
+jump with sound at the mic. So **the mic can be read with the transmitter off, in the DMR work mode**; in FM receive the
+mic PCM is silent. For sound transfer the radio has to be in the DMR work mode while the Receive sound screen is open
+(a DMR channel, or the screen putting the modem there itself, receive only). Still to measure: the level and the
+flat-top behavior for 1200 Hz and 2200 Hz tones at low, medium and full phone volume.
 Nothing else is started.
 
 ## What the firmware already has
