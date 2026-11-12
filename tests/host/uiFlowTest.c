@@ -627,6 +627,7 @@ static const flow_t flows[] = {
 #if CONFIG_SAT_SOUND
 	{ "S sound: the list ends with a Receive sound row", "ok 6 0", "7", "screen=sat-sound shows=Receive_sound sound=1", 1, false },
 	{ "S sound: listening, nothing heard yet", "ok 6 0 7", "", "screen=sat-sound shows=Waiting_for_the_sound shows=speaker", 0, false },
+	{ "S sound: before anything is heard the receiver's numbers show", "ok 6 0 7", "", "screen=sat-sound shows=Lvl shows=Fr shows=Err", 0, false },
 	{ "S sound: what has been heard, and what became of it", "soundheard:3,32,2,1,0,0,500 ok 6 0 7", "",
 	  "screen=sat-sound shows=Sats_heard_3_of_32 shows=New_2 shows=Updated_1 shows=Kept_0 hides=Done", 0, false },
 	{ "S sound: every satellite heard says done", "soundheard:32,32,30,2,0,0,200 ok 6 0 7", "", "screen=sat-sound shows=Sats_heard_32_of_32", 0, false },

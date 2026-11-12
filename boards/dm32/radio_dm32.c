@@ -57,6 +57,7 @@ static bool rx_am_on;		// the FD6818 plays its AM demodulator (rx_am, the air ba
 static bool asleep;		// the receiver is powered down between listen windows (rx_sleep)
 static bool aprs_listen;	// APRS takes the HR_C7000's FM audio (aprs_listen_route)
 static bool afsk_tx;		// APRS tones play through the prompt FIFO into the modulator (afsk_tx_route)
+static bool mic_held;		// the core listens to the microphone (mic_listen): the mic switch stays on the codec
 
 // The speaker amplifier is on while any user wants it
 #define AMP_RADIO	0x01u	// receive audio
@@ -446,7 +447,10 @@ static void speaker_source(void)
 	bool analog = fm_open && !aprs_listen;
 	hrc_pin_write(PIN_SPK_SOURCE, analog);
 	if (!transmitting) {
-		hrc_pin_write(PIN_MIC_PATH, !analog);
+		// Outside transmit the switch is on the analog FM path unless the FM squelch is open, which leaves the codec's ADC, and
+		// so the PCM stream's microphone, with silence (measured: zeros). While the core listens to the microphone it
+		// stays on the codec (docs/spec/hardware-dm32.md 9.0)
+		hrc_pin_write(PIN_MIC_PATH, mic_held ? false : !analog);
 	}
 	if (mode == RADIO_MODE_FM && !transmitting) {
 		bool play = fm_open && aprs_listen;
@@ -576,6 +580,16 @@ static void rx_sleep(bool sleep)
 	}
 }
 
+#if CONFIG_SAT_SOUND
+// hal_radio_t.mic_listen: radio task
+static void mic_listen(bool on)
+{
+	mic_held = on;
+	if (!transmitting)
+		speaker_source();
+}
+#endif
+
 const hal_radio_t dm32_radio = {
 	.init = init,
 	.set_mode = set_mode,
@@ -597,5 +611,8 @@ const hal_radio_t dm32_radio = {
 	.volume = NULL,
 #if CONFIG_REF_TRIM
 	.ref_trim = ref_trim,
+#endif
+#if CONFIG_SAT_SOUND
+	.mic_listen = mic_listen,
 #endif
 };

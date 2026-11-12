@@ -13,7 +13,8 @@ work mode, and the tones come through at a usable level.** The probe's firmware 
 (see phase 0). Step 1 is built: the signal, the frame, the reference sender and the host tests are in
 [sound-transfer.md](spec/sound-transfer.md), `core/sat/sat_sound.c`, `tools/sat_sound.py` and `tests/host/satSoundTest.c`; the page's
 encoder is in the page's repository. Step 2 is built too: the radio's **Receive sound** screen (`CONFIG_SAT_SOUND`, on in the
-satellite build), host tested. **No sound has been played at the radio yet.** The mic switch is not held on the codec (see
+satellite build), host tested. **No sound has been played at the radio yet.** The first build heard nothing on a DMR channel
+because the mic switch was not held on the codec; the radio core now holds it while it listens (see
 [hardware-dm32.md](spec/hardware-dm32.md) 9.0).
 
 ## What the firmware already has

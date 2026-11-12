@@ -61,11 +61,12 @@ the radio core to listen (`RREQ_SOUND_RX`, `radio_req_sound`); closing it stops.
 | Part | What |
 |---|---|
 | Samples | the PCM stream's input, 8 kHz in 20 ms blocks, through the audio mux's receive ring (`audio_mux_sound_rx`, [usb-audio.md](usb-audio.md) 5.1). On the radio this was measured on, the microphone reaches that input only in the modem's DMR work mode, so the radio must be on a **DMR channel**; the screen says so otherwise |
+| Mic route | a board whose idle microphone switch points away from the codec keeps it there while the core listens (`hal_radio_t.mic_listen`, optional) |
 | Not while | transmitting (PTT ends it), in a hotspot, or when the satellite store is missing or someone else's |
 | Decoding | in the radio task: `core/sat/sat_sound_rcv.c` feeds the AFSK demodulator, checks each frame (`sat_sound.c`) and tallies the transfer |
 | Storing | each satellite heard waits in a queue of four for the housekeeping task, which stores it (`storage_job_post`, `sat_sound_apply.c`), so the radio task never waits on the flash. The rules are those of an update: a new satellite is stored (with the built-in profile if the radio knows the number, else its name and no frequencies); a stored one is replaced only by a later set and keeps its profile; the same set or an older one is kept out; a full store, an orbit the model refuses and a store failure are counted |
 | A full queue | a satellite that finds the queue full is forgotten, so its copy in the sender's next pass is taken |
-| Shown | the loudest sample of the last block as a bar, "Sats heard n of m", new, updated, kept (same or older) and problems |
+| Shown | the loudest sample of the last block as a bar; before the first satellite a line of the receiver's own numbers, "Lvl 450 Fr 2 Err 1" (the level, frames decoded, frames that failed a check) to tell no sound from sound the decoder can't read; then "Sats heard n of m", new, updated, kept (same or older) and problems |
 | Debug link | the `sat` view's `sat.sound.*` keys ([debuglink.md](debuglink.md) 3.24) |
 
 The listening ends when the screen is left. Satellites already heard still go to the store.

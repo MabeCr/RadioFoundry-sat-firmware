@@ -1130,6 +1130,22 @@ static void sound_draw(void)
 	}
 	y += sm->h + 4;
 	if (snd.count == 0) {
+		// Before the first satellite, what the receiver sees: the loudest sample of the last block, frames decoded and frames
+		// that failed their check (a bar that never moves means no sound reaches the microphone; frames with errors, a signal
+		// that is too weak or too distorted)
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Lvl"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.level, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, TR("Fr"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.frames, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, TR("Err"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, (uint32_t)snd.fcs_errors + snd.refused, 1);
+		snd_line(2, &y, sm, buf, ui_col.dim, hy);
 		snd_line(2, &y, sm, TR("Waiting for the sound"), ui_col.fg, hy);
 		snd_line(2, &y, sm, TR("Hold the phone's speaker"), ui_col.dim, hy);
 		snd_line(2, &y, sm, TR("at the microphone"), ui_col.dim, hy);

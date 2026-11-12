@@ -3405,6 +3405,18 @@ msgid "Back close"
 msgstr "Atrás cierra"
 
 #: core/ui/ui_sat.c
+msgid "Lvl"
+msgstr "Niv"
+
+#: core/ui/ui_sat.c
+msgid "Fr"
+msgstr "Tr"
+
+#: core/ui/ui_sat.c
+msgid "Err"
+msgstr "Err"
+
+#: core/ui/ui_sat.c
 msgid "Waiting for the sound"
 msgstr "Esperando el sonido"
 

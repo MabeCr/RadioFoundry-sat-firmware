@@ -3475,6 +3475,8 @@ static bool sound_post(void (*job)(void *ctx), void *ctx)
 static void sound_stop(void)
 {
 	audio_mux_sound_rx(false);
+	if (board.radio->mic_listen != NULL)
+		board.radio->mic_listen(false);
 	sat_sound_rcv_stop(&sound_rcv);
 }
 
@@ -3493,9 +3495,11 @@ static void sound_poll(radio_sm_t *sm)
 		else if (!listening && sat_store_state() != SAT_STORE_OURS)	// a scan of the area: once, when it starts
 			now = SOUND_NO_STORE;
 		if (now == SOUND_LISTENING && !listening) {
-			if (sat_sound_rcv_start(&sound_rcv))
+			if (sat_sound_rcv_start(&sound_rcv)) {
+				if (board.radio->mic_listen != NULL)
+					board.radio->mic_listen(true);
 				audio_mux_sound_rx(true);
-			else
+			}			else
 				now = SOUND_BUSY;	// the last transfer's satellites are still being stored
 		}
 		if (now != SOUND_LISTENING && listening)
