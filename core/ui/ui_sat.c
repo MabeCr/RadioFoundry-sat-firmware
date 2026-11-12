@@ -810,14 +810,16 @@ static void track_draw(void)
 	}
 	// The pass's three times in the chosen zone (Pass times: local or UTC), the highest point from the service
 	uint32_t t_max = trk_tca != 0 ? trk_tca : trk_aos / 2u + trk_los / 2u;
-	char t_aos[8], t_max_s[8], t_los[8];
+	char t_aos[12], t_max_s[12], t_los[12];
 	sbuf_t tbf;
+	// To the second on a tall panel (a pass of a few minutes: seconds matter); beside the plot there is no width for them
+	void (*sbt)(sbuf_t *, uint32_t) = below ? sb_hhmmss : sb_hhmm;
 	sb_init(&tbf, t_aos, sizeof t_aos);
-	sb_hhmm(&tbf, local(trk_aos));
+	sbt(&tbf, local(trk_aos));
 	sb_init(&tbf, t_max_s, sizeof t_max_s);
-	sb_hhmm(&tbf, local(t_max));
+	sbt(&tbf, local(t_max));
 	sb_init(&tbf, t_los, sizeof t_los);
-	sb_hhmm(&tbf, local(trk_los));
+	sbt(&tbf, local(trk_los));
 	bool times = trk_aos != 0 && trk_los != 0;
 	// On a tall panel: the three in one row of columns if they fit, else AOS and MAX on a row and LOS under them (with the
 	// locator after it): always in the order they happen
@@ -826,10 +828,37 @@ static void track_draw(void)
 	tw[1] = gfx_text_width(fs, "MAX") + fs->w + gfx_text_width(fs, t_max_s);
 	tw[2] = gfx_text_width(fs, "LOS") + fs->w + gfx_text_width(fs, t_los);
 	bool t_cols = below && times && tw[0] + tw[1] + tw[2] + 2 * fs->w <= w;
-	int t_rows = !below || !times ? 0 : t_cols ? 1 : 2;
+	bool t_pair = !t_cols && tw[0] + tw[1] + 2 * fs->w <= w;
+	int t_rows = !below || !times ? 0 : t_cols ? 1 : t_pair ? 2 : 3;
+	// The azimuth: on a tall panel at the right of the countdown's row when the worst case countdown leaves room for it
+	char az[24];
+	az[0] = '\0';
+	if (seen) {
+		sbuf_t ab;
+		sb_init(&ab, az, sizeof az);
+		sb_u32(&ab, live.az, 1);
+		sb_str(&ab, GLYPH_DEGREE " ");
+		sb_compass(&ab, live.az);
+	}
+	int az_w = gfx_text_width(fs, "Az") + fs->w + gfx_text_width(fs, az);
+	// The countdown: to the set while it is up, else to the rise
+	bool up = st.utc >= trk_aos && st.utc < trk_los;
+	char cd[16];
+	cd[0] = '\0';
+	if (st.utc != 0) {
+		sbuf_t cb;
+		sb_init(&cb, cd, sizeof cd);
+		if (st.utc >= trk_los)
+			sb_str(&cb, TR("Pass over"));
+		else
+			sb_clock(&cb, up ? trk_los - st.utc : trk_aos - st.utc);
+	}
+	const char *cd_word = st.utc >= trk_los ? "" : up ? TR("Sets in") : TR("Rises in");
+	bool az_inline = below && seen && st.utc != 0 &&
+			 gfx_text_width(fs, cd_word) + fs->w + gfx_text_width(fs, cd) + 2 * fs->w + az_w <= w;
 	int side = below ? w : (h < w / 2 ? h : w / 2);
 	if (below) {
-		int need = (seen ? rh : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) + t_rows * rh +
+		int need = (seen ? (az_inline ? 0 : rh) : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) + t_rows * rh +
 			   (one_row ? rh : (rxs[0] != '\0' ? rh : 0) + (txs[0] != '\0' ? rh : 0)) + (alt_row ? rh : 0) +
 			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0);
 		int fit = h - need - 3;
@@ -869,22 +898,14 @@ static void track_draw(void)
 			ty += ui_layout.small->h + 2;
 		}
 	} else if (below) {
-		sb_init(&b, buf, sizeof buf);
-		sb_u32(&b, live.az, 1);
-		sb_str(&b, GLYPH_DEGREE " ");
-		sb_compass(&b, live.az);
-		trow(x, &ty, "Az", buf, ui_col.fg);
+		if (!az_inline)
+			trow(x, &ty, "Az", az, ui_col.fg);
 	} else {
 		// "62°" large, then the way across the sky: on the same row when it fits (a line saved for the times), else under it
 		sb_init(&b, buf, sizeof buf);
 		sb_i32(&b, live.el);
 		sb_str(&b, GLYPH_DEGREE);
 		int ex = gfx_text(big, x, ty, buf, ui_col.rx);
-		char az[24];
-		sb_init(&b, az, sizeof az);
-		sb_u32(&b, live.az, 1);
-		sb_str(&b, GLYPH_DEGREE " ");
-		sb_compass(&b, live.az);
 		const font_t *sm = ui_layout.small;
 		int aw = gfx_text_width(sm, "Az") + sm->w + gfx_text_width(sm, az);
 		if (ex + sm->w + aw <= gfx_width()) {
@@ -905,13 +926,7 @@ static void track_draw(void)
 	// The countdown: to the set while it is up, else to the rise (it comes before the rest: a small panel has no room).
 	// Beside the plot the row also carries the time of that event, the locator after them when it fits
 	if (st.utc != 0) {
-		bool up = st.utc >= trk_aos && st.utc < trk_los;
-		char cd[16], c1[40], c2[40], c3[40];
-		sb_init(&b, cd, sizeof cd);
-		if (st.utc >= trk_los)
-			sb_str(&b, TR("Pass over"));
-		else
-			sb_clock(&b, up ? trk_los - st.utc : trk_aos - st.utc);
+		char c1[40], c2[40], c3[40];
 		const char *ev = up ? t_los : t_aos;
 		const char *cands[3];
 		int nc = 0;
@@ -932,8 +947,13 @@ static void track_draw(void)
 		}
 		// Beside the plot the label is the event (its time is in the row); on a tall panel the times row below has AOS and LOS,
 		// so this one says what the countdown is to, in words
-		const char *lab = st.utc >= trk_los ? "" : below ? (up ? TR("Sets in") : TR("Rises in")) : up ? "LOS" : "AOS";
+		const char *lab = st.utc >= trk_los ? "" : below ? cd_word : up ? "LOS" : "AOS";
+		int cd_y = ty;
 		trow_fit(x, &ty, lab, cands, nc, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
+		if (az_inline && cd_y + fs->h <= ui_layout.hint_y) {
+			int lx = gfx_text(fs, w - az_w - 2, cd_y, "Az", ui_col.dim);
+			gfx_text(fs, lx + fs->w, cd_y, az, ui_col.fg);
+		}
 	}
 	// The pass's times (a tall panel; beside the plot they come after the frequencies, below)
 	if (below && times) {
@@ -947,7 +967,7 @@ static void track_draw(void)
 				px += tw[k] + gap;
 			}
 			ty += rh;
-		} else if (!t_cols) {
+		} else if (t_pair) {
 			if (ty + fs->h <= ui_layout.hint_y) {
 				int lx = gfx_text(fs, 0, ty, "AOS", ui_col.dim);
 				lx = gfx_text(fs, lx + fs->w, ty, t_aos, ui_col.fg);
@@ -960,6 +980,10 @@ static void track_draw(void)
 				gfx_text(fs, lx + fs->w, ty, t_los, ui_col.fg);
 				ty += rh;
 			}
+		} else {
+			trow(x, &ty, "AOS", t_aos, ui_col.fg);
+			trow(x, &ty, "MAX", t_max_s, ui_col.fg);
+			trow(x, &ty, "LOS", t_los, ui_col.fg);
 		}
 	}
 	if (one_row && ty + fs->h <= ui_layout.hint_y) {

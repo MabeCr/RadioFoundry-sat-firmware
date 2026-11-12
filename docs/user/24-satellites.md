@@ -81,7 +81,7 @@ title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
 **OK** on a pass tracks it (or hold **OK** on a satellite in the list to track its next pass). The screen has a sky plot
 with north up and the pass's whole path, the satellite as a dot (green above the horizon), and beside it: the elevation,
-the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the pass's three times (**AOS**, **MAX**, the highest point, and **LOS**) in the zone chosen under Pass times (local or UTC), your grid locator (for the contact that asks
+the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the pass's three times (**AOS**, **MAX**, the highest point, and **LOS**) in the zone chosen under Pass times (local or UTC; to the second on a tall screen), your grid locator (for the contact that asks
 "what's your grid?"), the range, and **always the frequencies the radio is on**, **RX** and **TX**: whatever it was playing
 until you tune it, then the satellite's. The dot, the azimuth and the range appear only while the satellite is above your
 horizon; before the rise (and after the set) the plot shows the path alone and the screen says "Below horizon" just
