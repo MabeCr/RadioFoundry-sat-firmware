@@ -744,7 +744,9 @@ static bool track_key(const input_event_t *ev)
 
 static void track_draw(void)
 {
-	char buf[40];
+	// The text of this screen is built in static buffers: only the UI task draws it, and on its small stack a dozen
+	// locals of a few tens of bytes each were what took the maximal build over (tools/ci.sh stack check)
+	static char buf[40];
 	sbuf_t b;
 	ui_sat_live_t live;
 	ui_svc_sat_track(trk_aos, trk_los);	// asked again at every draw: the service stops when the screen is gone
@@ -770,7 +772,7 @@ static void track_draw(void)
 	bool have_p = prof && track_base(&p) != 0;
 	const radio_view_t *rv = ui_view();
 	bool on = trk_tuned && rv->vfo;
-	char rxs[24], txs[24];
+	static char rxs[24], txs[24];
 	color_t rc = ui_col.fg, tc = ui_col.fg;
 	rxs[0] = txs[0] = '\0';
 	if (rv->ch.rx_hz != 0) {
@@ -801,7 +803,7 @@ static void track_draw(void)
 	bool alt_row = alt_hz != 0 && prof && p.down_hz != 0;
 	bool tune_row = !on && have_p;
 	// Where you are, for the grid locator a contact asks for
-	char loc[8];
+	static char loc[8];
 	loc[0] = '\0';
 	if (st.pos_ok) {
 		sbuf_t lb;
@@ -810,7 +812,7 @@ static void track_draw(void)
 	}
 	// The pass's three times in the chosen zone (Pass times: local or UTC), the highest point from the service
 	uint32_t t_max = trk_tca != 0 ? trk_tca : trk_aos / 2u + trk_los / 2u;
-	char t_aos[12], t_max_s[12], t_los[12];
+	static char t_aos[12], t_max_s[12], t_los[12];
 	sbuf_t tbf;
 	// To the second on a tall panel (a pass of a few minutes: seconds matter); beside the plot there is no width for them
 	void (*sbt)(sbuf_t *, uint32_t) = below ? sb_hhmmss : sb_hhmm;
@@ -850,7 +852,7 @@ static void track_draw(void)
 	bool t_pair = !t_cols && tw[0] + tw[1] + 2 * fs->w <= w;
 	int t_rows = !below || !times ? 0 : t_cols ? 1 : t_pair ? 2 : 3;
 	// The azimuth: on a tall panel at the right of the countdown's row when the worst case countdown leaves room for it
-	char az[24];
+	static char az[24];
 	az[0] = '\0';
 	if (seen) {
 		sbuf_t ab;
@@ -862,7 +864,7 @@ static void track_draw(void)
 	int az_w = gfx_text_width(fs, "Az") + fs->w + gfx_text_width(fs, az);
 	// The countdown: to the set while it is up, else to the rise
 	bool up = st.utc >= trk_aos && st.utc < trk_los;
-	char cd[16];
+	static char cd[16];
 	cd[0] = '\0';
 	if (st.utc != 0) {
 		sbuf_t cb;
@@ -945,7 +947,7 @@ static void track_draw(void)
 	// The countdown: to the set while it is up, else to the rise (it comes before the rest: a small panel has no room).
 	// Beside the plot the row also carries the time of that event, the locator after them when it fits
 	if (st.utc != 0) {
-		char c1[40], c2[40], c3[40];
+		static char c1[40], c2[40], c3[40];
 		const char *ev = up ? t_los : t_aos;
 		const char *cands[3];
 		int nc = 0;

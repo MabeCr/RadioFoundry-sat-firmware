@@ -3297,10 +3297,6 @@ msgid "Tracking"
 msgstr "Seguimiento"
 
 #: core/ui/ui_sat.c
-msgid "Below horizon"
-msgstr "Bajo el horizonte"
-
-#: core/ui/ui_sat.c
 msgid "Pass over"
 msgstr "Pase terminado"
 
@@ -3311,6 +3307,10 @@ msgstr "Se pone en"
 #: core/ui/ui_sat.c
 msgid "Rises in"
 msgstr "Sale en"
+
+#: core/ui/ui_sat.c
+msgid "Below horizon"
+msgstr "Bajo el horizonte"
 
 #: core/ui/ui_sat.c
 msgid "Tune"
