@@ -191,19 +191,23 @@ bool dm32_diag_line(uint8_t i, char *buf, uint8_t len)
 		break;
 	}
 	case 13:
-		// Where the mic goes: the switch (1 = the analog FM path, 0 = the codec) and AUDIO_CONTROL (b4 = mic PCM to the CPU)
+		// Where the mic goes: the switch (1 = the analog FM path, 0 = the codec), AUDIO_CONTROL (b4 = mic PCM to the CPU)
+		// and the modem's work mode (0x80 FM, 0x6E DMR)
 		put(&o, "mic sw ");
 		put_u(&o, dm32_mic_path() ? 1 : 0);
 		put(&o, " ac ");
-		put_x(&o, dm32_audio_control(), 8);
+		put_x(&o, dm32_modem_word(DM32_MODEM_AUDIO_CONTROL), 8);
+		put(&o, " wm ");
+		put_x(&o, dm32_modem_word(DM32_MODEM_WORK_MODE), 2);
 		break;
-	case 14: case 15: case 16: case 17: {
-		// The codec's 64 byte registers, 16 per line: CR_MIC1/2 at 0B/0C, CR_ADC at 0F (b7 mutes the mic)
-		uint8_t base = (uint8_t)((i - 14u) * 16u);
+	case 14: case 15: case 16: case 17: case 18: case 19: {
+		// The codec's byte registers, 8 a line so the panel shows them all, from 08: 08 AICR_DAC, 09 AICR_ADC, 0B CR_MIC1,
+		// 0C CR_MIC2, 0D CR_DAC, 0F CR_ADC (b7 mutes the mic); 10 CR_MIX, 11 DR_MIX, 12 CR_VIC, 13 CR_CK; 25 GCR_ADCL
+		uint8_t base = (uint8_t)(8u + (i - 14u) * 8u);
 		put(&o, "cd ");
 		put_x(&o, base, 2);
 		put(&o, " ");
-		for (uint8_t k = 0; k < 16; k++) {
+		for (uint8_t k = 0; k < 8; k++) {
 			put_x(&o, dm32_codec_byte((uint8_t)(base + k)), 2);
 		}
 		break;

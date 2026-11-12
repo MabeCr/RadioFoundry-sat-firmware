@@ -13,7 +13,13 @@ up, `on`), so the mic PCM path itself runs. The level stayed at 0 with a phone t
 the codec. The code explains it: outside transmit the mic switch (GPIO 0x2E) follows the speaker source and sits on the
 **analog FM path** whenever the squelch is closed (`speaker_source` in `radio_dm32.c`). The second probe build holds the
 switch on the codec while the meter is asked for, and adds diagnostics lines to see the switch, AUDIO_CONTROL and the
-codec registers. Not yet run. Nothing else is started.
+codec registers. **Second probe, same day:** `mic sw 0` (the switch is on the codec), `ac 00000012` (b4 set: mic PCM
+to the CPU), `n` counting, and the level and peak still 0 with a phone tone at the mic. So the routing and the PCM tap are
+as intended and the samples are still silent. The codec registers that could be read match their set-up values (AICR_DAC
+and AICR_ADC C0, CR_VIC 0C, CR_CK 40, GCR_ADCL 8B, DR_ADC_AGC 34); the mic registers (0B, 0C, 0F) were cut off by the
+page's width. The third build shows them, and the modem's work mode: the mic tap may run only in the DMR voice path
+(work mode 0x6E), not in FM receive (0x80). A quick check needing no new build: read the same line on a DMR channel.
+Nothing else is started.
 
 ## What the firmware already has
 

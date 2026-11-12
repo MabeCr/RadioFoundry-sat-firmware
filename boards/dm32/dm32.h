@@ -54,7 +54,9 @@ typedef struct {
 } dm32_radio_diag_t;
 void dm32_radio_diag(dm32_radio_diag_t *d);
 uint8_t dm32_codec_byte(uint8_t reg);	// the HR_C7000's internal codec, byte registers 0x00-0x3F
-uint32_t dm32_audio_control(void);	// AUDIO_CONTROL now
+#define DM32_MODEM_AUDIO_CONTROL	0x080u
+#define DM32_MODEM_WORK_MODE		0x100u
+uint32_t dm32_modem_word(uint32_t reg);	// one HR_C7000 modem register now (the bench page)
 bool dm32_mic_path(void);		// the mic switch as last written: true = the analog FM path
 #if CONFIG_DMR && CONFIG_VOX
 uint8_t dm32_mic_level(void);		// hal_power_t.mic_level: the mic PCM meter, with the mic switch on the codec while it is asked for

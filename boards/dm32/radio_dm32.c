@@ -451,15 +451,15 @@ static void mic_route_poll(void)
 }
 #endif
 
-// Bench readings for the diagnostics page: the codec's byte registers, AUDIO_CONTROL and the mic switch as last written
+// Bench readings for the diagnostics page: the codec's byte registers, a modem register and the mic switch as last written
 uint8_t dm32_codec_byte(uint8_t reg)
 {
 	return hrc7000_codec_rd(&modem, reg);
 }
 
-uint32_t dm32_audio_control(void)
+uint32_t dm32_modem_word(uint32_t reg)
 {
-	return hrc7000_rd(&modem, C7_AUDIO_CONTROL);
+	return hrc7000_rd(&modem, reg);
 }
 
 bool dm32_mic_path(void)
