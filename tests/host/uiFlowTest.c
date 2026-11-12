@@ -624,13 +624,31 @@ static const flow_t flows[] = {
 	  "screen=track toast=Listening_on", 1, false },
 	{ "S frequency: yours is kept for the satellite when Tracking is opened again", "ok 6 0 1 ok ok 1 4 5 8 ok back", "ok", "screen=track", 1, false },
 	{ "S tracking back to the passes", "ok 6 0 1 ok", "back", "screen=passes", 1, false },
+#if CONFIG_SAT_SOUND
+	{ "S sound: the list ends with a Receive sound row", "ok 6 0", "7", "screen=sat-sound shows=Receive_sound sound=1", 1, false },
+	{ "S sound: listening, nothing heard yet", "ok 6 0 7", "", "screen=sat-sound shows=Waiting_for_the_sound shows=speaker", 0, false },
+	{ "S sound: before anything is heard the receiver's numbers show", "ok 6 0 7", "", "screen=sat-sound shows=Lvl shows=Fr shows=Err", 0, false },
+	{ "S sound: what has been heard, and what became of it", "soundheard:3,32,2,1,0,0,500 ok 6 0 7", "",
+	  "screen=sat-sound shows=Sats_heard_3_of_32 shows=New_2 shows=Updated_1 shows=Kept_0 hides=Done", 0, false },
+	{ "S sound: every satellite heard says done", "soundheard:32,32,30,2,0,0,200 ok 6 0 7", "", "screen=sat-sound shows=Sats_heard_32_of_32", 0, false },
+	{ "S sound: problems are counted", "soundheard:5,32,3,0,1,1,9000 ok 6 0 7", "", "screen=sat-sound shows=Problems_1 shows=Kept_1", 0, false },
+	{ "S sound: not on a DMR channel it says so", "sound:notdmr ok 6 0 7", "", "screen=sat-sound shows=DMR_channel hides=Waiting", 0, false },
+	{ "S sound: transmitting or storing", "sound:busy ok 6 0 7", "", "screen=sat-sound shows=Transmitting", 0, false },
+	{ "S sound: no place to keep satellites", "sound:nostore ok 6 0 7", "", "screen=sat-sound shows=No_place", 0, false },
+	{ "S sound: no audio on the board", "sound:noaudio ok 6 0 7", "", "screen=sat-sound shows=can't", 0, false },
+	{ "S sound: Back leaves and stops the radio listening", "ok 6 0 7", "back", "screen=satellites sound=0", 1, false },
+#endif
 	{ "S passes back to the list", "ok 6 0 2", "back", "screen=satellites", 1, false },
 	{ "S no orbit data", "ok 6 0", "6", "screen=satellites toast=No_orbit_data", 1, false },
 	{ "S passes still being worked out", "sat:working ok 6 0", "2", "shows=Working", 1, false },
 	{ "S before the time", "sat:notime", "ok 6 0", "shows=Waiting_for_the_time", 3, false },
 	{ "S before the position", "sat:nopos", "ok 6 0", "shows=No_position", 3, false },
 	{ "S no room for its task", "sat:nomem", "ok 6 0", "shows=Not_enough_memory", 3, false },
+#if CONFIG_SAT_SOUND
+	{ "S nothing stored", "sat:empty", "ok 6 0", "shows=No_satellites_stored shows=Receive_sound count=1", 3, false },
+#else
 	{ "S nothing stored", "sat:empty", "ok 6 0", "shows=No_satellites_stored count=0", 3, false },
+#endif
 	{ "S lowest pass setting", "ok 7 5", "up up", "screen=group shows=Lowest_pass shows=10", 2, false },
 	{ "S set time opens", "ok 7 5 up", "ok", "screen=set-time shows=Set_time shows=UTC", 1, false },
 	{ "S set time by digits", "ok 7 5 up ok", "0 9 3 0 0 0 ok", "toast=Clock_set screen=group", 7, false },

@@ -274,6 +274,11 @@
 #ifndef CONFIG_SAT
 #define CONFIG_SAT			0
 #endif
+// Element sets by sound (core/sat/sat_sound_rx.c, docs/spec/sound-transfer.md): receive satellites played at the
+// microphone. Needs CONFIG_SAT, CONFIG_DMR and CONFIG_APRS (features.mk checks). Off by default
+#ifndef CONFIG_SAT_SOUND
+#define CONFIG_SAT_SOUND		0
+#endif
 #ifndef CONFIG_NET_KISS
 #define CONFIG_NET_KISS			(CONFIG_NET_TCP && CONFIG_APRS)
 #endif

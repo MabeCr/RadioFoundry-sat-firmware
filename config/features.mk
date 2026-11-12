@@ -266,11 +266,16 @@ CONFIG_GPS_SKY ?= $(if $(and $(filter y,$(CONFIG_GPS)),$(filter y,$(CONFIG_APRS)
 # and stores them; tracking with Doppler is not built yet. About 27 KB of flash, 2.8 KB of RAM and a 1.5 KB task
 # stack, which some radios don't have to spare: off by default (docs/spec/satellite.md 7)
 CONFIG_SAT ?= n
+# element sets by sound (core/sat/sat_sound_rx.c, docs/spec/sound-transfer.md): a phone plays the chosen satellites at the
+# microphone and the radio decodes them with the AFSK demodulator and stores them, no cable. Tools > Satellites > Receive
+# sound. Needs SAT, DMR (the microphone is read in the modem's DMR work mode) and APRS (the demodulator is core/aprs's).
+# About 2.5 KB of RAM for the demodulator and its queue: off by default
+CONFIG_SAT_SOUND ?= n
 
 
 FEATURES := FM SUBTONE DMR DMR_PRIVACY DMR_TALKER_ALIAS DMR_GPS DMR_SMS DMR_TMS DMR_ARS DMR_LRRP DMR_SIGNALING DMR_EMERGENCY DMR_ROAMING DMR_IP_GATEWAY ZONE_SHARE DMR_UDP_COMPRESS DMR_CONFIRMED NET_TCP NET_KISS NET_HTTP NET_HTTP_GZIP NET_WEBCTL NET_RIGCTL NET_APRSIS NET_USRP MDNS TFTP TFTP_IDDB IDDB_COMPACT DMR_CONTROL_STATION SNMP SFR SFR_DUALPATH_RX SFR_CWID TASK_STACKS \
 	USB HOSTLINK USB_NETWORK NET_PPP HOTSPOT HOTSPOT_SPLIT DEBUGLINK CPS_OPENFW CPS_FAST VFO VFO_FM VFO_DMR DIAG FONT_XL FONT_AA FONT_BIG LANG_ES LANG_IT LANG_DEFAULT_ES LANG_DEFAULT_IT UI_COLOR UI_SETTINGS SCAN DUAL_WATCH BEEP FM_TX_TONES DTMF \
-	VOX REF_TRIM BATTERY_SAVE VIBRATE GPS AUDIO_PROBE STUB_ENTRY NAND_STORAGE CRASH_LOG CRASH_SCREEN CRASH_REPORT WATCHDOG FAULT_TRACE AM_RX BCAST_FM APRS APRS_RX APRS_IGATE GPS_SKY SAT KEY_ASSIGN CHANNEL_LIST CHANNEL_EDIT ZONE_EDIT CONTACT_EDIT
+	VOX REF_TRIM BATTERY_SAVE VIBRATE GPS AUDIO_PROBE STUB_ENTRY NAND_STORAGE CRASH_LOG CRASH_SCREEN CRASH_REPORT WATCHDOG FAULT_TRACE AM_RX BCAST_FM APRS APRS_RX APRS_IGATE GPS_SKY SAT SAT_SOUND KEY_ASSIGN CHANNEL_LIST CHANNEL_EDIT ZONE_EDIT CONTACT_EDIT
 
 # Dependencies
 feature_on = $(filter y,$(CONFIG_$(1)))
@@ -404,6 +409,12 @@ ifneq ($(call feature_on,AUDIO_PROBE),)
   ifeq ($(call feature_on,DEBUGLINK)$(call feature_on,DMR),yy)
   else
     $(error CONFIG_AUDIO_PROBE=y needs CONFIG_DEBUGLINK=y and CONFIG_DMR=y)
+  endif
+endif
+ifneq ($(call feature_on,SAT_SOUND),)
+  ifeq ($(call feature_on,SAT)$(call feature_on,DMR)$(call feature_on,APRS),yyy)
+  else
+    $(error CONFIG_SAT_SOUND=y needs CONFIG_SAT=y, CONFIG_DMR=y and CONFIG_APRS=y)
   endif
 endif
 ifneq ($(call feature_on,STUB_ENTRY),)

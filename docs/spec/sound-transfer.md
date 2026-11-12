@@ -7,7 +7,7 @@ A phone plays a sound at a radio's microphone and the radio stores the satellite
 is involved, and an iPhone can do it, which has no Web Serial. This page is the signal and the frame. Which radios can
 hear it: [Feature matrix](../feature-matrix.md).
 
-Status: the frame, the sender and the receiving logic are built and host tested. The radio's screen that listens is not.
+Status: the frame, the sender, the receiving logic and the radio's screen are built (`CONFIG_SAT_SOUND`). The receiving logic and the screen are host tested; **tried on a radio (2026-11-12): a phone playing the page's sound at the microphone loaded satellites**. Tuning (volume, noisy rooms, repeat count) is not done.
 
 ## The signal
 
@@ -52,6 +52,24 @@ id, or a new count, starts the tally of "n of m" again.
 
 32 satellites take about 45 s a pass (55 s with the longest names), 90 s with the repeat: the reference sender's file for 32
 short-named sets is 87 s long.
+
+## The radio
+
+With `CONFIG_SAT_SOUND` the last row of Tools > Satellites is **Receive sound** (`sat-sound`, [ui.md](ui.md) 2.6). Opening it asks
+the radio core to listen (`RREQ_SOUND_RX`, `radio_req_sound`); closing it stops. While it listens:
+
+| Part | What |
+|---|---|
+| Samples | the PCM stream's input, 8 kHz in 20 ms blocks, through the audio mux's receive ring (`audio_mux_sound_rx`, [usb-audio.md](usb-audio.md) 5.1). On the radio this was measured on, the microphone reaches that input only in the modem's DMR work mode, so the radio must be on a **DMR channel**; the screen says so otherwise |
+| Mic route | a board whose idle microphone switch points away from the codec keeps it there while the core listens (`hal_radio_t.mic_listen`, optional) |
+| Not while | transmitting (PTT ends it), in a hotspot, or when the satellite store is missing or someone else's |
+| Decoding | in the radio task: `core/sat/sat_sound_rcv.c` feeds the AFSK demodulator, checks each frame (`sat_sound.c`) and tallies the transfer |
+| Storing | each satellite heard waits in a queue of four for the housekeeping task, which stores it (`storage_job_post`, `sat_sound_apply.c`), so the radio task never waits on the flash. The rules are those of an update: a new satellite is stored (with the built-in profile if the radio knows the number, else its name and no frequencies); a stored one is replaced only by a later set and keeps its profile; the same set or an older one is kept out; a full store, an orbit the model refuses and a store failure are counted |
+| A full queue | a satellite that finds the queue full is forgotten, so its copy in the sender's next pass is taken |
+| Shown | the loudest sample of the last block as a bar; before the first satellite a line of the receiver's own numbers, "Lvl 450 Fr 2 Err 1" (the level, frames decoded, frames that failed a check) to tell no sound from sound the decoder can't read; then "Sats heard n of m", new, updated, kept (same or older) and problems |
+| Debug link | the `sat` view's `sat.sound.*` keys ([debuglink.md](debuglink.md) 3.24) |
+
+The listening ends when the screen is left. Satellites already heard still go to the store.
 
 ## The reference sender and the shared vectors
 

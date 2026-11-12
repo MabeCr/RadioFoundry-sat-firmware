@@ -40,10 +40,11 @@ static uint32_t local(uint32_t utc)
 
 // --- the list ---
 
+// With CONFIG_SAT_SOUND the list ends with one more row, "Receive sound"
 static uint16_t list_count(void)
 {
 	status();
-	return st.count;
+	return (uint16_t)(st.count + (CONFIG_SAT_SOUND ? 1u : 0u));
 }
 
 static const char *list_title(void)
@@ -71,6 +72,11 @@ static const char *list_body(void)
 		sb_str(&b, TR("Not enough memory to work out passes"));
 	} else if (st.state == UI_SAT_NO_POSITION) {
 		sb_str(&b, TR("No position: a GPS fix, or a fixed one in Tools > APRS"));
+#if CONFIG_SAT_SOUND
+	} else if (st.count == 0) {
+		// the list is never empty with the Receive sound row: say what the .empty text says elsewhere
+		sb_str(&b, TR("No satellites stored: load them over the cable, or by sound"));
+#endif
 	} else {
 		// "Above 10°, 24 h, UTC-6": what the list holds and the time zone its times are in
 		sb_str(&b, TR("Above"));
@@ -85,6 +91,14 @@ static const char *list_body(void)
 static void list_item(uint16_t i, ui_item_t *it)
 {
 	ui_sat_t s;
+#if CONFIG_SAT_SOUND
+	if (i == st.count) {
+		str_copy(it->label, sizeof it->label, TR("Receive sound"));
+		if (i < 9)
+			item_num_set(it, (uint16_t)(i + 1u));
+		return;
+	}
+#endif
 	if (!ui_svc_sat_get((uint8_t)i, &s))
 		return;
 	str_copy(it->label, sizeof it->label, s.name[0] ? s.name : "?");
@@ -143,6 +157,12 @@ static void list_item(uint16_t i, ui_item_t *it)
 static void list_select(uint16_t i, bool hold)
 {
 	ui_sat_t s;
+#if CONFIG_SAT_SOUND
+	if (i == st.count) {
+		ui_push(SCR_SAT_SOUND, 0);
+		return;
+	}
+#endif
 	if (!ui_svc_sat_get((uint8_t)i, &s))
 		return;
 	if (s.state == UI_SAT_NO_ORBIT) {
@@ -1016,6 +1036,164 @@ const ui_scr_def_t ui_sat_track_screen = {
 	// Not a field-use screen (P4): OK on a pass of the list, four levels from Home
 	.name = "track", .flags = SF_HOLD_CONTEXT | SF_OWN_QUICK, .draw = track_draw, .key = track_key, .enter = track_enter, .leave = track_leave,
 };
+#if CONFIG_SAT_SOUND
+// --- receive sound (the last row of the list; docs/spec/sound-transfer.md) ---
+// Opening it asks the radio to listen at the microphone for satellites a phone plays; the radio stores each one it hears
+// (a DMR channel is needed: the microphone is read in the modem's DMR work mode). This screen only asks, and shows what
+// the radio says: whether it listens, the level, how many satellites of the transfer were heard and what became of them
+
+static sat_sound_stats_t snd;
+static radio_sound_state_t snd_state;
+static uint32_t snd_ms = 1;
+
+static void snd_read(void)
+{
+	if (snd_ms == ui_st.now_ms)
+		return;
+	snd_ms = ui_st.now_ms;
+	snd_state = radio_sound_status(&snd);
+}
+
+static void sound_enter(void)
+{
+	snd_ms = 1;
+	radio_req_sound(true);
+}
+
+static void sound_leave(void)
+{
+	radio_req_sound(false);
+}
+
+// A bar for the level: the number of bits in the loudest sample, out of 15, so a quiet phone and a loud one both show
+static int level_bits(uint16_t v)
+{
+	int n = 0;
+	while (v != 0) {
+		n++;
+		v >>= 1;
+	}
+	return n;
+}
+
+static void snd_line(int x, int *y, const font_t *f, const char *s, color_t c, int limit)
+{
+	if (*y + f->h <= limit)
+		gfx_text(f, x, *y, s, c);
+	*y += f->h + 1;
+}
+
+static void sound_draw(void)
+{
+	char buf[40];
+	sbuf_t b;
+	snd_read();
+	gfx_clear(ui_col.bg);
+	int y = ui_draw_top(ui_view(), &ui_st, NULL, TR("Receive sound")) + 4;
+	int w = gfx_width();
+	const font_t *sm = ui_layout.small;
+	const int hy = ui_layout.hint_y;
+	if (snd_state != SOUND_LISTENING) {
+		const char *l1 = TR("Starting"), *l2 = "";
+		switch (snd_state) {
+		case SOUND_NEED_DMR:
+			l1 = TR("Switch to a DMR channel,");
+			l2 = TR("then open this again");
+			break;
+		case SOUND_BUSY:
+			l1 = TR("Transmitting, or still");
+			l2 = TR("storing the last transfer");
+			break;
+		case SOUND_NO_STORE:
+			l1 = TR("No place to keep");
+			l2 = TR("satellites on this radio");
+			break;
+		case SOUND_NO_AUDIO:
+			l1 = TR("This radio can't");
+			l2 = TR("listen for sound");
+			break;
+		default:
+			break;
+		}
+		snd_line(2, &y, sm, l1, snd_state == SOUND_OFF ? ui_col.dim : ui_col.warn, hy);
+		snd_line(2, &y, sm, l2, ui_col.warn, hy);
+		ui_draw_bottom(&ui_st, TR("Back close"));
+		ui_draw_banner(&ui_st);
+		return;
+	}
+	// the level, as a bar the width of the screen
+	int bw = w - 4, fill = (level_bits(snd.level) * bw) / 15;
+	if (y + sm->h <= hy) {
+		gfx_rect(2, y, bw, sm->h, ui_col.line);
+		if (fill > 0)
+			gfx_fill(2, y, fill, sm->h, snd.level > 12000 ? ui_col.warn : ui_col.rx);
+	}
+	y += sm->h + 4;
+	if (snd.count == 0) {
+		// Before the first satellite, what the receiver sees: the loudest sample of the last block, frames decoded and frames
+		// that failed their check (a bar that never moves means no sound reaches the microphone; frames with errors, a signal
+		// that is too weak or too distorted)
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Lvl"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.level, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, TR("Fr"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.frames, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, TR("Err"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, (uint32_t)snd.fcs_errors + snd.refused, 1);
+		snd_line(2, &y, sm, buf, ui_col.dim, hy);
+		snd_line(2, &y, sm, TR("Waiting for the sound"), ui_col.fg, hy);
+		snd_line(2, &y, sm, TR("Hold the phone's speaker"), ui_col.dim, hy);
+		snd_line(2, &y, sm, TR("at the microphone"), ui_col.dim, hy);
+	} else {
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Sats heard"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.heard, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, TR("of"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.count, 1);
+		bool done = snd.heard == snd.count && snd.queued == 0;
+		snd_line(2, &y, sm, buf, done ? ui_col.rx : ui_col.fg, hy);
+		uint16_t kept = (uint16_t)(snd.applied[SAT_SOUND_APPLY_CURRENT] + snd.applied[SAT_SOUND_APPLY_OLDER]);
+		uint16_t bad = (uint16_t)(snd.applied[SAT_SOUND_APPLY_FULL] + snd.applied[SAT_SOUND_APPLY_MODEL] +
+					  snd.applied[SAT_SOUND_APPLY_STORE]);
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("New"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.applied[SAT_SOUND_APPLY_NEW], 1);
+		sb_str(&b, "  ");
+		sb_str(&b, TR("Updated"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, snd.applied[SAT_SOUND_APPLY_UPDATED], 1);
+		snd_line(2, &y, sm, buf, ui_col.fg, hy);
+		sb_init(&b, buf, sizeof buf);
+		sb_str(&b, TR("Kept"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, kept, 1);
+		sb_str(&b, "  ");
+		sb_str(&b, TR("Problems"));
+		sb_chr(&b, ' ');
+		sb_u32(&b, bad, 1);
+		snd_line(2, &y, sm, buf, bad != 0 ? ui_col.warn : ui_col.dim, hy);
+		if (done)
+			snd_line(2, &y, sm, TR("Done: all heard"), ui_col.rx, hy);
+	}
+	ui_draw_bottom(&ui_st, TR("Back stop"));
+	ui_draw_banner(&ui_st);
+}
+
+const ui_scr_def_t ui_sat_sound_screen = {
+	// Not a field-use screen (P4): a step beside the list
+	.name = "sat-sound", .flags = 0, .draw = sound_draw, .enter = sound_enter, .leave = sound_leave,
+};
+#endif
+
 // --- setting the clock (Settings > Location > Set time) ---
 
 enum { CF_YEAR, CF_MONTH, CF_DAY, CF_HOUR, CF_MIN, CF_SEC, CF_COUNT };

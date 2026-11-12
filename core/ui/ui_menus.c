@@ -38,7 +38,7 @@
 extern const ui_scr_def_t ui_find_screen;
 extern const ui_scr_def_t ui_aprs_screen, ui_aprs_heard_screen, ui_aprs_pos_screen;	// ui_aprs.c
 extern const ui_scr_def_t ui_gps_screen;	// ui_gps.c
-extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen, ui_sat_freq_screen;	// ui_sat.c
+extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen, ui_sat_freq_screen, ui_sat_sound_screen;	// ui_sat.c
 #if CONFIG_DUAL_WATCH
 extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_screen;	// ui_dual.c
 #endif
@@ -5836,7 +5836,7 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_SAT
 	[SCR_SAT] = &ui_sat_screen, [SCR_SAT_PASSES] = &ui_sat_passes_screen, [SCR_SAT_TRACK] = &ui_sat_track_screen,
-	[SCR_SAT_CLOCK] = &ui_sat_clock_screen, [SCR_SAT_FREQ] = &ui_sat_freq_screen,
+	[SCR_SAT_CLOCK] = &ui_sat_clock_screen, [SCR_SAT_FREQ] = &ui_sat_freq_screen, [SCR_SAT_SOUND] = &ui_sat_sound_screen,
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,

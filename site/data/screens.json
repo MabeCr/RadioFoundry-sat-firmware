@@ -741,6 +741,30 @@
     "SAT"
    ]
   },
+  "satellite_sound": {
+   "group": "tools",
+   "needs": [
+    "SAT_SOUND"
+   ]
+  },
+  "satellite_sound_heard": {
+   "group": "tools",
+   "needs": [
+    "SAT_SOUND"
+   ]
+  },
+  "satellite_sound_done": {
+   "group": "tools",
+   "needs": [
+    "SAT_SOUND"
+   ]
+  },
+  "satellite_sound_not_dmr": {
+   "group": "tools",
+   "needs": [
+    "SAT_SOUND"
+   ]
+  },
   "diagnostics": {
    "group": "tools",
    "needs": [

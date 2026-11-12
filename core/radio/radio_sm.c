@@ -32,8 +32,12 @@
 #if CONFIG_SAT
 #include "radio/retune_test.h"
 #endif
-#if CONFIG_NET_USRP || CONFIG_APRS_RX
-#include "usbaudio/audio_mux.h"	// the PCM stream shared with a host audio session and APRS
+#if CONFIG_NET_USRP || CONFIG_APRS_RX || CONFIG_SAT_SOUND
+#include "usbaudio/audio_mux.h"	// the PCM stream shared with a host audio session, APRS and element sets by sound
+#endif
+#if CONFIG_SAT_SOUND
+#include "sat/sat_store.h"
+#include "storage/storage.h"	// storage_job_post: the store writes wait in the housekeeping task
 #endif
 #if CONFIG_DMR_DATA_CORE
 #include "dmr/dmrDataService.h"
@@ -3455,6 +3459,73 @@ static void aprs_poll(radio_sm_t *sm, uint32_t now_ms)
 static inline void aprs_rf_abort(radio_sm_t *sm, uint32_t now_ms) { (void)sm; (void)now_ms; }
 #endif
 
+// --- Element sets by sound (CONFIG_SAT_SOUND; docs/spec/sound-transfer.md): the microphone's audio to the receiver ---
+
+#if CONFIG_SAT_SOUND
+static sat_sound_rcv_t sound_rcv;	// about 3 KB: the demodulator, the tally and the queue of satellites for the store
+static radio_sound_state_t sound_state;
+static bool sound_want;
+
+// A satellite heard waits in the receiver's queue; the housekeeping task stores it, so this task never waits on the flash
+static bool sound_post(void (*job)(void *ctx), void *ctx)
+{
+	return storage_job_post(job, ctx);
+}
+
+static void sound_stop(void)
+{
+	audio_mux_sound_rx(false);
+	if (board.radio->mic_listen != NULL)
+		board.radio->mic_listen(false);
+	sat_sound_rcv_stop(&sound_rcv);
+}
+
+// Every poll, before the stream is serviced
+static void sound_poll(radio_sm_t *sm)
+{
+	bool listening = sound_state == SOUND_LISTENING;
+	if (sound_want) {
+		radio_sound_state_t now = SOUND_LISTENING;
+		if (board.audio == NULL)
+			now = SOUND_NO_AUDIO;
+		else if (sm->view.ch.mode != RADIO_MODE_DMR)
+			now = SOUND_NEED_DMR;
+		else if (sm->view.state == RS_TX || sm->view.state == RS_TX_DENIED || sm->hotspot)
+			now = SOUND_BUSY;
+		else if (!listening && sat_store_state() != SAT_STORE_OURS)	// a scan of the area: once, when it starts
+			now = SOUND_NO_STORE;
+		if (now == SOUND_LISTENING && !listening) {
+			if (sat_sound_rcv_start(&sound_rcv)) {
+				if (board.radio->mic_listen != NULL)
+					board.radio->mic_listen(true);
+				audio_mux_sound_rx(true);
+			}			else
+				now = SOUND_BUSY;	// the last transfer's satellites are still being stored
+		}
+		if (now != SOUND_LISTENING && listening)
+			sound_stop();
+		sound_state = now;
+	} else {
+		if (listening)
+			sound_stop();
+		sound_state = SOUND_OFF;
+	}
+	if (sound_state == SOUND_LISTENING) {
+		int16_t pcm[AUDIO_BLOCK_SAMPLES];
+		uint32_t n;
+		while ((n = audio_mux_aprs_read(pcm, AUDIO_BLOCK_SAMPLES)) != 0)
+			sat_sound_rcv_audio(&sound_rcv, pcm, n);
+	}
+	sat_sound_rcv_post(&sound_rcv, sound_post);	// also after stopping: what was heard still goes to the store
+}
+
+radio_sound_state_t radio_sound_status(sat_sound_stats_t *st)
+{
+	sat_sound_rcv_stats(&sound_rcv, st);
+	return sound_state;
+}
+#endif
+
 // --- DTMF (CONFIG_DTMF; radio-features.md 3.7): a digit key held during an FM transmission sends its pair ---
 
 #if CONFIG_DTMF
@@ -4708,7 +4779,7 @@ static void host_audio_watch(radio_sm_t *sm, uint32_t now_ms)
 // The PCM stream the radio's own users (beeps, DMR voice) take: the board's, shared with a host audio session
 static const hal_audio_t *pcm_audio(void)
 {
-#if CONFIG_NET_USRP || CONFIG_APRS_RX
+#if CONFIG_NET_USRP || CONFIG_APRS_RX || CONFIG_SAT_SOUND
 	return audio_mux_wrap(board.audio);
 #else
 	return board.audio;
@@ -4881,7 +4952,8 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 	// channel, so it neither gives way to nor cancels anything either
 	// (A Doppler retune is the satellite screen's, possibly its automatic mode's: not the user doing something either)
 	bool alert = req->type == RREQ_BEEP || req->type == RREQ_VIBRATE || req->type == RREQ_VOLUME ||
-		     req->type == RREQ_VOLUME_OVERRIDE || req->type == RREQ_RX_HZ || req->type == RREQ_VFO_RX_ONLY;
+		     req->type == RREQ_VOLUME_OVERRIDE || req->type == RREQ_RX_HZ || req->type == RREQ_VFO_RX_ONLY ||
+		     req->type == RREQ_SOUND_RX;
 	if (!alert && req->type != RREQ_DMR_FOCUS && req->type != RREQ_SETTINGS && req->type != RREQ_RETUNE) {
 		aprs_rf_abort(sm, now_ms);	// the user does something: an APRS transmission gives way
 	}
@@ -5033,6 +5105,11 @@ void radio_sm_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms)
 			sm->view.ch.rx_only = sm->vfo_ch.rx_only;
 			changed(sm);
 		}
+		break;
+#endif
+#if CONFIG_SAT_SOUND
+	case RREQ_SOUND_RX:
+		sound_want = req->arg != 0;
 		break;
 #endif
 #if CONFIG_AM_RX
@@ -5707,8 +5784,11 @@ void radio_sm_poll(radio_sm_t *sm, uint32_t now_ms)
 #if CONFIG_VIBRATE
 	vibe_service(now_ms, board.power != NULL ? board.power->vibrate : NULL);
 #endif
-#if CONFIG_NET_USRP || CONFIG_APRS_RX
-	audio_mux_service(now_ms);	// the stream for a host audio session or APRS (after the beep: it may have stopped it)
+#if CONFIG_SAT_SOUND
+	sound_poll(sm);		// before the stream is serviced: it decides whether the mux keeps it running
+#endif
+#if CONFIG_NET_USRP || CONFIG_APRS_RX || CONFIG_SAT_SOUND
+	audio_mux_service(now_ms);	// the stream for a host audio session, APRS or sound (after the beep: it may have stopped it)
 #endif
 #if CONFIG_NET_USRP
 	host_audio_watch(sm, now_ms);

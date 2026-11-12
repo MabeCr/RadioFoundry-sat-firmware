@@ -283,6 +283,9 @@ void radio_req_vfo_tx(uint32_t hz) { post(RREQ_VFO_TX, (int32_t)hz, 0); }
 void radio_req_rx_hz(uint32_t hz) { post(RREQ_RX_HZ, (int32_t)hz, 0); }
 void radio_req_vfo_rx_only(bool on) { post(RREQ_VFO_RX_ONLY, on, 0); }
 #endif
+#if CONFIG_SAT_SOUND
+void radio_req_sound(bool on) { post(RREQ_SOUND_RX, on, pdMS_TO_TICKS(50)); }
+#endif
 void radio_req_vfo_step_size(uint32_t hz) { post(RREQ_VFO_STEP_SIZE, (int32_t)hz, 0); }
 // PTT and monitor edges must not be lost (a lost release would keep transmitting until the time-out)
 void radio_req_ptt(bool down) { post(RREQ_PTT, down, pdMS_TO_TICKS(50)); }

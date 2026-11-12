@@ -464,7 +464,7 @@ ABOUT_H := out/gen/rfoundry_about.h
 $(shell python3 $(ROOT)/tools/gen_about.py $(ROOT)/AUTHORS $(ROOT)/platform/stm32f4/THIRD_PARTY $(ABOUT_H) >/dev/null)
 UIFLAGS := -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wshadow -g $(COVFLAGS) $(SANFLAGS) -I$(CORE) -I$(ROOT)/hal -I. -Iout/gen \
            '-DGFX_FB_BYTES=(320u*320u*2u)' -DGFX_MAX_ROWS=320 -DCONFIG_FONT_XL=1 -DFONT_BOTH -DGFX_INDEXED=1 -DGFX_FIT_TRACE \
-           -DCONFIG_SAT=1
+           -DCONFIG_SAT=1 -DCONFIG_SAT_SOUND=1
 UIDEPS  := $(UIAPP) $(ABOUT_H) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/ui/fonts/*.inc sim/ui_sim.h)
 TESTS   += uiFlowTest uiFlowTestNoColor uiSim
 
@@ -475,7 +475,7 @@ uiFlowTest: uiFlowTest.c $(UIDEPS)
 # without a translation (CONFIG_LANG_ES=n): the Language screen dims Spanish; and without satellites (CONFIG_SAT=n), the
 # default: Tools has no row 0
 uiFlowTestNoColor: uiFlowTest.c $(UIDEPS)
-	$(CC) $(UIFLAGS) -DCONFIG_UI_COLOR=0 -DCONFIG_LANG_ES=0 -UCONFIG_SAT -DCONFIG_SAT=0 -o $@ uiFlowTest.c $(UIAPP) -lz
+	$(CC) $(UIFLAGS) -DCONFIG_UI_COLOR=0 -DCONFIG_LANG_ES=0 -UCONFIG_SAT -DCONFIG_SAT=0 -UCONFIG_SAT_SOUND -DCONFIG_SAT_SOUND=0 -o $@ uiFlowTest.c $(UIAPP) -lz
 
 uiSim: uiSim.c $(UIDEPS)
 	$(CC) $(UIFLAGS) -o $@ uiSim.c $(UIAPP) -lz
@@ -560,7 +560,7 @@ run-ambe: ambeFecTest ambeVoiceTest micGainTest refTrimTest
 # against Skyfield (sat_ref.h, made by tools/sat_reference.py), Doppler, locators, repeater arming. -Wdouble-promotion
 # as the firmware builds it: the model is double precision, and a float slipping in costs digits
 # The library without the store and the service, which need core/storage (satStoreTest, satSvcTest)
-SAT_SRC := $(filter-out %/sat_store.c %/sat_svc.c,$(sort $(wildcard $(CORE)/sat/*.c)))
+SAT_SRC := $(filter-out %/sat_store.c %/sat_svc.c %/sat_sound_apply.c %/sat_sound_rcv.c,$(sort $(wildcard $(CORE)/sat/*.c)))
 # Element sets by sound: the frame, the shared vectors and whole transfers through the AFSK audio (tools/sat_sound.py)
 TESTS   += satSoundTest
 satSoundTest: satSoundTest.c $(CORE)/sat/sat_sound.c $(CORE)/sat/sat_tle.c $(CORE)/aprs/ax25.c $(CORE)/aprs/hdlc.c \
@@ -598,6 +598,15 @@ SATSTORE := satStoreTest.c $(CORE)/sat/sat_store.c $(CORE)/sat/sat_tle.c $(CORE)
 satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(SATSTORE) -lm
 
+# Receiving element sets by sound: the update rules and whole transfers from audio to stored records, on the simulated flash
+TESTS   += satSoundRcvTest
+SATRCV  := satSoundRcvTest.c $(CORE)/sat/sat_sound_apply.c $(CORE)/sat/sat_sound_rcv.c $(CORE)/sat/sat_sound.c \
+	   $(CORE)/sat/sat_store.c $(CORE)/sat/sat_track.c $(CORE)/sat/sat_look.c $(CORE)/sat/sat_tle.c $(CORE)/sat/sgp4.c \
+	   $(CORE)/sat/sat_math.c $(CORE)/sat/sat_profile.c $(CORE)/sat/sat_doppler.h $(CORE)/storage/storage.c sim/sim_flash.c \
+	   $(CORE)/aprs/ax25.c $(CORE)/aprs/hdlc.c $(CORE)/aprs/afsk.c
+satSoundRcvTest: $(SATRCV) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
+	$(CC) $(CFLAGS) -DCONFIG_SAT_SOUND=1 -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(filter %.c,$(SATRCV)) -lm
+
 # The satellite service (core/sat/sat_svc.c): the list's next passes and a pass list, in slices, on the simulated flash
 TESTS   += satSvcTest
 SATSVC  := satSvcTest.c $(CORE)/sat/sat_svc.c $(SAT_SRC) $(CORE)/sat/sat_store.c $(CORE)/storage/storage.c sim/sim_flash.c
@@ -605,10 +614,11 @@ satSvcTest: $(SATSVC) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) 
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(sort $(SATSVC)) -lm
 
 run: run-sat
-run-sat: satTest satLinkTest satStoreTest satSvcTest satSoundTest
+run-sat: satTest satLinkTest satStoreTest satSvcTest satSoundTest satSoundRcvTest
 	./satTest
 	./satLinkTest
 	./satSoundTest
+	./satSoundRcvTest
 	./satStoreTest
 	./satSvcTest
 .PHONY: run-sat

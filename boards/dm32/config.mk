@@ -43,4 +43,4 @@ SATELLITE_CUTS := CONFIG_SFR=n CONFIG_SFR_CWID=n CONFIG_SFR_DUALPATH_RX=n CONFIG
 MAXIMAL_VARS := $(SATELLITE_CUTS)
 # The satellite build to flash (tools/satellite.sh, the cloud image): the radio's own defaults (English only, no vibration
 # alerts) plus satellite tracking and the cuts
-SATELLITE_VARS := CONFIG_SAT=y $(SATELLITE_CUTS)
+SATELLITE_VARS := CONFIG_SAT=y CONFIG_SAT_SOUND=y $(SATELLITE_CUTS)

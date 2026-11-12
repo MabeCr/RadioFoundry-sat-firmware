@@ -46,4 +46,4 @@ BOARD_NOT_WRITTEN += AUDIO_PROBE	# no board.audio_tap yet
 # radios (docs/spec/ppp.md), and this one has the adapter. Every switch on doesn't fit the 464 KB of flash with two
 # translations: maximal keeps Spanish, as the default build does (Italian builds on the other boards). Satellite tracking
 # (about 20 KB, docs/spec/satellite.md 7) doesn't fit beside them either; it builds on the other boards
-MAXIMAL_SKIP := NET_PPP LANG_IT LANG_DEFAULT_IT SAT
+MAXIMAL_SKIP := NET_PPP LANG_IT LANG_DEFAULT_IT SAT SAT_SOUND

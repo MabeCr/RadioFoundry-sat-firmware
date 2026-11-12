@@ -120,6 +120,23 @@ __attribute__((noinline)) void debuglink_view_sat(dl_text_t *t)
 	sat_store_state_t st = sat_store_state();
 	dl_text(t, "sat.store=%s\nsat.slots=%u\nsat.stored=%u\n", store_names[st], sat_store_slots(),
 		st == SAT_STORE_NONE ? 0u : sat_store_count());
+#if CONFIG_SAT_SOUND
+	// Element sets by sound (sat_sound_rcv.h): the state (radio_sound_state_t) and what the receiver has done
+	sat_sound_stats_t ss;
+	radio_sound_state_t sstate = radio_sound_status(&ss);
+	dl_text(t, "sat.sound.built=1\nsat.sound.state=%u\nsat.sound.count=%u\nsat.sound.heard=%u\nsat.sound.frames=%u\n", (unsigned)sstate,
+		(unsigned)ss.count, (unsigned)ss.heard, (unsigned)ss.frames);
+	dl_text(t, "sat.sound.refused=%u\nsat.sound.fcs_errors=%u\nsat.sound.lost=%u\nsat.sound.queued=%u\nsat.sound.level=%u\n",
+		(unsigned)ss.refused, (unsigned)ss.fcs_errors, (unsigned)ss.lost, (unsigned)ss.queued, (unsigned)ss.level);
+	dl_text(t, "sat.sound.new=%u\nsat.sound.updated=%u\nsat.sound.current=%u\nsat.sound.older=%u\nsat.sound.full=%u\n",
+		(unsigned)ss.applied[SAT_SOUND_APPLY_NEW], (unsigned)ss.applied[SAT_SOUND_APPLY_UPDATED],
+		(unsigned)ss.applied[SAT_SOUND_APPLY_CURRENT], (unsigned)ss.applied[SAT_SOUND_APPLY_OLDER],
+		(unsigned)ss.applied[SAT_SOUND_APPLY_FULL]);
+	dl_text(t, "sat.sound.model=%u\nsat.sound.store_err=%u\n", (unsigned)ss.applied[SAT_SOUND_APPLY_MODEL],
+		(unsigned)ss.applied[SAT_SOUND_APPLY_STORE]);
+#else
+	dl_text(t, "sat.sound.built=0\n");
+#endif
 }
 
 static size_t op_tle(const uint8_t *req, uint16_t len, uint8_t *out)

@@ -75,6 +75,10 @@ typedef struct {
 	// it now (false) or at the next tune (true: the caller asks the radio task for one, radio_req_retune). NULL = the
 	// radio has no trim
 	bool (*ref_trim)(int16_t ppb);
+	// Optional (CONFIG_SAT_SOUND): the radio core listens to the microphone through the PCM stream (element sets by sound):
+	// on = outside a transmission, keep the microphone routed to the codec the PCM stream reads (a board whose idle
+	// microphone switch points elsewhere); false = give it back. The core calls it in the radio task. NULL = nothing to do
+	void (*mic_listen)(bool on);
 } hal_radio_t;
 
 #endif
