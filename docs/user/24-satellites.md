@@ -114,8 +114,7 @@ rules as `rfoundry_debug.py sat update` and never changes what a satellite is se
 ## Receiving the element sets by sound
 
 In a build with sound receive (`CONFIG_SAT_SOUND`), a phone can load the element sets with no cable at all: the page plays the
-satellites you chose as a sound, and the radio listens to it at its microphone. Status: built and tested in the simulator,
-**not tried on a radio yet**.
+satellites you chose as a sound, and the radio listens to it at its microphone. Status: tried on a radio, and it works.
 
 1. On the page ([the TLE page](../dev/sat-tle-web-tool.md)), choose the satellites, then use **Or send by sound**: *Play to the
    radio*, or *Download the audio (WAV)* to play from any player. Every satellite is sent twice, about 90 seconds for 32.

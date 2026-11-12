@@ -7,7 +7,7 @@ A phone plays a sound at a radio's microphone and the radio stores the satellite
 is involved, and an iPhone can do it, which has no Web Serial. This page is the signal and the frame. Which radios can
 hear it: [Feature matrix](../feature-matrix.md).
 
-Status: the frame, the sender, the receiving logic and the radio's screen are built (`CONFIG_SAT_SOUND`). The receiving logic and the screen are host tested; **nothing has been tried at a real microphone yet**.
+Status: the frame, the sender, the receiving logic and the radio's screen are built (`CONFIG_SAT_SOUND`). The receiving logic and the screen are host tested; **tried on a radio (2026-11-12): a phone playing the page's sound at the microphone loaded satellites**. Tuning (volume, noisy rooms, repeat count) is not done.
 
 ## The signal
 
