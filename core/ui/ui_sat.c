@@ -801,18 +801,13 @@ static void track_draw(void)
 	bool alt_row = alt_hz != 0 && prof && p.down_hz != 0;
 	bool tune_row = !on && have_p;
 	// Where you are, for the grid locator a contact asks for
-	char loc[8], grid[16];
-	loc[0] = grid[0] = '\0';
+	char loc[8];
+	loc[0] = '\0';
 	if (st.pos_ok) {
 		sbuf_t lb;
 		sb_init(&lb, loc, sizeof loc);
 		sb_locator(&lb, st.lat_e7, st.lon_e7);
-		sb_init(&lb, grid, sizeof grid);
-		sb_str(&lb, TR("Grid"));
-		sb_chr(&lb, ' ');
-		sb_str(&lb, loc);
 	}
-	int grid_w = gfx_text_width(fs, grid);
 	// The pass's three times in the chosen zone (Pass times: local or UTC), the highest point from the service
 	uint32_t t_max = trk_tca != 0 ? trk_tca : trk_aos / 2u + trk_los / 2u;
 	char t_aos[8], t_max_s[8], t_los[8];
@@ -834,7 +829,7 @@ static void track_draw(void)
 	int t_rows = !below || !times ? 0 : t_cols ? 1 : 2;
 	int side = below ? w : (h < w / 2 ? h : w / 2);
 	if (below) {
-		int need = (seen ? big->h + 1 : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) + t_rows * rh +
+		int need = (seen ? rh : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) + t_rows * rh +
 			   (one_row ? rh : (rxs[0] != '\0' ? rh : 0) + (txs[0] != '\0' ? rh : 0)) + (alt_row ? rh : 0) +
 			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0);
 		int fit = h - need - 3;
@@ -846,10 +841,22 @@ static void track_draw(void)
 	int r = side / 2 - 1;
 	int cx = below ? w / 2 : r + 1, cy = y + r + 1;
 	plot(cx, cy, r, seen ? &live : NULL);
+	if (below) {
+		// The corners of the plot's square are empty: the elevation large at the left (nothing while below the horizon), the
+		// locator at the right, bare ("FN42li": a contact that asks for it knows what it looks like)
+		if (seen) {
+			sbuf_t eb;
+			char el[8];
+			sb_init(&eb, el, sizeof el);
+			sb_i32(&eb, live.el);
+			sb_str(&eb, GLYPH_DEGREE);
+			gfx_text(big, 0, y + 1, el, ui_col.rx);
+		}
+		if (loc[0] != '\0')
+			gfx_text(fs, w - gfx_text_width(fs, loc) - 2, y + 1, loc, ui_col.dim);
+	}
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
-	int cd_y = ty;		// the countdown's row (the first row of the numbers when there is no countdown)
-	int el_y = ty;		// the elevation's row
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
@@ -861,6 +868,12 @@ static void track_draw(void)
 			gfx_text(ui_layout.small, x, ty, buf, ui_col.dim);
 			ty += ui_layout.small->h + 2;
 		}
+	} else if (below) {
+		sb_init(&b, buf, sizeof buf);
+		sb_u32(&b, live.az, 1);
+		sb_str(&b, GLYPH_DEGREE " ");
+		sb_compass(&b, live.az);
+		trow(x, &ty, "Az", buf, ui_col.fg);
 	} else {
 		// "62°" large, then the way across the sky: on the same row when it fits (a line saved for the times), else under it
 		sb_init(&b, buf, sizeof buf);
@@ -889,11 +902,9 @@ static void track_draw(void)
 			trow(x, &ty, "Az", az, ui_col.fg);
 		}
 	}
-	bool cd_grid = false;	// the locator is on the countdown's row
 	// The countdown: to the set while it is up, else to the rise (it comes before the rest: a small panel has no room).
 	// Beside the plot the row also carries the time of that event, the locator after them when it fits
 	if (st.utc != 0) {
-		cd_y = ty;
 		bool up = st.utc >= trk_aos && st.utc < trk_los;
 		char cd[16], c1[40], c2[40], c3[40];
 		sb_init(&b, cd, sizeof cd);
@@ -922,16 +933,9 @@ static void track_draw(void)
 		// Beside the plot the label is the event (its time is in the row); on a tall panel the times row below has AOS and LOS,
 		// so this one says what the countdown is to, in words
 		const char *lab = st.utc >= trk_los ? "" : below ? (up ? TR("Sets in") : TR("Rises in")) : up ? "LOS" : "AOS";
-		int cd_w = gfx_text_width(fs, lab) + fs->w + gfx_text_width(fs, cands[nc - 1]);
 		trow_fit(x, &ty, lab, cands, nc, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
-		// A tall panel: the locator goes right aligned on this row if it fits, else on the LOS row below
-		if (below && grid[0] != '\0' && cd_w + 2 * fs->w + grid_w <= w) {
-			gfx_text(fs, w - grid_w - 2, cd_y, grid, ui_col.dim);
-			cd_grid = true;
-		}
 	}
 	// The pass's times (a tall panel; beside the plot they come after the frequencies, below)
-	bool grid_done = cd_grid;
 	if (below && times) {
 		int gap = t_cols ? (w - tw[0] - tw[1] - tw[2]) / 2 : 0;
 		if (t_cols && ty + fs->h <= ui_layout.hint_y) {
@@ -953,16 +957,11 @@ static void track_draw(void)
 			}
 			if (ty + fs->h <= ui_layout.hint_y) {
 				int lx = gfx_text(fs, 0, ty, "LOS", ui_col.dim);
-				lx = gfx_text(fs, lx + fs->w, ty, t_los, ui_col.fg);
-				if (!grid_done && grid[0] != '\0' && lx + 2 * fs->w + grid_w <= w) {
-					gfx_text(fs, w - grid_w - 2, ty, grid, ui_col.dim);
-					grid_done = true;
-				}
+				gfx_text(fs, lx + fs->w, ty, t_los, ui_col.fg);
 				ty += rh;
 			}
 		}
 	}
-	int rx_y = ty, rx_end = 0;	// the RX row, and where its text ends: AUTO goes at its right
 	if (one_row && ty + fs->h <= ui_layout.hint_y) {
 		int lx = gfx_text(fs, 0, ty, "RX", ui_col.dim);
 		gfx_text(fs, lx + fs->w, ty, rxs, rc);
@@ -970,10 +969,8 @@ static void track_draw(void)
 		gfx_text(fs, lx + fs->w, ty, txs, tc);
 		ty += rh;
 	} else {
-		if (rxs[0] != '\0') {
+		if (rxs[0] != '\0')
 			trow(x, &ty, "RX", rxs, rc);
-			rx_end = x + rxw;
-		}
 		if (txs[0] != '\0')
 			trow(x, &ty, "TX", txs, tc);
 	}
@@ -998,14 +995,11 @@ static void track_draw(void)
 		trow(x, &ty, room ? word : ">", buf, ui_col.dim);
 	}
 	if (trk_follow.on) {
-		// On a tall panel "AUTO" ends the RX row (the first row of the numbers is the grid's, or the elevation's); else,
-		// and where the RX text runs too far right for it, an "Auto" row
+		// On a tall panel "AUTO" goes in the plot's empty lower right corner; else an "Auto" row
 		const font_t *sm = ui_layout.small;
 		int ax = w - gfx_text_width(sm, "AUTO") - 2;
-		if (one_row)	// RX and TX share their row: AUTO goes on the elevation's, between it and the azimuth
-			gfx_text(sm, w / 2 - gfx_text_width(sm, "AUTO") / 2, el_y + big->h - sm->h, "AUTO", ui_col.rx);
-		else if (below && rx_end != 0 && rx_end + sm->w <= ax)
-			gfx_text(sm, ax, rx_y, "AUTO", ui_col.rx);
+		if (below)	// the plot's lower right corner is empty
+			gfx_text(sm, ax, y + side - sm->h, "AUTO", ui_col.rx);
 		else
 			trow(x, &ty, "Auto", TR("on"), ui_col.rx);
 	}

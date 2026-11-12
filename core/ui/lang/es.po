@@ -1016,7 +1016,7 @@ msgstr "Cielo"
 msgid "Signal"
 msgstr "Señal"
 
-#: core/ui/ui_gps.c core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_gps.c core/ui/ui_menus.c
 msgid "Grid"
 msgstr "Cuadrícula"
 
