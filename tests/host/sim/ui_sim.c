@@ -1822,22 +1822,22 @@ uint8_t ui_svc_gps_state(void) { return gps_sim; }
 #define SAT_SIM_UTC	1793196300u	// 2026-10-28 14:05:00
 static struct { uint8_t state; bool empty, working; uint32_t open, set_utc, set_ms; } sat_sim;
 static const ui_sat_t sim_sat_rows[] = {
-	{ "ISS", 25544, UI_SAT_UP, 61, 23, 2, 60, SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u },
-	{ "SO-50", 27607, UI_SAT_NEXT, 71, 0, 2, 135, SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u },
-	{ "AO-91", 43017, UI_SAT_NEXT, 12, 0, 1, 190, SAT_SIM_UTC + 123u * 60u, SAT_SIM_UTC + 131u * 60u },
-	{ "AO-27", 22825, UI_SAT_NEXT, 44, 0, 3, 160, SAT_SIM_UTC + 226u * 60u, SAT_SIM_UTC + 236u * 60u },
-	{ "PO-101", 43678, UI_SAT_OLD, 0, 0, 31, 0, 0, 0 },
-	{ "RS-44", 44909, UI_SAT_NO_ORBIT, 0, 0, 0, 0, 0, 0 },
+	{ "ISS", 25544, UI_SAT_UP, 61, 23, 2, 60, SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u, SAT_SIM_UTC + 120u },
+	{ "SO-50", 27607, UI_SAT_NEXT, 71, 0, 2, 135, SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u, SAT_SIM_UTC + 33u * 60u },
+	{ "AO-91", 43017, UI_SAT_NEXT, 12, 0, 1, 190, SAT_SIM_UTC + 123u * 60u, SAT_SIM_UTC + 131u * 60u, SAT_SIM_UTC + 127u * 60u },
+	{ "AO-27", 22825, UI_SAT_NEXT, 44, 0, 3, 160, SAT_SIM_UTC + 226u * 60u, SAT_SIM_UTC + 236u * 60u, SAT_SIM_UTC + 231u * 60u },
+	{ "PO-101", 43678, UI_SAT_OLD, 0, 0, 31, 0, 0, 0, 0 },
+	{ "RS-44", 44909, UI_SAT_NO_ORBIT, 0, 0, 0, 0, 0, 0, 0 },
 };
 // SO-50's: two today, then tomorrow's (local time)
 static const ui_sat_pass_t sim_sat_passes[] = {
-	{ SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u, 71, 329, 144, 135 },
-	{ SAT_SIM_UTC + 128u * 60u, SAT_SIM_UTC + 136u * 60u, 18, 270, 190, 200 },
-	{ SAT_SIM_UTC + 1276u * 60u, SAT_SIM_UTC + 1283u * 60u, 12, 0, 90, 90 },
-	{ SAT_SIM_UTC + 1433u * 60u, SAT_SIM_UTC + 1443u * 60u, 47, 45, 180, 165 },
+	{ SAT_SIM_UTC + 27u * 60u, SAT_SIM_UTC + 40u * 60u, 71, 329, 144, 135, SAT_SIM_UTC + 33u * 60u },
+	{ SAT_SIM_UTC + 128u * 60u, SAT_SIM_UTC + 136u * 60u, 18, 270, 190, 200, SAT_SIM_UTC + 132u * 60u },
+	{ SAT_SIM_UTC + 1276u * 60u, SAT_SIM_UTC + 1283u * 60u, 12, 0, 90, 90, SAT_SIM_UTC + 1279u * 60u },
+	{ SAT_SIM_UTC + 1433u * 60u, SAT_SIM_UTC + 1443u * 60u, 47, 45, 180, 165, SAT_SIM_UTC + 1438u * 60u },
 };
 // The ISS's, under way now
-static const ui_sat_pass_t sim_iss_pass = { SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u, 61, 329, 144, 135 };
+static const ui_sat_pass_t sim_iss_pass = { SAT_SIM_UTC - 180u, SAT_SIM_UTC + 420u, 61, 329, 144, 135, SAT_SIM_UTC + 120u };
 #define SAT_SIM_ROWS	(sizeof sim_sat_rows / sizeof sim_sat_rows[0])
 #define SAT_SIM_PASSES	(sizeof sim_sat_passes / sizeof sim_sat_passes[0])
 

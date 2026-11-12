@@ -207,11 +207,13 @@ typedef struct {
 	int16_t age_d;		// the element set's age in days
 	uint16_t dir;		// its way across the sky: a bearing, north up and east right
 	uint32_t aos, los;	// the next pass (or the one under way), UTC
+	uint32_t tca;		// its highest point, UTC (0: not known)
 } ui_sat_t;
 typedef struct {
 	uint32_t aos, los;	// UTC
 	int8_t max_el;
 	uint16_t aos_az, los_az, dir;	// degrees
+	uint32_t tca;		// the highest point, UTC (0: not known)
 } ui_sat_pass_t;
 typedef struct {
 	uint32_t up_hz, down_hz;	// 0 none

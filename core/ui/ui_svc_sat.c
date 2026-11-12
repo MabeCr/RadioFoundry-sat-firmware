@@ -43,6 +43,7 @@ bool ui_svc_sat_get(uint8_t i, ui_sat_t *out)
 	out->dir = r.dir;
 	out->aos = r.aos;
 	out->los = r.los;
+	out->tca = r.tca;
 	return true;
 }
 
@@ -88,6 +89,7 @@ bool ui_svc_sat_pass(uint8_t i, ui_sat_pass_t *out)
 		return false;
 	out->aos = p.aos;
 	out->los = p.los;
+	out->tca = p.tca;
 	out->max_el = p.max_el;
 	out->aos_az = p.aos_az;
 	out->los_az = p.los_az;
