@@ -146,7 +146,6 @@ bool ui_name_is_id(const char *name, uint32_t id, bool private_call);
 // Fonts and region positions for the current display, from gfx_width() / gfx_height()
 typedef struct {
 	const font_t *tiny, *small, *medium, *large;
-	const font_t *micro;	// the narrowest text: tiny, or on a 220 px panel the 6 px one under it (dense rows of numbers)
 	int strip_h;
 	int zone_y;		// < 0: no zone line on this display
 	int channel_y, talk_y, chips_y;

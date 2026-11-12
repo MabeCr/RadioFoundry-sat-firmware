@@ -149,7 +149,6 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "satellite_passes", "ok 6 0 2" },
 	{ "satellite_track", "ok 6 0 1 ok" },
 	{ "satellite_track_wait", "ok 6 0 2 ok" },
-	{ "satellite_track_alt", "ok 6 0 2 ok ok 4 3 7 5 5 0 ok" },
 	{ "satellite_track_auto", "ok 6 0 1 ok quick" },
 	{ "satellite_frequency", "ok 6 0 1 ok ok 1 4 5 8" },
 	{ "satellite_sound", "ok 6 0 7" },

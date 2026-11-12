@@ -13,6 +13,7 @@
 #include "sat/sat_follow.h"
 #include "sat/sat_doppler.h"
 #include "fmt.h"
+#include "font.h"
 #include "i18n.h"
 #include "radio/radio.h"
 
@@ -742,6 +743,19 @@ static bool track_key(const input_event_t *ev)
 	return false;
 }
 
+// The narrowest text that stays readable (6 px wide on a panel 220 px wide or more, where the larger text sizes would put
+// a whole pass's times out of a row): the 6 px font of the family the layout's tiny text is in, else the tiny text itself.
+// Not a field of the layout: the radios with the least RAM would pay for it
+static const font_t *micro_font(void)
+{
+	const font_t *t = ui_layout.tiny;
+	if (t == &font_aa_8x16)
+		return &font_aa_6x12;
+	if (t == &font_8x16)
+		return &font_6x12;
+	return t;
+}
+
 static void track_draw(void)
 {
 	// The text of this screen is built in static buffers: only the UI task draws it, and on its small stack a dozen
@@ -834,7 +848,7 @@ static void track_draw(void)
 	const font_t *tf = fs;
 	int tgap = fs->w, twm[3];
 	if (below && times && !t_cols) {
-		const font_t *mf = ui_layout.micro;
+		const font_t *mf = micro_font();
 		const char *tl[3] = { "AOS", "MAX", "LOS" }, *tv[3] = { t_aos, t_max_s, t_los };
 		int tot = 0;
 		for (int k = 0; k < 3; k++) {

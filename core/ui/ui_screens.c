@@ -263,7 +263,6 @@ void ui_layout_init(void)
 	font_largest = aa ? FONT_AA_LARGEST : FONT_LARGEST;
 	if (w >= 220) {
 		L->tiny = f6; L->small = f8; L->medium = f12; L->large = font_largest;
-		L->micro = f6;
 #if CONFIG_FONT_BIG
 		// One size up for lists, labels and the status strip (CONFIG_FONT_BIG): 9 px characters instead of 8
 		bool big = aa;
@@ -281,8 +280,6 @@ void ui_layout_init(void)
 	} else {
 		L->tiny = &font_5x8; L->small = &font_5x8; L->medium = f6; L->large = f8;
 	}
-	if (w < 220)
-		L->micro = L->tiny;
 
 	// A pixel between the status strip and what is below it, and a pixel between list rows on displays 100 px and
 	// higher (3 on tall ones, 6 in the 240 px class): easy to read comes before one more row
