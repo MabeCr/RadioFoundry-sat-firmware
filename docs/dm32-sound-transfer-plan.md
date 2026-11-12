@@ -106,9 +106,10 @@ cable, so it checks the meter runs and counts halves, not the sound).
 P is on a 0 to 32767 scale, so even the highest reading, 450, is about 1.4 % of full scale (about -37 dBFS): nothing is
 near clipping, and the readings keep rising with volume, so the codec's gain control isn't flattening the tones. The
 two tones read alike (2200 Hz a little higher at the same volume), which the demodulator's per-tone normalization
-absorbs. What this doesn't say: the quiet floor in the DMR mode (the signal to noise ratio), and whether a quiet phone
-volume is enough. The codec's mic gain is a set-up value (11 dB); it can be raised for the Receive sound screen if the
-floor allows.
+absorbs. The quiet floor in the DMR mode, in a quiet room with no sound, reads L 0 and P 4 to 8. So the lowest volume
+tried (P 50 to 65) is about 8 times the floor (18 dB), and medium (P 210 to 360) about 40 times (32 to 35 dB): a quiet
+phone is enough, and the codec's mic gain (a set-up value, 11 dB) needs no raising. What this doesn't say: how
+a noisy room or a moving phone changes it.
 
 ## Phase 1: the format and the page (no radio)
 
