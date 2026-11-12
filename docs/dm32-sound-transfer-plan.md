@@ -21,8 +21,7 @@ page's width. The third build shows them, and the modem's work mode: the mic tap
 (work mode 0x6E), not in FM receive (0x80). **Confirmed the same day:** on a DMR channel, with no transmission, L and P
 jump with sound at the mic. So **the mic can be read with the transmitter off, in the DMR work mode**; in FM receive the
 mic PCM is silent. For sound transfer the radio has to be in the DMR work mode while the Receive sound screen is open
-(a DMR channel, or the screen putting the modem there itself, receive only). Still to measure: the level and the
-flat-top behavior for 1200 Hz and 2200 Hz tones at low, medium and full phone volume.
+(a DMR channel, or the screen putting the modem there itself, receive only). The tone levels are measured (below).
 Nothing else is started.
 
 ## What the firmware already has
@@ -92,6 +91,24 @@ whether the codec's mic input, its mute bit or the ADC is the next thing to look
 
 A hardware test of the same path exists: `pytest tests/hil/test_radio_features.py -k mic_level` (it needs the programming
 cable, so it checks the meter runs and counts halves, not the sound).
+
+## Phase 0 result: tones through the mic (2026-11-12, DMR channel, no transmission, phone speaker at the mic hole)
+
+| Tone | Phone volume | L | P |
+|---|---|---|---|
+| 1200 Hz | low | 20 | 50 |
+| 1200 Hz | medium | 38 | 210 |
+| 1200 Hz | high | 48 | 450 |
+| 2200 Hz | low | 25 | 65 |
+| 2200 Hz | medium | 46 | 360 |
+| 2200 Hz | high | not tried (a sleeping baby) | |
+
+P is on a 0 to 32767 scale, so even the highest reading, 450, is about 1.4 % of full scale (about -37 dBFS): nothing is
+near clipping, and the readings keep rising with volume, so the codec's gain control isn't flattening the tones. The
+two tones read alike (2200 Hz a little higher at the same volume), which the demodulator's per-tone normalization
+absorbs. What this doesn't say: the quiet floor in the DMR mode (the signal to noise ratio), and whether a quiet phone
+volume is enough. The codec's mic gain is a set-up value (11 dB); it can be raised for the Receive sound screen if the
+floor allows.
 
 ## Phase 1: the format and the page (no radio)
 
