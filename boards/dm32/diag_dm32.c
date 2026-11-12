@@ -198,7 +198,7 @@ bool dm32_diag_line(uint8_t i, char *buf, uint8_t len)
 		put_x(&o, dm32_audio_control(), 8);
 		break;
 	case 14: case 15: case 16: case 17: {
-		// The codec's 64 byte registers, 16 per line (as the DM-1801 Pro's page): CR_MIC1/2 at 0B/0C, CR_ADC at 0F (b7 mutes the mic)
+		// The codec's 64 byte registers, 16 per line: CR_MIC1/2 at 0B/0C, CR_ADC at 0F (b7 mutes the mic)
 		uint8_t base = (uint8_t)((i - 14u) * 16u);
 		put(&o, "cd ");
 		put_x(&o, base, 2);
