@@ -768,6 +768,7 @@ static void track_draw(void)
 	int ty = below ? cy + r + 3 : y;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
 	int cd_y = ty;		// the countdown's row (the first row of the numbers when there is no countdown)
+	int el_y = ty;		// the elevation's row
 	bool near = st.utc == 0 || (st.utc + UI_SAT_TRACK_MARGIN_S >= trk_aos && st.utc < trk_los + UI_SAT_TRACK_MARGIN_S);
 	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
@@ -887,9 +888,11 @@ static void track_draw(void)
 	const radio_view_t *rv = ui_view();
 	bool on = trk_tuned && rv->vfo;
 	int rx_y = ty, rx_end = 0;	// the RX row, and where its text ends: AUTO goes at its right
+	char rxs[24], txs[24];
+	color_t rc = ui_col.fg, tc = ui_col.fg;
+	rxs[0] = txs[0] = '\0';
 	if (rv->ch.rx_hz != 0) {
-		sb_init(&b, buf, sizeof buf);
-		color_t rc = ui_col.fg;
+		sb_init(&b, rxs, sizeof rxs);
 		if (on && have_p) {
 			sb_shifted(&b, rv->ch.rx_hz, track_base(&p));
 			int32_t behind = (int32_t)(track_want(&p) - rv->ch.rx_hz);
@@ -897,17 +900,34 @@ static void track_draw(void)
 		} else {
 			sb_freq(&b, rv->ch.rx_hz);
 		}
-		trow(x, &ty, "RX", buf, rc);
-		rx_end = x + gfx_text_width(ui_layout.small, "RX") + ui_layout.small->w + gfx_text_width(ui_layout.small, buf);
 	}
 	if (rv->ch.tx_hz != 0) {
-		sb_init(&b, buf, sizeof buf);
+		sb_init(&b, txs, sizeof txs);
 		bool none = on && trk_rx_only;		// listening only: nothing is transmitted on it
 		if (none)
 			sb_str(&b, TR("RX only"));
 		else
 			sb_freq(&b, rv->ch.tx_hz);
-		trow(x, &ty, "TX", buf, none ? ui_col.dim : ui_col.fg);
+		tc = none ? ui_col.dim : ui_col.fg;
+	}
+	// A tall panel is wide enough for both on one row, which leaves a row for the pass's other numbers
+	const font_t *fs = ui_layout.small;
+	int rxw = gfx_text_width(fs, "RX") + fs->w + gfx_text_width(fs, rxs);
+	int txw = gfx_text_width(fs, "TX") + fs->w + gfx_text_width(fs, txs);
+	bool one_row = below && rxs[0] != '\0' && txs[0] != '\0' && rxw + 2 * fs->w + txw <= w;
+	if (one_row && ty + fs->h <= ui_layout.hint_y) {
+		int lx = gfx_text(fs, 0, ty, "RX", ui_col.dim);
+		gfx_text(fs, lx + fs->w, ty, rxs, rc);
+		lx = gfx_text(fs, w - txw - 2, ty, "TX", ui_col.dim);
+		gfx_text(fs, lx + fs->w, ty, txs, tc);
+		ty += fs->h + (ui_layout.row_h > fs->h ? 1 : 0);
+	} else {
+		if (rxs[0] != '\0') {
+			trow(x, &ty, "RX", rxs, rc);
+			rx_end = x + rxw;
+		}
+		if (txs[0] != '\0')
+			trow(x, &ty, "TX", txs, tc);
 	}
 	if (alt_hz != 0 && ui_svc_sat_profile(&p) && p.down_hz != 0) {
 		// What OK swaps to: the frequency not listened on now (two letters like RX: a longer label pushes it off a narrow panel)
@@ -925,7 +945,9 @@ static void track_draw(void)
 		// and where the RX text runs too far right for it, an "Auto" row
 		const font_t *sm = ui_layout.small;
 		int ax = w - gfx_text_width(sm, "AUTO") - 2;
-		if (below && rx_end != 0 && rx_end + sm->w <= ax)
+		if (one_row)	// RX and TX share their row: AUTO goes on the elevation's, between it and the azimuth
+			gfx_text(sm, w / 2 - gfx_text_width(sm, "AUTO") / 2, el_y + big->h - sm->h, "AUTO", ui_col.rx);
+		else if (below && rx_end != 0 && rx_end + sm->w <= ax)
 			gfx_text(sm, ax, rx_y, "AUTO", ui_col.rx);
 		else
 			trow(x, &ty, "Auto", TR("on"), ui_col.rx);
