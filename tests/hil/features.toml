@@ -217,7 +217,6 @@ source = ["core/sat", "core/debuglink/debuglink_sat.c", "core/app/sat_task.c", "
 
 [feature.sat_sound]
 switch = "SAT_SOUND"
-hardware = "a microphone read in a DMR channel's work mode"
 spec = "docs/spec/sound-transfer.md"
 source = ["core/sat/sat_sound.c", "core/sat/sat_sound_apply.c", "core/sat/sat_sound_rcv.c"]
 

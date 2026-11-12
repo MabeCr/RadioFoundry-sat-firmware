@@ -308,6 +308,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | APRS receive: demodulator, station list, digipeater | `APRS_RX` | 8,892 | — | DM-1701: FM receive audio on the I2S stream, squelch gated ([aprs](spec/aprs.md) 5.3). MD-380: not written |
 | GPS screen: sky plot, signal bars, grid locator (Tools > Position) | `GPS_SKY` | — | 5,244 | Needs GPS and APRS. 176 B of RAM. MD-380 measured 2026-10-29 (LTO) |
 | Satellite tracking: SGP4, passes, Doppler, profiles, repeater arming | `SAT` | 26,792 | — | Off by default. Tools > Satellites (the pass lists), stored satellites, the debug link's SAT command; tracking not built yet. DM-1701 figure with LTO and the debug link: 2,848 B of RAM and the `sat` task's 1.5 KB stack (2026-11-03; [satellite](spec/satellite.md) 7). Stored satellites need a satellite area in the board's flash map: DM-32UV only so far |
+| Element sets by sound: the AFSK receiver, the store rules and Tools > Satellites > Receive sound | `SAT_SOUND` | — | — | Needs `SAT`, `DMR` and `APRS`. Off by default; on in the DM-32UV satellite build. About 3 KB of RAM (the demodulator and the queue); the flash cost is not measured yet. Not tried at a microphone ([sound-transfer](spec/sound-transfer.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB
