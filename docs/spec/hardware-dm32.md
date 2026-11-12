@@ -896,6 +896,26 @@ switches per burst. As a user it reports both copies of a call (gotchas 14.15).
 | DMR RX audio | CPU writes 160 bytes of decoded 8 kHz PCM to 0x180000A0 per 10 ms and sets AUDIO_CONTROL bit 5; PCM_rd interrupt (vector 59) asks for the next block; clear with INTERP_CLEAR bit 5 |
 | Beeps / prompts | 64 bytes (32 samples, low byte first, 8 kHz) at a time to the prompt FIFO 0x16000980 while AUDIO_CONTROL bit 31 (`ring_full_two`) is 0; enable with AUDIO_CONTROL bit 7 (`ring_play_ctrl`). high byte first sounds distorted (`modem-hrc7000.md` 8.4); not yet heard on this radio |
 
+### 9.0 Mic level with the transmitter off (measured 2026-11-12)
+
+The mic PCM tap (AUDIO_CONTROL b4, 80 samples every 10 ms at 0x18000000, PIC 28) delivers the microphone with the
+transmitter off **in the modem's DMR work mode (0x6E)**. In FM receive (work mode 0x80) the interrupt runs and the
+buffer is all zeros, with the mic switch (GPIO 0x2E) on the codec and the codec's registers at their set-up values.
+Measured with temporary builds (the VOX mic level meter on the mic PCM, `platform/hrc7000/audio_pcm.c`, shown on the
+diagnostics page), on a DMR channel with no transmission and a phone speaker at the microphone:
+
+| Sound | P (peak of a 10 ms half, 0 to 32767) |
+|---|---|
+| Quiet room | 4 to 8 |
+| 1200 Hz, phone volume low, medium, high | 50, 210, 450 |
+| 2200 Hz, phone volume low, medium | 65, 360 |
+
+The readings rise with volume and nothing is near full scale. Outside transmit `speaker_source` drives the mic switch to
+the analog FM path whenever the squelch is closed; whether the DMR mode needs the switch on the codec was not tested on
+its own. The programming cable is in the microphone's jack and cuts the mic, so the level can't be read over the debug
+link while sound is played. The earlier VOX reading through the ADC (the ADC table in section 3) is suspect and is not
+this one. The use of this path: [the sound transfer plan](../dm32-sound-transfer-plan.md).
+
 ### 9.1 Internal audio codec registers (byte registers at 0x160009C0 + offset)
 
 Values written at init; field meanings from the datasheet:
