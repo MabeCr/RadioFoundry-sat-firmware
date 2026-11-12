@@ -115,6 +115,15 @@ sat_sound_rx_res_t sat_sound_rx_frame(sat_sound_rx_t *rx, const uint8_t *frame, 
 	return SAT_SOUND_RX_NEW;
 }
 
+void sat_sound_rx_forget(sat_sound_rx_t *rx, uint8_t index)
+{
+	uint32_t bit = index < SAT_SOUND_SETS_MAX ? 1u << index : 0u;
+	if ((rx->seen & bit) != 0) {
+		rx->seen &= ~bit;
+		rx->heard--;
+	}
+}
+
 bool sat_sound_rx_done(const sat_sound_rx_t *rx)
 {
 	return rx->active && rx->heard == rx->count;

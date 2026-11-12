@@ -68,6 +68,8 @@ void sat_sound_rx_init(sat_sound_rx_t *rx);
 // Takes one frame. A frame with a different transfer id, or a different count, starts a new transfer: what was heard
 // before is forgotten (its satellites are stored already: each frame stands alone)
 sat_sound_rx_res_t sat_sound_rx_frame(sat_sound_rx_t *rx, const uint8_t *frame, size_t n, sat_sound_rec_t *r);
+// Take a satellite back out of the tally (its record could not be kept), so a later copy counts as new
+void sat_sound_rx_forget(sat_sound_rx_t *rx, uint8_t index);
 // Every satellite of the transfer has been taken
 bool sat_sound_rx_done(const sat_sound_rx_t *rx);
 
