@@ -49,6 +49,7 @@ typedef struct sat_sound_rcv {
 	sat_sound_rx_t tally;
 	sat_sound_slot_t slot[SAT_SOUND_QUEUE];
 	sat_track_t scratch;		// the orbit model's try-out, used by the jobs one at a time
+	sat_sound_rec_t rec;		// the frame being taken (here, not on the radio task's stack)
 	sat_sound_stats_t st;
 } sat_sound_rcv_t;
 

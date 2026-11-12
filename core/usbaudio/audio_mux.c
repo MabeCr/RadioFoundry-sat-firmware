@@ -24,11 +24,14 @@ static int16_t rx_ring[AUDIO_MUX_RX_CAP];
 static volatile uint32_t rx_wr, rx_rd;		// free-running: the audio task writes, the host task reads
 static pcm_slip_t slip;
 static int16_t host_mic[AUDIO_BLOCK_SAMPLES];
-#if CONFIG_APRS_RX
+#if CONFIG_APRS_RX || CONFIG_SAT_SOUND
+// One ring for the radio task's two receivers of the stream's input: APRS (FM receive audio, FM only) and element sets by
+// sound (the microphone, in the DMR work mode only), so never both at once
 static volatile bool aprs_on;
+static volatile bool sound_on;
 static int16_t aprs_ring[AUDIO_MUX_APRS_CAP];
 static volatile uint32_t aprs_wr, aprs_rd;	// the audio task writes, the radio task reads
-#define stream_wanted	(host_rx_on || aprs_on)
+#define stream_wanted	(host_rx_on || aprs_on || sound_on)
 #else
 #define stream_wanted	host_rx_on
 #endif
@@ -66,8 +69,8 @@ static void block(const int16_t *mic, int16_t *spk, void *ctx)
 	} else {
 		memset(spk, 0, AUDIO_BLOCK_SAMPLES * sizeof *spk);
 	}
-#if CONFIG_APRS_RX
-	if (aprs_on) {
+#if CONFIG_APRS_RX || CONFIG_SAT_SOUND
+	if (aprs_on || sound_on) {
 		// Too late a reader loses the newest block whole: the demodulator sees one gap, not a torn block
 		uint32_t w = aprs_wr;
 		if (AUDIO_MUX_APRS_CAP - (w - aprs_rd) >= AUDIO_BLOCK_SAMPLES) {
@@ -200,15 +203,23 @@ uint32_t audio_mux_host_tx_fill(void)
 	return pcm_slip_fill(&slip);
 }
 
-#if CONFIG_APRS_RX
-// --- APRS (radio task) ---
+#if CONFIG_APRS_RX || CONFIG_SAT_SOUND
+// --- APRS and element sets by sound (radio task) ---
 
 void audio_mux_aprs_rx(bool on)
 {
-	if (on && !aprs_on) {
+	if (on && !aprs_on && !sound_on) {
 		aprs_rd = aprs_wr;	// nothing stale from the last time
 	}
 	aprs_on = on;
+}
+
+void audio_mux_sound_rx(bool on)
+{
+	if (on && !sound_on && !aprs_on) {
+		aprs_rd = aprs_wr;
+	}
+	sound_on = on;
 }
 
 uint32_t audio_mux_aprs_read(int16_t *pcm, uint32_t n)
@@ -281,8 +292,9 @@ void audio_mux_reset(void)
 	host_tx_dmr = false;
 	retry_armed = false;
 	rx_wr = rx_rd = 0;
-#if CONFIG_APRS_RX
+#if CONFIG_APRS_RX || CONFIG_SAT_SOUND
 	aprs_on = false;
+	sound_on = false;
 	aprs_wr = aprs_rd = 0;
 #endif
 	memset(&st, 0, sizeof st);

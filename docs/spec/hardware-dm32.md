@@ -914,7 +914,7 @@ The readings rise with volume and nothing is near full scale. Outside transmit `
 the analog FM path whenever the squelch is closed; whether the DMR mode needs the switch on the codec was not tested on
 its own. The programming cable is in the microphone's jack and cuts the mic, so the level can't be read over the debug
 link while sound is played. The earlier VOX reading through the ADC (the ADC table in section 3) is suspect and is not
-this one. The use of this path: [the sound transfer plan](../dm32-sound-transfer-plan.md).
+this one. The use of this path: [the sound transfer plan](../dm32-sound-transfer-plan.md). `CONFIG_SAT_SOUND` (on in the satellite build) reads it: the radio must be on a DMR channel, `radio_sm.c`'s `sound_poll` asks the audio mux for the stream's input, and the mic switch is **not** held on the codec (the probe's hold was removed and never tested alone; if the screen hears nothing on a DMR channel, that is the first thing to try).
 
 ### 9.1 Internal audio codec registers (byte registers at 0x160009C0 + offset)
 

@@ -1116,6 +1116,20 @@ void radio_req_vfo_rx_only(bool on)
 		changed();
 	}
 }
+#if CONFIG_SAT_SOUND
+// As the radio core: listening at the microphone for satellites (sound:<state> says what the radio answers,
+// soundheard:... what it has heard). Not on a DMR channel the radio would say so: the sim answers by its own state
+static struct { bool on; radio_sound_state_t state; sat_sound_stats_t st; } sound_sim;
+void radio_req_sound(bool on)
+{
+	sound_sim.on = on;
+}
+radio_sound_state_t radio_sound_status(sat_sound_stats_t *st)
+{
+	*st = sound_sim.st;
+	return sound_sim.on ? sound_sim.state : SOUND_OFF;
+}
+#endif
 #endif
 void radio_req_vfo_tx(uint32_t hz)
 {
@@ -2178,6 +2192,10 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	ui_svc_setting_set(UI_SET_LANGUAGE, lang != NULL && strlen(lang) == 2 ? (uint8_t)lang[0] << 8 | (uint8_t)lang[1] : 0);
 #if CONFIG_DUAL_WATCH
 	ui_svc_setting_set(UI_SET_DUAL_TALK_BACK, 0);
+#if CONFIG_SAT_SOUND
+	memset(&sound_sim, 0, sizeof sound_sim);
+	sound_sim.state = SOUND_LISTENING;
+#endif
 #if CONFIG_SAT
 	memset(&sat_sim, 0, sizeof sat_sim);
 	sat_sim.state = UI_SAT_READY;
@@ -2320,6 +2338,9 @@ static bool check(const char *kv, char *err, size_t len)
 	else if (strcmp(key, "zone") == 0) snprintf(got, sizeof got, "%u", view.zone_index);
 	else if (strcmp(key, "pos") == 0) snprintf(got, sizeof got, "%u", view.zone_pos + 1u);
 	else if (strcmp(key, "vfo") == 0) snprintf(got, sizeof got, "%u", view.vfo);
+#if CONFIG_SAT_SOUND
+	else if (strcmp(key, "sound") == 0) snprintf(got, sizeof got, "%u", sound_sim.on);	// the radio is asked to listen for sound
+#endif
 	else if (strcmp(key, "freq") == 0) snprintf(got, sizeof got, "%u", (unsigned)view.ch.rx_hz);
 	else if (strcmp(key, "txfreq") == 0) snprintf(got, sizeof got, "%u", (unsigned)view.ch.tx_hz);
 	else if (strcmp(key, "mode") == 0) snprintf(got, sizeof got, "%s", view.ch.mode == RADIO_MODE_DMR ? "dmr" : "fm");
@@ -2744,6 +2765,27 @@ static bool run_token(char *t, char *err, size_t len)
 			aprs_sim.cfg.freq_hz = 144930000;
 		return true;
 	}
+#if CONFIG_SAT_SOUND
+	if (strcmp(t, "sound") == 0 && arg != NULL) {	// sound:listening, sound:notdmr, sound:busy, sound:nostore, sound:noaudio
+		sound_sim.state = strcmp(arg, "notdmr") == 0 ? SOUND_NEED_DMR : strcmp(arg, "busy") == 0 ? SOUND_BUSY :
+				  strcmp(arg, "nostore") == 0 ? SOUND_NO_STORE : strcmp(arg, "noaudio") == 0 ? SOUND_NO_AUDIO :
+				  SOUND_LISTENING;
+		return true;
+	}
+	if (strcmp(t, "soundheard") == 0 && arg != NULL) {	// soundheard:<heard>,<count>,<new>,<updated>,<kept>,<problems>,<level>
+		unsigned h, c, n, u, k, p, l;
+		if (sscanf(arg, "%u,%u,%u,%u,%u,%u,%u", &h, &c, &n, &u, &k, &p, &l) != 7)
+			return false;
+		sound_sim.st.heard = (uint16_t)h;
+		sound_sim.st.count = (uint16_t)c;
+		sound_sim.st.applied[SAT_SOUND_APPLY_NEW] = (uint16_t)n;
+		sound_sim.st.applied[SAT_SOUND_APPLY_UPDATED] = (uint16_t)u;
+		sound_sim.st.applied[SAT_SOUND_APPLY_CURRENT] = (uint16_t)k;
+		sound_sim.st.applied[SAT_SOUND_APPLY_FULL] = (uint16_t)p;
+		sound_sim.st.level = (uint16_t)l;
+		return true;
+	}
+#endif
 #if CONFIG_SAT
 	if (strcmp(t, "sat") == 0 && arg != NULL) {	// sat:notime, sat:nopos, sat:empty, sat:working (see sat_sim)
 		if (strcmp(arg, "notime") == 0)

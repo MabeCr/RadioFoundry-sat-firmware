@@ -9,6 +9,9 @@
 #include <stdbool.h>
 #include "codeplug/codeplug.h"
 #include "config.h"
+#if CONFIG_SAT_SOUND
+#include "sat/sat_sound_rcv.h"	// sat_sound_stats_t
+#endif
 
 typedef enum {
 	RS_IDLE,	// receiving, squelch closed
@@ -376,6 +379,21 @@ void radio_req_rx_hz(uint32_t hz);
 // satellite screen (a downlink: nothing there to transmit on) and a satellite with no uplink. Not kept: the screen
 // clears it (false) when it leaves, and a power cycle does
 void radio_req_vfo_rx_only(bool on);
+#endif
+#if CONFIG_SAT_SOUND
+// Element sets by sound (docs/spec/sound-transfer.md): listen at the microphone for satellites played by a phone, and store
+// them. Needs a DMR channel (the microphone is read in the modem's DMR work mode), nothing transmitting and no hotspot;
+// receive only. radio_sound_status says whether it listens, or why not, and the counters
+typedef enum {
+	SOUND_OFF,		// not asked for
+	SOUND_LISTENING,
+	SOUND_NEED_DMR,		// the channel isn't a DMR channel
+	SOUND_BUSY,		// transmitting, a hotspot, or the satellites of the last transfer are still being stored
+	SOUND_NO_STORE,		// no usable satellite store (none on this board, or someone else's bytes)
+	SOUND_NO_AUDIO,		// the board has no PCM stream
+} radio_sound_state_t;
+void radio_req_sound(bool on);
+radio_sound_state_t radio_sound_status(sat_sound_stats_t *st);
 #endif
 void radio_req_reload(void);			// the settings' preferences changed (squelch, master power, DMR ID)
 // FM bandwidth and sub-audio. On a channel these are temporary changes (P7); in the VFO they change the VFO itself.

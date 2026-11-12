@@ -111,6 +111,24 @@ or a computer, and also sets the radio's clock and shows its diagnostics:
 rules as `rfoundry_debug.py sat update` and never changes what a satellite is set up to do. How it works:
 [the page's notes](../dev/sat-tle-web-tool.md).
 
+## Receiving the element sets by sound
+
+In a build with sound receive (`CONFIG_SAT_SOUND`), a phone can load the element sets with no cable at all: the page plays the
+satellites you chose as a sound, and the radio listens to it at its microphone. Status: built and tested in the simulator,
+**not tried on a radio yet**.
+
+1. On the page ([the TLE page](../dev/sat-tle-web-tool.md)), choose the satellites, then use **Or send by sound**: *Play to the
+   radio*, or *Download the audio (WAV)* to play from any player. Every satellite is sent twice, about 90 seconds for 32.
+2. On the radio, switch to a **DMR channel** (the microphone is only heard there), then **OK**, **6**, **0** and the last row,
+   **Receive sound**. A bar shows the sound arriving.
+3. Hold the phone's speaker about 2 cm from the radio's microphone, in a quiet room, at a medium volume, and play it. The radio
+   shows how many satellites it has heard ("Sats heard 12 of 32") and what it did with them: **New**, **Updated**,
+   **Kept** (the radio had the same or a later set) and **Problems** (no room, or the orbit can't be predicted).
+4. **Back** stops. Nothing is sent by the radio, and only satellites are stored: anything else the microphone hears is ignored.
+
+A satellite the radio already holds is replaced only by a later set, and keeps its frequencies and name, as with the cable. If
+the bar stays empty, turn the phone up; if it fills to the end, turn it down. It listens only while the screen is open.
+
 ## Settings
 
 **Settings > Location** ([Settings](17-settings.md)):

@@ -110,6 +110,8 @@ the radio it is built and tried on. The full guide is [Satellites](docs/user/24-
    (on Android the programming cable goes on an OTG adapter), connect to the radio, set its clock from the phone, and
    update the element sets. Do this every week or two: low-orbit satellites drift out of date. If CelesTrak is down, the
    page uses a copy kept on the site and says how old it is.
+   No cable at hand? The page can also play the chosen satellites as a sound for the radio's microphone (a DMR channel, then
+   Tools > Satellites > *Receive sound*): see the [guide](docs/user/24-satellites.md#receiving-the-element-sets-by-sound).
 4. **See the passes.** On the radio press **OK**, **6** (Tools), **0**. **OK** on a satellite lists its passes. **OK**
    on a pass (or hold **OK** on a satellite) opens Tracking.
 5. **Track.** Before the pass, press **#** to tune the receiver, or **\*** to let the radio follow the Doppler itself.

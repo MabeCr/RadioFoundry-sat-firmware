@@ -215,6 +215,12 @@ switch = "SAT"
 spec = "docs/spec/satellite.md"
 source = ["core/sat", "core/debuglink/debuglink_sat.c", "core/app/sat_task.c", "core/ui/ui_sat.c", "core/ui/ui_svc_sat.c"]
 
+[feature.sat_sound]
+switch = "SAT_SOUND"
+hardware = "a microphone read in a DMR channel's work mode"
+spec = "docs/spec/sound-transfer.md"
+source = ["core/sat/sat_sound.c", "core/sat/sat_sound_apply.c", "core/sat/sat_sound_rcv.c"]
+
 # ── Host link and USB ──
 
 [feature.usb]

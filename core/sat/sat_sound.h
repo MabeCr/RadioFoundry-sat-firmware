@@ -44,7 +44,7 @@ typedef enum {
 // TLE, or max is too small
 size_t sat_sound_build(uint8_t *out, size_t max, uint8_t id, uint8_t index, uint8_t count, const char *name,
 		       const char *line1, const char *line2);
-// A received frame (without its HDLC FCS). Fills r only on SAT_SOUND_OK
+// A received frame (without its HDLC FCS) into r, which means something only on SAT_SOUND_OK
 sat_sound_err_t sat_sound_parse(const uint8_t *frame, size_t n, sat_sound_rec_t *r);
 
 // One transfer as the radio hears it. Frames can arrive in any order and more than once (the sender repeats the set)
@@ -59,7 +59,7 @@ typedef struct {
 } sat_sound_rx_t;
 
 typedef enum {
-	SAT_SOUND_RX_BAD = 0,	// refused: r is not filled
+	SAT_SOUND_RX_BAD = 0,	// refused: r holds nothing useful
 	SAT_SOUND_RX_NEW,	// a satellite not heard yet in this transfer: r holds it
 	SAT_SOUND_RX_DUP,	// a copy of one already taken: r holds it, nothing to do
 } sat_sound_rx_res_t;

@@ -68,18 +68,16 @@ sat_sound_err_t sat_sound_parse(const uint8_t *f, size_t n, sat_sound_rec_t *r)
 	if (n != SAT_SOUND_HEAD + nlen + 2u * TLE_LINE_LEN) {
 		return SAT_SOUND_ERR_LENGTH;
 	}
-	sat_sound_rec_t t;
-	memset(&t, 0, sizeof(t));
-	t.id = f[2];
-	t.index = index;
-	t.count = count;
-	memcpy(t.name, f + SAT_SOUND_HEAD, nlen);
-	memcpy(t.line1, f + SAT_SOUND_HEAD + nlen, TLE_LINE_LEN);
-	memcpy(t.line2, f + SAT_SOUND_HEAD + nlen + TLE_LINE_LEN, TLE_LINE_LEN);
-	if (tle_parse(t.line1, t.line2, &t.el) != TLE_OK) {
+	// Straight into r (a temporary of this size on the radio task's stack would double it): r means something only on OK
+	memset(r, 0, sizeof(*r));
+	r->id = f[2];
+	r->index = index;
+	r->count = count;
+	memcpy(r->name, f + SAT_SOUND_HEAD, nlen);
+	memcpy(r->line1, f + SAT_SOUND_HEAD + nlen, TLE_LINE_LEN);
+	memcpy(r->line2, f + SAT_SOUND_HEAD + nlen + TLE_LINE_LEN, TLE_LINE_LEN);
+	if (tle_parse(r->line1, r->line2, &r->el) != TLE_OK)
 		return SAT_SOUND_ERR_TLE;
-	}
-	*r = t;
 	return SAT_SOUND_OK;
 }
 
@@ -90,22 +88,19 @@ void sat_sound_rx_init(sat_sound_rx_t *rx)
 
 sat_sound_rx_res_t sat_sound_rx_frame(sat_sound_rx_t *rx, const uint8_t *frame, size_t n, sat_sound_rec_t *r)
 {
-	sat_sound_rec_t t;
-
-	if (sat_sound_parse(frame, n, &t) != SAT_SOUND_OK) {
+	if (sat_sound_parse(frame, n, r) != SAT_SOUND_OK) {
 		rx->bad++;
 		return SAT_SOUND_RX_BAD;
 	}
-	if (!rx->active || t.id != rx->id || t.count != rx->count) {
+	if (!rx->active || r->id != rx->id || r->count != rx->count) {
 		uint16_t bad = rx->bad;
 		memset(rx, 0, sizeof(*rx));
 		rx->bad = bad;
 		rx->active = true;
-		rx->id = t.id;
-		rx->count = t.count;
+		rx->id = r->id;
+		rx->count = r->count;
 	}
-	*r = t;
-	uint32_t bit = 1u << t.index;
+	uint32_t bit = 1u << r->index;
 	if ((rx->seen & bit) != 0) {
 		rx->dups++;
 		return SAT_SOUND_RX_DUP;

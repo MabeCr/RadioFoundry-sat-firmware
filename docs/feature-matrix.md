@@ -82,6 +82,7 @@ is `tools/bringup.py list --radio <id>`.
 | `aprs_igate` | not recorded | off | not recorded | not written | not written | off |
 | `gps_sky` | not recorded | not recorded | ✕ | not recorded | not recorded | not recorded |
 | `sat` | off | off | off | off | off | off |
+| `sat_sound` | off | off | off | off | off | off |
 | `usb` | ✕ | pass (seed) | ✕ | ✕ | not recorded | not recorded |
 | `hostlink` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `hotspot` | pass (seed) | pass (seed) | pass (seed) | pass (seed) | not recorded | not recorded |
@@ -245,6 +246,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `APRS_IGATE` | ● | ○ | ● | … | … | ○ |
 | `GPS_SKY` | ● | ● | ✕ | ● | ● | ● |
 | `SAT` | ○ | ○ | ○ | ○ | ○ | ○ |
+| `SAT_SOUND` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● |

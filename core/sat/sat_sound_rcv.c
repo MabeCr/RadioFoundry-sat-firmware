@@ -21,10 +21,10 @@ static void store_job(void *ctx)
 static void on_frame(const uint8_t *frame, size_t n, void *ctx)
 {
 	sat_sound_rcv_t *r = ctx;
-	sat_sound_rec_t rec;
+	sat_sound_rec_t *rec = &r->rec;
 
 	r->st.frames++;
-	switch (sat_sound_rx_frame(&r->tally, frame, n, &rec)) {
+	switch (sat_sound_rx_frame(&r->tally, frame, n, rec)) {
 	case SAT_SOUND_RX_BAD:
 		r->st.refused++;
 		return;
@@ -37,15 +37,15 @@ static void on_frame(const uint8_t *frame, size_t n, void *ctx)
 		sat_sound_slot_t *s = &r->slot[i];
 		if (s->state != SAT_SOUND_SLOT_FREE)
 			continue;
-		memcpy(s->item.name, rec.name, sizeof(s->item.name));
-		s->item.el = rec.el;
+		memcpy(s->item.name, rec->name, sizeof(s->item.name));
+		s->item.el = rec->el;
 		s->rcv = r;
 		s->state = SAT_SOUND_SLOT_QUEUED;
 		return;
 	}
 	// no room: forget it was heard, so the next copy of it (the sender repeats the list) is taken
 	r->st.lost++;
-	sat_sound_rx_forget(&r->tally, rec.index);
+	sat_sound_rx_forget(&r->tally, rec->index);
 }
 
 void sat_sound_rcv_init(sat_sound_rcv_t *r)

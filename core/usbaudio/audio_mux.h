@@ -72,6 +72,9 @@ uint32_t audio_mux_host_pushes(void);
 #define AUDIO_MUX_APRS_CAP	1024u	// samples (128 ms), power of two
 void audio_mux_aprs_rx(bool on);
 uint32_t audio_mux_aprs_read(int16_t *pcm, uint32_t n);
+// Element sets by sound (CONFIG_SAT_SOUND, radio task): on keeps the stream running and fills the same ring with the stream's
+// input, which in the DMR work mode is the microphone; read it with audio_mux_aprs_read. Not together with APRS receive
+void audio_mux_sound_rx(bool on);
 
 // Radio task: start or stop the board's stream as the host side needs (every poll)
 void audio_mux_service(uint32_t now_ms);

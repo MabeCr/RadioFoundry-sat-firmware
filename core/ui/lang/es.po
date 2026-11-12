@@ -3181,8 +3181,16 @@ msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
 msgstr "Sin posición: un fijo GPS, o una fija en Herramientas > APRS"
 
 #: core/ui/ui_sat.c
+msgid "No satellites stored: load them over the cable, or by sound"
+msgstr "Sin satélites: cárgalos por cable o por sonido"
+
+#: core/ui/ui_sat.c
 msgid "Above"
 msgstr "Sobre"
+
+#: core/ui/ui_sat.c
+msgid "Receive sound"
+msgstr "Recibir sonido"
 
 #: core/ui/ui_sat.c
 msgid "no orbit"
@@ -3355,6 +3363,90 @@ msgstr "{0-9 teclear  OK cerrar  Atrás|0-9 teclear  Atrás}"
 #: core/ui/ui_sat.c
 msgid "{0-9 type  OK set  Back: delete|0-9  OK set  Back del}"
 msgstr "{0-9 teclear  OK fijar  Atrás: borrar|0-9  OK fijar  Atrás borrar}"
+
+#: core/ui/ui_sat.c
+msgid "Starting"
+msgstr "Iniciando"
+
+#: core/ui/ui_sat.c
+msgid "Switch to a DMR channel,"
+msgstr "Pasa a un canal DMR,"
+
+#: core/ui/ui_sat.c
+msgid "then open this again"
+msgstr "y abre esto otra vez"
+
+#: core/ui/ui_sat.c
+msgid "Transmitting, or still"
+msgstr "Transmitiendo, o aún"
+
+#: core/ui/ui_sat.c
+msgid "storing the last transfer"
+msgstr "guardando la última carga"
+
+#: core/ui/ui_sat.c
+msgid "No place to keep"
+msgstr "No hay dónde guardar"
+
+#: core/ui/ui_sat.c
+msgid "satellites on this radio"
+msgstr "satélites en esta radio"
+
+#: core/ui/ui_sat.c
+msgid "This radio can't"
+msgstr "Esta radio no puede"
+
+#: core/ui/ui_sat.c
+msgid "listen for sound"
+msgstr "escuchar sonido"
+
+#: core/ui/ui_sat.c
+msgid "Back close"
+msgstr "Atrás cierra"
+
+#: core/ui/ui_sat.c
+msgid "Waiting for the sound"
+msgstr "Esperando el sonido"
+
+#: core/ui/ui_sat.c
+msgid "Hold the phone's speaker"
+msgstr "Acerca el altavoz del móvil"
+
+#: core/ui/ui_sat.c
+msgid "at the microphone"
+msgstr "al micrófono"
+
+#: core/ui/ui_sat.c
+msgid "Sats heard"
+msgstr "Sat. oídos"
+
+#: core/ui/ui_sat.c
+msgid "of"
+msgstr "de"
+
+#: core/ui/ui_sat.c
+msgid "New"
+msgstr "Nuevos"
+
+#: core/ui/ui_sat.c
+msgid "Updated"
+msgstr "Actualiz."
+
+#: core/ui/ui_sat.c
+msgid "Kept"
+msgstr "Sin cambio"
+
+#: core/ui/ui_sat.c
+msgid "Problems"
+msgstr "Fallos"
+
+#: core/ui/ui_sat.c
+msgid "Done: all heard"
+msgstr "Listo: todos oídos"
+
+#: core/ui/ui_sat.c
+msgid "Back stop"
+msgstr "Atrás detiene"
 
 #: core/ui/ui_sat.c
 msgid "Local"

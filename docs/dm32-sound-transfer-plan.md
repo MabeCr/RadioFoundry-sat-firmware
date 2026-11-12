@@ -10,7 +10,11 @@ nothing but a speaker and a web page. Nothing here transmits. The wider plan is
 
 Status: **phase 0, the mic probe, is done (2026-11-12): the mic can be read with the transmitter off, in the modem's DMR
 work mode, and the tones come through at a usable level.** The probe's firmware was temporary and is not in the tree
-(see phase 0). The frame format and the page are next; nothing of them is built.
+(see phase 0). Step 1 is built: the signal, the frame, the reference sender and the host tests are in
+[sound-transfer.md](spec/sound-transfer.md), `core/sat/sat_sound.c`, `tools/sat_sound.py` and `tests/host/satSoundTest.c`; the page's
+encoder is in the page's repository. Step 2 is built too: the radio's **Receive sound** screen (`CONFIG_SAT_SOUND`, on in the
+satellite build), host tested. **No sound has been played at the radio yet.** The mic switch is not held on the codec (see
+[hardware-dm32.md](spec/hardware-dm32.md) 9.0).
 
 ## What the firmware already has
 
