@@ -81,7 +81,7 @@ title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
 **OK** on a pass tracks it (or hold **OK** on a satellite in the list to track its next pass). The screen has a sky plot
 with north up and the pass's whole path, the satellite as a dot (green above the horizon), and beside it: the elevation,
-the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the pass's three times (**AOS**, **MAX**, the highest point, and **LOS**) in the zone chosen under Pass times (local or UTC; to the second on a tall screen), your grid locator (for the contact that asks
+the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the pass's three times (**AOS**, **MAX**, the highest point, and **LOS**) in the zone chosen under Pass times (local or UTC), your grid locator (for the contact that asks
 "what's your grid?"), the range, and **always the frequencies the radio is on**, **RX** and **TX**: whatever it was playing
 until you tune it, then the satellite's. The dot, the azimuth and the range appear only while the satellite is above your
 horizon; before the rise (and after the set) the plot shows the path alone and the screen says "Below horizon" just
@@ -95,6 +95,7 @@ Keys on the Tracking screen:
 | **\*** | The radio follows the Doppler by itself: **AUTO** shows, and the receiver is retuned whenever it is 1.5 kHz or more off, at most every 5 seconds. It tunes to the shift for the rise about two minutes before the satellite comes up, keeps your dial setting, and never retunes while you transmit. The first press tunes the receiver too, if **#** has not. **\*** again stops it. Back ends it. This screen uses **\*** itself, not the quick menu |
 | **OK** | Swaps between the satellite's own downlink and the one you saved for it, for example for a special event or a beacon on another frequency, so you can go back and forth during a pass without typing it again. The "OK" line shows the frequency it will swap to. With none saved, **OK** opens the **Frequency** screen to type one |
 | **1** | Opens the **Frequency** screen to type a downlink of your own or change the saved one: type the frequency in MHz as on the VFO (**Back** takes a digit back), **OK** saves it for this satellite and listens on it. The Doppler shift, the dial and **\*** work on it as on the satellite's own. It is **receive only**: the TX line says "RX only" and the radio refuses PTT, since a typed frequency is a downlink. Saved in the radio's settings, so it is there at the next pass and after a power cycle; one frequency is kept, for the satellite you typed it for |
+| **3** | Opens the **Pass info** view: the times of the rise (**AOS**), the highest point (**MAX**, with its elevation) and the set (**LOS**) to the second, in large text; how long the pass is; the satellite's downlink, uplink and uplink tone; your grid locator; and how old its elements are. **3** or Back returns to the Tracking screen |
 | **0** | Opens the squelch and holds it open, to listen to the whole pass. **0** again, or Back, closes it. FM only |
 | The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune, manual or automatic |
 

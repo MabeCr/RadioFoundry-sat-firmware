@@ -1016,7 +1016,7 @@ msgstr "Cielo"
 msgid "Signal"
 msgstr "Señal"
 
-#: core/ui/ui_gps.c core/ui/ui_menus.c
+#: core/ui/ui_gps.c core/ui/ui_menus.c core/ui/ui_sat.c
 msgid "Grid"
 msgstr "Cuadrícula"
 
@@ -3293,6 +3293,30 @@ msgid "Dial"
 msgstr "Dial"
 
 #: core/ui/ui_sat.c
+msgid "Pass info"
+msgstr "Info del pase"
+
+#: core/ui/ui_sat.c
+msgid "Length"
+msgstr "Duración"
+
+#: core/ui/ui_sat.c
+msgid "Down"
+msgstr "Bajada"
+
+#: core/ui/ui_sat.c
+msgid "Up"
+msgstr "Subida"
+
+#: core/ui/ui_sat.c
+msgid "Elements"
+msgstr "Elementos"
+
+#: core/ui/ui_sat.c
+msgid "Back close"
+msgstr "Atrás cierra"
+
+#: core/ui/ui_sat.c
 msgid "Tracking"
 msgstr "Seguimiento"
 
@@ -3307,6 +3331,10 @@ msgstr "Se pone en"
 #: core/ui/ui_sat.c
 msgid "Rises in"
 msgstr "Sale en"
+
+#: core/ui/ui_sat.c
+msgid "3 Info"
+msgstr "3 Info"
 
 #: core/ui/ui_sat.c
 msgid "Below horizon"
@@ -3411,10 +3439,6 @@ msgstr "Esta radio no puede"
 #: core/ui/ui_sat.c
 msgid "listen for sound"
 msgstr "escuchar sonido"
-
-#: core/ui/ui_sat.c
-msgid "Back close"
-msgstr "Atrás cierra"
 
 #: core/ui/ui_sat.c
 msgid "Lvl"
