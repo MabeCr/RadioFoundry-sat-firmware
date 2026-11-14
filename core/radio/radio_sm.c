@@ -3492,8 +3492,11 @@ static void sound_poll(radio_sm_t *sm)
 			now = SOUND_NEED_DMR;
 		else if (sm->view.state == RS_TX || sm->view.state == RS_TX_DENIED || sm->hotspot)
 			now = SOUND_BUSY;
-		else if (!listening && sat_store_state() != SAT_STORE_OURS)	// a scan of the area: once, when it starts
-			now = SOUND_NO_STORE;
+		else if (!listening) {	// a scan of the area: once, when it starts
+			sat_store_state_t st = sat_store_state();
+			if (st != SAT_STORE_OURS)
+				now = st == SAT_STORE_FOREIGN ? SOUND_FOREIGN : SOUND_NO_STORE;
+		}
 		if (now == SOUND_LISTENING && !listening) {
 			if (sat_sound_rcv_start(&sound_rcv)) {
 				if (board.radio->mic_listen != NULL)

@@ -2766,10 +2766,10 @@ static bool run_token(char *t, char *err, size_t len)
 		return true;
 	}
 #if CONFIG_SAT_SOUND
-	if (strcmp(t, "sound") == 0 && arg != NULL) {	// sound:listening, sound:notdmr, sound:busy, sound:nostore, sound:noaudio
+	if (strcmp(t, "sound") == 0 && arg != NULL) {	// sound:listening, notdmr, busy, nostore, noaudio, foreign
 		sound_sim.state = strcmp(arg, "notdmr") == 0 ? SOUND_NEED_DMR : strcmp(arg, "busy") == 0 ? SOUND_BUSY :
 				  strcmp(arg, "nostore") == 0 ? SOUND_NO_STORE : strcmp(arg, "noaudio") == 0 ? SOUND_NO_AUDIO :
-				  SOUND_LISTENING;
+				  strcmp(arg, "foreign") == 0 ? SOUND_FOREIGN : SOUND_LISTENING;
 		return true;
 	}
 	if (strcmp(t, "soundheard") == 0 && arg != NULL) {	// soundheard:<heard>,<count>,<new>,<updated>,<kept>,<problems>,<level>
