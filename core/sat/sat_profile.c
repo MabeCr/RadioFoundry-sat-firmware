@@ -12,8 +12,8 @@ const sat_profile_t sat_profiles_builtin[] = {
 	// SO-50 sleeps until a 2 s carrier with 74.4 Hz wakes it for 10 minutes; contacts then use 67.0 Hz
 	{ .name = "SO-50", .norad = 27607, .up_hz = 145850000u, .down_hz = 436795000u, .up_tone = 670,
 	  .arm_tone = 744, .arm_ms = 2000, .armed_s = 600 },
-	// AO-91 runs on its solar panels: in sunlight only
-	{ .name = "AO-91", .norad = 43017, .up_hz = 435250000u, .down_hz = 145960000u, .up_tone = 670 },
+	// AO-91 runs on its solar panels: in sunlight only. It needs no CTCSS tone any longer (AMSAT's FM list, October 2026)
+	{ .name = "AO-91", .norad = 43017, .up_hz = 435250000u, .down_hz = 145960000u },
 };
 const uint8_t sat_profiles_builtin_count = sizeof sat_profiles_builtin / sizeof sat_profiles_builtin[0];
 

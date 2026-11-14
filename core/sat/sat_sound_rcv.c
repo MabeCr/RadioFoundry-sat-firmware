@@ -39,6 +39,8 @@ static void on_frame(const uint8_t *frame, size_t n, void *ctx)
 			continue;
 		memcpy(s->item.name, rec->name, sizeof(s->item.name));
 		s->item.el = rec->el;
+		s->item.has_prof = rec->has_prof;
+		s->item.prof = rec->prof;
 		s->rcv = r;
 		s->state = SAT_SOUND_SLOT_QUEUED;
 		return;
