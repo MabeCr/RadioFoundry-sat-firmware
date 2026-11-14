@@ -5836,7 +5836,10 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_SAT
 	[SCR_SAT] = &ui_sat_screen, [SCR_SAT_PASSES] = &ui_sat_passes_screen, [SCR_SAT_TRACK] = &ui_sat_track_screen,
-	[SCR_SAT_CLOCK] = &ui_sat_clock_screen, [SCR_SAT_FREQ] = &ui_sat_freq_screen, [SCR_SAT_SOUND] = &ui_sat_sound_screen,
+	[SCR_SAT_CLOCK] = &ui_sat_clock_screen, [SCR_SAT_FREQ] = &ui_sat_freq_screen,
+#endif
+#if CONFIG_SAT_SOUND	// ui_sat.c defines it under the same switch
+	[SCR_SAT_SOUND] = &ui_sat_sound_screen,
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,
