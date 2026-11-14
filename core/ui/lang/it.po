@@ -1016,7 +1016,7 @@ msgstr "Cielo"
 msgid "Signal"
 msgstr "Segnale"
 
-#: core/ui/ui_gps.c core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_gps.c core/ui/ui_menus.c
 msgid "Grid"
 msgstr "Griglia"
 
@@ -3297,12 +3297,24 @@ msgid "Tracking"
 msgstr "Tracciamento"
 
 #: core/ui/ui_sat.c
+msgid "Pass over"
+msgstr "Passaggio finito"
+
+#: core/ui/ui_sat.c
+msgid "Sets in"
+msgstr "Tramonta tra"
+
+#: core/ui/ui_sat.c
+msgid "Rises in"
+msgstr "Sorge tra"
+
+#: core/ui/ui_sat.c
 msgid "Below horizon"
 msgstr "Sotto l'orizzonte"
 
 #: core/ui/ui_sat.c
-msgid "Pass over"
-msgstr "Passaggio finito"
+msgid "Tune"
+msgstr "Sintonia"
 
 #: core/ui/ui_sat.c
 msgid "on"

@@ -46,6 +46,7 @@ void sb_compass(sbuf_t *b, uint16_t bearing);
 void sb_dir_arrow(sbuf_t *b, uint16_t bearing);
 // A time of day from seconds: "08:32" (seconds % one day)
 void sb_hhmm(sbuf_t *b, uint32_t seconds);
+void sb_hhmmss(sbuf_t *b, uint32_t seconds);	// 17:53:12: the time of day to the second
 // An offset from UTC in minutes: "UTC", "UTC-6", "UTC+5:30"
 void sb_utc_offset(sbuf_t *b, int32_t minutes);
 // A distance and a compass point: "850 m NE", "12.3 km S", "240 km W"

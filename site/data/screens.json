@@ -723,6 +723,18 @@
     "SAT"
    ]
   },
+  "satellite_track_wait": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
+  "satellite_track_auto": {
+   "group": "tools",
+   "needs": [
+    "SAT"
+   ]
+  },
   "satellite_frequency": {
    "group": "tools",
    "needs": [

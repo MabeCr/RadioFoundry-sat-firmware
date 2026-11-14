@@ -225,6 +225,13 @@ void sb_hhmm(sbuf_t *b, uint32_t seconds)
 	sb_u32(b, seconds / 60u % 60u, 2);
 }
 
+void sb_hhmmss(sbuf_t *b, uint32_t seconds)
+{
+	sb_hhmm(b, seconds);
+	sb_chr(b, ':');
+	sb_u32(b, seconds % 60u, 2);
+}
+
 void sb_utc_offset(sbuf_t *b, int32_t minutes)
 {
 	sb_str(b, "UTC");

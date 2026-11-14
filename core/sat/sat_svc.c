@@ -337,6 +337,7 @@ static void set_row(uint8_t i, uint8_t state, const sat_pass_t *p)
 	if (p != NULL) {
 		row->aos = (uint32_t)p->aos;
 		row->los = (uint32_t)p->los;
+		row->tca = (uint32_t)p->tca;
 		row->max_el = (int8_t)(p->max_el + 0.5f);
 		row->aos_az = (uint16_t)(p->aos_az + 0.5f) % 360u;
 		row->los_az = (uint16_t)(p->los_az + 0.5f) % 360u;
@@ -436,6 +437,7 @@ static bool step(const sat_svc_in_t *in, unsigned *used)
 		sat_pass_row_t *q = &r.passes[r.npasses++];
 		q->aos = (uint32_t)p.aos;
 		q->los = (uint32_t)p.los;
+		q->tca = (uint32_t)p.tca;
 		q->max_el = (int8_t)(p.max_el + 0.5f);
 		q->aos_az = (uint16_t)(p.aos_az + 0.5f) % 360u;
 		q->los_az = (uint16_t)(p.los_az + 0.5f) % 360u;

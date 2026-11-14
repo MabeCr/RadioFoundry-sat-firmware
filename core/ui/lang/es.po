@@ -1016,7 +1016,7 @@ msgstr "Cielo"
 msgid "Signal"
 msgstr "Señal"
 
-#: core/ui/ui_gps.c core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_gps.c core/ui/ui_menus.c
 msgid "Grid"
 msgstr "Cuadrícula"
 
@@ -3297,12 +3297,24 @@ msgid "Tracking"
 msgstr "Seguimiento"
 
 #: core/ui/ui_sat.c
+msgid "Pass over"
+msgstr "Pase terminado"
+
+#: core/ui/ui_sat.c
+msgid "Sets in"
+msgstr "Se pone en"
+
+#: core/ui/ui_sat.c
+msgid "Rises in"
+msgstr "Sale en"
+
+#: core/ui/ui_sat.c
 msgid "Below horizon"
 msgstr "Bajo el horizonte"
 
 #: core/ui/ui_sat.c
-msgid "Pass over"
-msgstr "Pase terminado"
+msgid "Tune"
+msgstr "Sintonía"
 
 #: core/ui/ui_sat.c
 msgid "on"

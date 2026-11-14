@@ -126,6 +126,7 @@ int main(void)
 			continue;
 		CHECK(row.state == (p->aos <= t0 ? SAT_ROW_UP : SAT_ROW_NEXT));
 		CHECK(fabs(row.aos - p->aos) < 2.0 && fabs(row.los - p->los) < 2.0 && abs(row.max_el - (int)lround(p->max_el)) <= 1);
+		CHECK(fabs(row.tca - p->tca) < 2.0 && row.tca >= row.aos && row.tca <= row.los);	// the highest point, for the Tracking screen
 		CHECK(row.age_d >= 0 && row.age_d <= 3 && row.aos_az < 360 && row.los_az < 360 && row.dir < 360);
 	}
 
@@ -155,6 +156,7 @@ int main(void)
 		if (want < n) {
 			const sat_pass_row_t *q = &passes[want];
 			CHECK(fabs(q->aos - p->aos) < 2.0 && fabs(q->los - p->los) < 2.0);
+			CHECK(fabs(q->tca - p->tca) < 2.0 && q->tca >= q->aos && q->tca <= q->los);
 			// Its way across the sky: from the rise toward the set, north up and east right
 			double r0 = q->aos_az * M_PI / 180.0, r1 = q->los_az * M_PI / 180.0;
 			double h = atan2(sin(r1) - sin(r0), cos(r1) - cos(r0)) * 180.0 / M_PI;

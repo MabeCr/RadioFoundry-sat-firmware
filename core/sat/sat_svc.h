@@ -39,6 +39,7 @@ typedef struct {
 	uint16_t aos_az, los_az;	// degrees
 	uint16_t dir;		// its way across the sky, north up and east right: the bearing from the rise to the set
 	uint32_t aos, los;	// UTC, Unix seconds
+	uint32_t tca;		// the highest point between them
 } sat_row_t;
 
 typedef struct {
@@ -46,6 +47,7 @@ typedef struct {
 	int8_t max_el;
 	uint16_t aos_az, los_az;
 	uint16_t dir;		// as sat_row_t.dir
+	uint32_t tca;		// the highest point between aos and los
 } sat_pass_row_t;
 
 // The open satellite right now, for the tracking screen (every second or so while a pass is tracked)

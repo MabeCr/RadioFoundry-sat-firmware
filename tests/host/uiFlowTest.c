@@ -581,7 +581,7 @@ static const flow_t flows[] = {
 	  false },
 	{ "S satellite passes", "ok 6 0", "2", "screen=passes shows=TX_145.850 shows=arm_74.4 shows=Tomorrow shows=NW",
 	  1, false },
-	{ "S track a pass", "ok 6 0 1", "ok", "screen=track shows=Tracking shows=ISS shows=Az shows=RX shows=LOS", 1, false },
+	{ "S track a pass", "ok 6 0 1", "ok", "screen=track shows=Tracking shows=ISS shows=21 shows=RX shows=LOS", 1, false },
 	{ "S track a pass not up yet: no position and no range, the radio's own frequencies", "ok 6 0 2", "ok",
 	  "screen=track shows=AOS shows=RX hides=Az hides=Rng hides=Working", 1, false },
 	{ "S tracking: # tunes the VFO to the downlink, FM, the uplink as the split", "ok 6 0 1 ok", "ctx",
