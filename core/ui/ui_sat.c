@@ -822,6 +822,24 @@ static void info_draw(void)
 	ui_draw_banner(&ui_st);
 }
 
+// The signal row: the meter and the level in dBm, as the home screen draws them, from x across to the right edge
+static void signal_row(int x, int *y, int16_t dbm)
+{
+	const font_t *f = ui_layout.small;
+	if (*y + f->h > ui_layout.hint_y)
+		return;
+	static char sb_buf[16];
+	sbuf_t b;
+	sb_init(&b, sb_buf, sizeof sb_buf);
+	sb_i32(&b, dbm);
+	sb_str(&b, " dBm");
+	int tw = gfx_text_width(f, sb_buf);
+	int w = gfx_width();
+	gfx_text(f, w - tw - 2, *y, sb_buf, ui_col.fg);
+	ui_draw_meter(x, *y + f->h / 4, w - tw - x - f->w, f->h / 2, dbm);
+	*y += f->h + (ui_layout.row_h > f->h ? 1 : 0);
+}
+
 static void track_draw(void)
 {
 	// The text of this screen is built in static buffers: only the UI task draws it, and on its small stack a dozen
@@ -892,6 +910,9 @@ static void track_draw(void)
 	bool one_row = below && rxs[0] != '\0' && txs[0] != '\0' && rxw + 2 * fs->w + txw <= w;
 	bool alt_row = alt_hz != 0 && prof && p.down_hz != 0;
 	bool tune_row = !on && have_p;
+	// The signal the receiver hears, as the home screen shows it (the reading is live whether or not the squelch is open):
+	// where to aim. FM only: on a DMR channel the number is the modem's
+	bool sig = rv->ch.rx_hz != 0 && rv->ch.mode != RADIO_MODE_DMR && rv->rssi_dbm != 0;
 	// Where you are, for the grid locator a contact asks for
 	static char loc[8];
 	loc[0] = '\0';
@@ -940,7 +961,7 @@ static void track_draw(void)
 	if (below) {
 		int need = (seen ? rh : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) +
 			   (one_row ? rh : (rxs[0] != '\0' ? rh : 0) + (txs[0] != '\0' ? rh : 0)) + (alt_row ? rh : 0) +
-			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0);
+			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0) + (sig && below ? rh : 0);
 		int fit = h - need - 3;
 		if (side > h / 2)
 			side = h / 2;
@@ -1046,6 +1067,8 @@ static void track_draw(void)
 		if (txs[0] != '\0')
 			trow(x, &ty, "TX", txs, tc);
 	}
+	if (sig && below)
+		signal_row(x, &ty, rv->rssi_dbm);
 	if (alt_row) {
 		// What OK swaps to: the frequency not listened on now (two letters like RX: a longer label pushes it off a narrow panel)
 		sb_init(&b, buf, sizeof buf);
@@ -1088,6 +1111,8 @@ static void track_draw(void)
 	}
 	if (!below && times && st.utc != 0 && st.utc < trk_los)
 		trow(x, &ty, up2 ? "AOS" : "LOS", up2 ? t_aos : t_los, ui_col.dim);
+	if (sig && !below)
+		signal_row(x, &ty, rv->rssi_dbm);
 	ui_layout.hint_y = hint_y;
 	if (below) {
 		// The keys the bar has no room for: 3 for the Info view at the left, 0 for the squelch at the right

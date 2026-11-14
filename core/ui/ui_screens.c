@@ -1115,7 +1115,7 @@ static void draw_chips(const radio_view_t *v, const ui_state_t *s)
 }
 
 // RX signal meter: segments for -120 .. -60 dBm
-static void draw_meter(int x, int y, int w, int h, int16_t dbm)
+void ui_draw_meter(int x, int y, int w, int h, int16_t dbm)
 {
 	int seg = 10;
 	int pitch = w / seg;
@@ -1585,7 +1585,7 @@ static void draw_dmr_call(const radio_view_t *v, const ui_state_t *s)
 		sb_str(&b, " dBm");
 		int tw = gfx_text_width(L->small, buf);
 		gfx_text(L->small, w - tw, y, buf, ui_col.fg);
-		draw_meter(0, y + L->small->h / 4, w - tw - L->small->w, L->small->h / 2, dbm);
+		ui_draw_meter(0, y + L->small->h / 4, w - tw - L->small->w, L->small->h / 2, dbm);
 	}
 	ui_draw_hint(d->state == RDMR_RX_OTHER ? TR("MON: digital monitor") : TR("PTT replies"), false);
 }
@@ -1613,7 +1613,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 		sb_str(&b, " dBm");
 		int tw = gfx_text_width(big, buf);
 		gfx_text(big, w - tw, y, buf, ui_col.fg);
-		draw_meter(0, y + big->h / 4, w - tw - big->w, big->h / 2, v->rssi_dbm);
+		ui_draw_meter(0, y + big->h / 4, w - tw - big->w, big->h / 2, v->rssi_dbm);
 		if (two)
 			gfx_text(sm, 0, y2, v->monitor ? TR("Squelch open") : TR("Receiving"), ui_col.rx);
 		break;
@@ -2213,7 +2213,7 @@ static void dual_activity(const radio_view_t *v, const ui_state_t *s, int y, int
 				sb_str(&b, TR(", muted"));
 			int x = gfx_text(sm, 0, y, buf, ui_col.rx) + sm->w;
 			if (w - x >= 4 * sm->w)
-				draw_meter(x, y + sm->h / 4, w - x, sm->h / 2, d->pane[i].rssi_dbm);
+				ui_draw_meter(x, y + sm->h / 4, w - x, sm->h / 2, d->pane[i].rssi_dbm);
 			y += sm->h;
 			lines--;
 		}
