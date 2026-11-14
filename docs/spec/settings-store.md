@@ -251,7 +251,7 @@ the replace is one atomic record, and the replay at boot finds nothing to finish
 
 Wear: J0 and J1 are erased once per sector rewrite. A full qdmr write is about 46 sectors, so the journal sectors
 take 46 erases per write. At 100,000 cycles, that is about 2,000 full codeplug writes. Spreading the journal over a
-ring is possible later. The map has room after 0x01B000.
+ring is possible later. The map has room after 0x01C000.
 
 **Locks**: `storage_lock()` is a recursive FreeRTOS mutex around every flash sequence of the core: the codeplug
 calls, a settings save, a CPS commit. `storage_quick_lock()` guards only RAM: the live settings copy. The radio task
