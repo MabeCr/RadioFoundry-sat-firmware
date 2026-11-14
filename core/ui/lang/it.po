@@ -3333,10 +3333,6 @@ msgid "Rises in"
 msgstr "Sorge tra"
 
 #: core/ui/ui_sat.c
-msgid "3 Info"
-msgstr "3 Info"
-
-#: core/ui/ui_sat.c
 msgid "Below horizon"
 msgstr "Sotto l'orizzonte"
 
@@ -3351,6 +3347,14 @@ msgstr "attivo"
 #: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
+
+#: core/ui/ui_sat.c
+msgid "0 Squelch"
+msgstr "0 Squelch"
+
+#: core/ui/ui_sat.c
+msgid "3 Info"
+msgstr "3 Info"
 
 #: core/ui/ui_sat.c
 msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"

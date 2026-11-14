@@ -839,10 +839,16 @@ static void track_draw(void)
 	}
 	gfx_clear(ui_col.bg);
 	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Tracking")) + 2;
-	int w = gfx_width(), h = ui_layout.hint_y - y - 1;
+	int w = gfx_width();
 	bool below = gfx_height() > w;		// a tall panel: the numbers under the plot
 	const font_t *fs = ui_layout.small;
 	int rh = fs->h + (ui_layout.row_h > fs->h ? 1 : 0);	// a row of the numbers
+	// A tall panel keeps a row above the hint bar for the keys the bar has no room for (3 and 0): everything above ends
+	// before it, so the row's space comes off the numbers' (the hint row is put back before the bar is drawn)
+	int hint_y = ui_layout.hint_y;
+	if (below)
+		ui_layout.hint_y -= rh;
+	int h = ui_layout.hint_y - y - 1;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
 	// The satellite is drawn only while it is above the horizon: below it, or outside the pass's margin, the plot shows
 	// the path alone and the service works nothing out
@@ -957,7 +963,6 @@ static void track_draw(void)
 		}
 		if (loc[0] != '\0')
 			gfx_text(fs, w - gfx_text_width(fs, loc) - 2, y + 1, loc, ui_col.dim);
-		gfx_text(ui_layout.tiny, 0, y + side - ui_layout.tiny->h, TR("3 Info"), ui_col.dim);
 	}
 	int x = below ? 0 : cx + r + 5;
 	int ty = below ? cy + r + 3 : y;
@@ -1083,6 +1088,13 @@ static void track_draw(void)
 	}
 	if (!below && times && st.utc != 0 && st.utc < trk_los)
 		trow(x, &ty, up2 ? "AOS" : "LOS", up2 ? t_aos : t_los, ui_col.dim);
+	ui_layout.hint_y = hint_y;
+	if (below) {
+		// The keys the bar has no room for: 3 for the Info view at the left, 0 for the squelch at the right
+		const char *sq = TR("0 Squelch");
+		gfx_text(fs, 2, hint_y - rh, TR("3 Info"), ui_col.dim);
+		gfx_text(fs, w - gfx_text_width(fs, sq) - 2, hint_y - rh, sq, ui_col.dim);
+	}
 	ui_draw_bottom(&ui_st, trk_follow.on ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  Back" TEXT_ALT_NEXT "# Tune  * Stop  Back" TEXT_ALT_CLOSE) :
 		       trk_tuned ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE) :
 		       TR(TEXT_ALT_OPEN "0 Squelch  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE));
