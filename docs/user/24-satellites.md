@@ -41,7 +41,8 @@ rfoundry_debug.py sat update --add 44909        also store a satellite that isn'
 rfoundry_debug.py sat update --file amateur.txt use a file you saved (CelesTrak or AMSAT), with no internet connection
 ```
 
-A satellite added with `--add` that the radio knows (the ISS, SO-50, AO-91) gets its frequencies and tones. Any other is
+A satellite added with `--add` that the radio knows (the ISS, SO-50, AO-91) gets its frequencies and tones. (AO-91 needs no uplink tone
+any longer, so the radio sends none.) Any other is
 stored by name with no frequencies, so it has passes but no Doppler yet. A low-orbit FM satellite's elements are good
 for about one to two weeks: update before a trip.
 
@@ -125,7 +126,10 @@ satellites you chose as a sound, and the radio listens to it at its microphone. 
    **Kept** (the radio had the same or a later set) and **Problems** (no room, or the orbit can't be predicted).
 4. **Back** stops. Nothing is sent by the radio, and only satellites are stored: anything else the microphone hears is ignored.
 
-A satellite the radio already holds is replaced only by a later set, and keeps its frequencies and name, as with the cable. If
+A satellite the radio already holds is replaced only by a later set, and keeps its frequencies and name, as with the cable. The
+page also sends a satellite's **uplink, downlink, tone and arming signal** with it, for the satellites it has them for. They are
+stored for a satellite that is new on the radio, and fill in one the radio holds with no frequencies at all; a satellite whose
+frequencies you changed keeps them, and the page never overwrites them. If
 the bar stays empty, turn the phone up; if it fills to the end, turn it down. It listens only while the screen is open.
 
 ## Settings

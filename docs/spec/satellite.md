@@ -296,7 +296,7 @@ change modes, so check it against AMSAT before use; the user's own list is to re
 |---|---|---|---|---|---|
 | ISS | 25544 | 145.990 | 437.800 | 67.0 Hz | — |
 | SO-50 | 27607 | 145.850 | 436.795 | 67.0 Hz | 74.4 Hz for 2 s, awake 10 minutes |
-| AO-91 | 43017 | 435.250 | 145.960 | 67.0 Hz | — (in sunlight only) |
+| AO-91 | 43017 | 435.250 | 145.960 | none (AMSAT lists none, October 2026) | — (in sunlight only) |
 
 ### 6.2 Arming
 

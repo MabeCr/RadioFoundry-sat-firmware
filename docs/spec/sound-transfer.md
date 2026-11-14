@@ -28,7 +28,7 @@ One satellite is one HDLC frame. The FCS is the HDLC one, so the frame itself ha
 | Byte | Field | Value |
 |---|---|---|
 | 0 | magic | 0x54 (`T`) |
-| 1 | version | 1; a receiver ignores a frame of another version |
+| 1 | version | 1, or 2 when the frame ends with a profile; a receiver ignores a frame of another version |
 | 2 | transfer id | 0-255, the same for every frame of one transfer |
 | 3 | index | 0 to count - 1: which satellite of the transfer this is |
 | 4 | count | 1 to 32, the satellites in the transfer (the store holds 32) |
@@ -36,8 +36,13 @@ One satellite is one HDLC frame. The FCS is the HDLC one, so the frame itself ha
 | 6 | name | printable ASCII, no terminator |
 | then | line 1 | the TLE's first line, 69 characters |
 | then | line 2 | the TLE's second line, 69 characters |
+| then (version 2) | profile | 16 bytes, little endian: uplink Hz (4), downlink Hz (4), uplink CTCSS tone in Hz x 10 (2), arming carrier tone in Hz x 10 (2), arming carrier time in ms (2), the repeater's awake time in s (2) |
 
-A frame is at most 168 bytes, about 1.4 s of audio with its flags and gap (1.7 s with the longest name). The receiver refuses a frame whose bytes are not
+The profile is what picking the satellite sets ([satellite.md](satellite.md) 6): the fields of `sat_profile_t`. A frequency is 0 (none) or
+100 MHz to 1.3 GHz, a tone 0 or 60.0 to 260.0 Hz, the arming carrier at most 10 s and the awake time at most an hour; a frame with a
+value out of range is refused whole. A sender with no profile for a satellite sends a version 1 frame (an all zero profile is one too).
+
+A version 1 frame is at most 168 bytes, a version 2 frame at most 184, about 1.4 s of audio with its flags and gap (1.7 s with the longest name). The receiver refuses a frame whose bytes are not
 exactly this length, whose lines fail the TLE rules (69 columns, line numbers 1 and 2, both check digits, the same catalog
 number), whose name is longer than 24 or holds a character outside 0x20 to 0x7E, or whose index is not below the count.
 `core/sat/sat_sound.c` is the reference.
@@ -64,7 +69,7 @@ the radio core to listen (`RREQ_SOUND_RX`, `radio_req_sound`); closing it stops.
 | Mic route | a board whose idle microphone switch points away from the codec keeps it there while the core listens (`hal_radio_t.mic_listen`, optional) |
 | Not while | transmitting (PTT ends it), in a hotspot, or when the satellite store is missing or someone else's |
 | Decoding | in the radio task: `core/sat/sat_sound_rcv.c` feeds the AFSK demodulator, checks each frame (`sat_sound.c`) and tallies the transfer |
-| Storing | each satellite heard waits in a queue of four for the housekeeping task, which stores it (`storage_job_post`, `sat_sound_apply.c`), so the radio task never waits on the flash. The rules are those of an update: a new satellite is stored (with the built-in profile if the radio knows the number, else its name and no frequencies); a stored one is replaced only by a later set and keeps its profile; the same set or an older one is kept out; a full store, an orbit the model refuses and a store failure are counted |
+| Storing | each satellite heard waits in a queue of four for the housekeeping task, which stores it (`storage_job_post`, `sat_sound_apply.c`), so the radio task never waits on the flash. The rules are those of an update: a new satellite is stored (with the profile its frame carries, else the built-in one if the radio knows the number, else its name and no frequencies); a stored one is replaced only by a later set and keeps its profile, except that a profile the frame carries fills in one that has no frequencies at all (a satellite loaded by name only) and never replaces one that has any: what you set stays; the same set or an older one is kept out; a full store, an orbit the model refuses and a store failure are counted |
 | A full queue | a satellite that finds the queue full is forgotten, so its copy in the sender's next pass is taken |
 | Shown | the loudest sample of the last block as a bar; before the first satellite a line of the receiver's own numbers, "Lvl 450 Fr 2 Err 1" (the level, frames decoded, frames that failed a check) to tell no sound from sound the decoder can't read; then "Sats heard n of m", new, updated, kept (same or older) and problems |
 | Debug link | the `sat` view's `sat.sound.*` keys ([debuglink.md](debuglink.md) 3.24) |
