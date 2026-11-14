@@ -736,7 +736,9 @@ static size_t cmd_storage(const uint8_t *req, uint16_t len, uint8_t *out, size_t
 		put32(out + 15, 2u * STORAGE_SECTOR);
 		put32(out + 19, m->calibration_addr);
 		put32(out + 23, m->calibration_size);
-		return 27;
+		put32(out + 27, m->sat_addr);		// after the first three: older hosts read only those
+		put32(out + 31, m->sat_size);
+		return 35;
 	}
 	case DL_STORAGE_OP_READ: {
 		if (len != 7) {

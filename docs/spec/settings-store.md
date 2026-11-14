@@ -306,12 +306,14 @@ send it:
 - `rfoundry_debug.py storage claim --out DIR`:
 
 
-1. `rfoundry_debug.py storage claim` reads the settings ring, the journal and the calibration copy through the debug
-   link's read-only SPI flash window (twice, compared) into `--out DIR` (refused inside any git
+1. `rfoundry_debug.py storage claim` reads the settings ring, the journal, the calibration copy and the satellite area
+   through the debug link's read-only SPI flash window (twice, compared) into `--out DIR` (refused inside any git
    work tree), then sends the claim with the token.
 2. The firmware notes the request (`storage.claim_pending`). The housekeeping task (`settings_poll`) erases every
-   settings sector and both journal sectors, checks they read blank, marks the region ours and writes the
-   ownership mark, then saves the settings the radio is running with.
+   settings sector and both journal sectors, and each sector of the satellite area that isn't blank
+   ([satellite.md](satellite.md) 6.3: a firmware that used the region often used the sectors beside it), checks they
+   read blank, marks the region ours and writes the ownership mark, then saves the settings the radio is running
+   with.
 3. The tool polls until `storage.region=ours`.
 
 `rfoundry_debug.py storage dump` saves the same files without claiming; `storage info` shows the state and addresses.
@@ -325,7 +327,7 @@ send it:
 | `tests/host/sim/sim_flash.c` | the simulated NOR: program only clears bits (violations counted), erase per 4 KB, a power cut after N operations (a torn program or erase leaves random bits) |
 | `tests/host/radioCoreTest.c` `test_persist` | the radio core saves the zone, the channel and the VFO and comes back to them after a reboot |
 | `tests/hil/test_cps.py` `test_settings_saved` | on the radio: a channel change is saved within 2 s (the debug link's `storage` view section, `debuglink.md` 3.7) |
-| `settingsTest.c` `test_foreign` | another firmware's bytes in the ring / J0 / J1: foreign, no flash operation at all, writes refused, RAM defaults, the read window's limits; claim erases and saves; junk beside our record, our J0 header beside junk, a cut inside a journal rewrite after the mark, a cut inside the first mark: ours |
+| `settingsTest.c` `test_foreign` | another firmware's bytes in the ring / J0 / J1 and the satellite area: foreign, no flash operation at all, writes refused, RAM defaults, the read window's limits; claim erases (the satellite area's blank sector left alone) and saves; junk beside our record, our J0 header beside junk, a cut inside a journal rewrite after the mark, a cut inside the first mark: ours |
 | `cpsTest.c` `test_foreign` | a foreign region: reads answered, `X 1` and codeplug edits refused, flash unchanged; after a claim, CPS writes work |
 | `tests/hil/test_cps.py` `test_storage_region` | on the radio: the region state matches the view, reads inside the window work and outside it are refused (skips with instructions when foreign) |
 | `tests/hil/test_cps.py` `test_settings_survive_restart` | opt-in `--allow-reboot`: the channel position survives a restart |

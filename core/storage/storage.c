@@ -434,6 +434,12 @@ bool storage_claim(void)
 	for (uint32_t a = m->journal_addr; ok && a < m->journal_addr + 2u * STORAGE_SECTOR; a += STORAGE_SECTOR) {
 		ok = er(a) && blank(a, STORAGE_SECTOR);
 	}
+	// The satellite area too (satellite.md 6.3): a firmware that used the region often used the sectors beside it, and
+	// its bytes there would keep the satellite store read only. Sectors already blank are not erased again
+	for (uint32_t a = m->sat_addr; ok && m->sat_size % STORAGE_SECTOR == 0 && a < m->sat_addr + m->sat_size;
+	     a += STORAGE_SECTOR) {
+		ok = target_ok(m, a) && (blank(a, STORAGE_SECTOR) || (er(a) && blank(a, STORAGE_SECTOR)));
+	}
 	if (ok) {
 		region = STORAGE_REGION_OURS;
 		stats.foreign_slots = 0;
@@ -456,7 +462,8 @@ bool storage_debug_read_allowed(uint32_t addr, uint32_t len)
 	}
 	return inside(addr, len, m->settings_addr, m->settings_size) ||
 	       inside(addr, len, m->journal_addr, 2u * STORAGE_SECTOR) ||
-	       inside(addr, len, m->calibration_addr, m->calibration_size);
+	       inside(addr, len, m->calibration_addr, m->calibration_size) ||
+	       inside(addr, len, m->sat_addr, m->sat_size);	// a claim erases it too: backed up first
 }
 
 // A write refused because the region is foreign (counted), or because there is no flash

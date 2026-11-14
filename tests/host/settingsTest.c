@@ -26,6 +26,7 @@ static const hal_flash_map_t map = {
 	.settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
 	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = FLASH_SIZE,
 	.calibration_addr = 0x10000u, .calibration_size = 0x200u,
+	.sat_addr = 0x1B000u, .sat_size = 0x2000u,
 };
 
 const board_t board = { .name = "test", .flash = &sim_flash };
@@ -386,6 +387,7 @@ static void test_foreign(void)
 	sim_flash_create(FLASH_SIZE, &map);
 	junk(ring + 2 * STORAGE_SECTOR, 3000, 7);
 	junk(jr, 100, 9);
+	junk(map.sat_addr, 500, 3);		// its bytes in the satellite area's first sector; the second stays blank
 	uint8_t *snap = malloc(FLASH_SIZE);
 	memcpy(snap, sim_flash_data, FLASH_SIZE);
 	uint32_t u0 = sim_flash_units();
@@ -415,20 +417,26 @@ static void test_foreign(void)
 	CHECK(storage_debug_read_allowed(ring, map.settings_size));
 	CHECK(storage_debug_read_allowed(jr, 2 * STORAGE_SECTOR));
 	CHECK(storage_debug_read_allowed(map.calibration_addr, map.calibration_size));
+	CHECK(storage_debug_read_allowed(map.sat_addr, map.sat_size));	// the claim erases it too
+	CHECK(!storage_debug_read_allowed(map.sat_addr + map.sat_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(ring - 1, 2));
 	CHECK(!storage_debug_read_allowed(jr + 2 * STORAGE_SECTOR - 1, 2));
 	CHECK(!storage_debug_read_allowed(map.calibration_addr + 0x1F0, 0x20));
 	CHECK(!storage_debug_read_allowed(0x3000u, 16) && !storage_debug_read_allowed(ring, 0));
 	CHECK(!storage_debug_read_allowed(0xFFFFFFF0u, 0x20));
 
-	// Claim: the housekeeping erases the ring and the journal, then saves what the radio runs with
+	// Claim: the housekeeping erases the ring, the journal and the satellite area's used sector (not the blank one),
+	// then saves what the radio runs with
 	CHECK(storage_claim_request() && storage_claim_pending());
+	uint32_t e_used = sim_flash_erases(map.sat_addr), e_blank = sim_flash_erases(map.sat_addr + STORAGE_SECTOR);
 	settings_poll(6000);
 	CHECK(storage_region() == STORAGE_REGION_OURS && storage_ready() && !storage_claim_pending());
 	settings_get_stats(&st);
 	CHECK(!st.dirty && st.saves == 1);
 	CHECK(sim_flash_data[jr] == 0xFF && sim_flash_data[jr + STORAGE_SECTOR + 5] == 0xFF);
 	CHECK(sim_flash_data[ring + 2 * STORAGE_SECTOR + 5] == 0xFF);
+	CHECK(sim_flash_data[map.sat_addr] == 0xFF && sim_flash_data[map.sat_addr + 499] == 0xFF);
+	CHECK(sim_flash_erases(map.sat_addr) == e_used + 1 && sim_flash_erases(map.sat_addr + STORAGE_SECTOR) == e_blank);
 	CHECK(memcmp(snap + 0x20000, sim_flash_data + 0x20000, FLASH_SIZE - 0x20000) == 0);	// nothing else touched
 	CHECK(storage_sector_write(0x3000u, a));
 	CHECK(boot_any());
