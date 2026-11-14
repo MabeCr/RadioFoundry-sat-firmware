@@ -1178,7 +1178,7 @@ records are in `open-firmware-cps.md`.
 | 0x010000 | (local) | 512 B | calibration working copy (12.1). CPS reads/writes it through a 0x10000 window |
 | 0x011000 | (ours) | 32 KB | RadioFoundry settings ring (`settings-store.md` 2); no open-firmware tool uses it, the CPS shim refuses writes |
 | 0x019000 | (ours) | 8 KB | RadioFoundry sector journal (`settings-store.md` 4) |
-| 0x01B000 | (ours) | 4 KB | RadioFoundry stored satellites, 32 records (`CONFIG_SAT`, `satellite.md` 6.3); no CPS address maps to it |
+| 0x01B000 | (ours) | 4 KB | RadioFoundry stored satellites, 32 records (`CONFIG_SAT`, `satellite.md` 6.3); no CPS address maps to it, but an OpenGD77-family firmware writes there (below) |
 | 0x020000 | flash 0x00000 | 4 KB | custom data: boot image and boot melody, themes (one 4 KB sector; erased when the user clears custom data) |
 | 0x050000 | flash 0x30000 | 256 KB | DMR ID database part 1 (header "Id" + type byte + record length + entry count; see the CPS spec) |
 | 0x09B1B0 | flash 0x7B1B0 | | channels 129-1024 (bank headers 16 B before each bank, data from 0x9B1C0) |
@@ -1731,9 +1731,12 @@ is well above the "mic muted, no tone" row.
 
 - Settings and storage: the core's map for the 16 MB SPI flash is settings 0x011000 (32 KB, 8 sectors), journal
   0x019000, open-firmware EEPROM 0x000000, open-firmware flash 0x020000 up to 0xE00000, native area 0xE00000 (1 MB),
-  TFTP staging 0xF00000 (256 KB), stored satellites 0x01B000 (4 KB), calibration window 0x010000 (512 B). The range
-  0x011000-0x01BFFF has never been checked on a used radio, for the foreign-region guard of
-  [settings-store.md](settings-store.md) 5 (the satellite store has its own, [satellite.md](satellite.md) 6.3).
+  TFTP staging 0xF00000 (256 KB), stored satellites 0x01B000 (4 KB), calibration window 0x010000 (512 B).
+- No CPS address maps to 0x011000-0x01FFFF, but the firmware itself may write there. A web installer backup of a
+  DM-1701 running an OpenGD77-family firmware (2026-11-06, a partial read up to 0x025D49) had 0x010000-0x01EFFF
+  written, every sector, and 0x01F000 erased. Only which bytes were erased was looked at, not what they hold. Such a
+  radio's settings region reads foreign ([settings-store.md](settings-store.md) 5) and its satellite area foreign
+  ([satellite.md](satellite.md) 6.3); the claim erases both.
 - The board's `hal_radio` has `tx_tone`, so the MMDVM task keys the 1750 Hz burst ([mmdvm-protocol.md](mmdvm-protocol.md)).
 - USB: the STM32F405 OTG_FS has three IN endpoints besides EP0, so serial and network are alternatives, not a composite
   ([usb-network.md](usb-network.md)).
