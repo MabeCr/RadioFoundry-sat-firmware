@@ -10,8 +10,8 @@ transmits. Section 4 is a dated log; nothing in it is a support claim.
 ## 1. Build and measure (no radio)
 
 The satellite build is the radio's own defaults plus tracking and sound receive (`SATELLITE_VARS` in
-`boards/dm1701/config.mk`); nothing is cut. CI builds and stack-checks it on every push and publishes it with the other
-satellite images (`.github/workflows/satellite-image.yml`).
+`boards/dm1701/config.mk`); nothing is cut. CI builds and stack-checks it on every push and publishes it as a pre-release of its
+own, the newest `satellite-dm1701-<commit>` (`.github/workflows/satellite-image.yml`).
 
 | Step | Command | Expect |
 |---|---|---|

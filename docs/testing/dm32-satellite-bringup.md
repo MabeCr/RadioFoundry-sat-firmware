@@ -36,7 +36,7 @@ task's `SAT_TASK_STACK` in `core/app/sat_task.c`) and send the stack-check outpu
    data flash. The data flash holds this radio's factory calibration; keep two copies, and never put a backup in a git tree.
 2. Get the image, one of two ways:
    - **From a phone, with no computer.** GitHub Actions builds the satellite configuration on every push to `main` and
-     publishes it as a pre-release: the repository's Releases page, the newest `satellite-<commit>`. Its notes give the
+     publishes it as a pre-release: the repository's Releases page, the newest `satellite-dm32-<commit>` (titled "Baofeng DM-32UV satellite build"). Its notes give the
      commit, the `FLASH:` and `RAM:` lines, the stack check and the SHA-256. Download `rfoundry_dm32_satellite.bin` in
      the phone's browser.
    - **From a computer:** `build/dm32-satellite/rfoundry_dm32.bin` (section 1), or the `_codec.bin` that `make` writes when
