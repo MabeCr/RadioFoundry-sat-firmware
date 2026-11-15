@@ -205,13 +205,15 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   touched (a cross-band split stays), and it doesn't count as the user doing something (no auto-off or roaming reset).
   A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
 - `*` follows the Doppler (`core/sat/sat_follow.c`): once a draw (about a second) the screen asks
-  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (1.5 kHz) or more from
-  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (5 s) ago or more, and the radio is not transmitting;
+  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (500 Hz) or more from
+  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (3 s) ago or more, and the radio is not transmitting;
   then the screen calls `radio_req_rx_hz`. The wanted frequency is the corrected downlink plus the dial's nudge, and from
   two minutes before the rise (the service's margin) the shift of the rise, so the receiver is on it when the satellite
   comes up. There is no wait for a gap in the signal: a retune is a click (4.4), and the squelch may be latched open.
-  Against the reference passes (`satFollowTest`) it retunes 12 or 13 times a pass at 437.8 MHz, never further off than
-  1.5 kHz, with at least 14 s between retunes, and the same with a 5 kHz nudge. It ends with Back, or when the radio
+  Against the reference passes (`satFollowTest`) it retunes about 36 times a pass at 437.8 MHz, never further off than
+  about 600 Hz, with at least 5 s between retunes, and the same with a 5 kHz nudge. (It was 12 retunes and 1.5 kHz until the
+  first SO-50 pass on the radio, 2026-11-15, where a signal 1.5 kHz off was too far.) The Tracking screen colors the
+  receive line as a warning at `SAT_FOLLOW_WARN_HZ` (1.5 kHz) behind. It ends with Back, or when the radio
   leaves the VFO.
 - `OK` swaps the base of the downlink between the profile's and one saved for the satellite (`settings_t.sat_alt_norad` / `sat_alt_hz`, typed on the Frequency screen, `1`): the saved one replaces the profile's as the base the Doppler works
   on. The screen works the shift out itself from the live range rate (`sat_doppler_rx_hz`, `sat_doppler.h`), so it needs
