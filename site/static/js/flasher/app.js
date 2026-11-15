@@ -1663,7 +1663,7 @@ function openfwBackupNow({ onDone = null, actions = null } = {}) {
 
 // A radio fresh from its original firmware still holds that firmware's data where RadioFoundry keeps its settings and journal:
 // until that area is claimed the radio keeps no settings and refuses every codeplug write (settings-store.md 5). The
-// claim erases the satellite area too; a radio whose settings area was claimed by an earlier install can still hold
+// claim clears another firmware's bytes from the satellite area too; a radio whose settings area was claimed by an earlier install can still hold
 // another firmware's bytes there, and stores no satellites until they go (satellite.md 6.3)
 async function prepareStorage(box) {
 	try {

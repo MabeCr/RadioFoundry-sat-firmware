@@ -411,7 +411,7 @@ class DebugLink:
 
     def storage_info(self):
         """STORAGE INFO: region state and the (address, size) of the settings ring, journal, calibration copy and, from
-        firmware that gives it, the satellite area (a claim erases it too)"""
+        firmware that gives it, the satellite area (a claim clears it too)"""
         _, r = self.request(STORAGE, bytes([STORAGE_OP_INFO]))
         region, pending = r[0], r[1]
         sa, ss, ja, js, ca, cs = struct.unpack_from("<6I", r, 2)

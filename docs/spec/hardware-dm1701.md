@@ -1736,7 +1736,7 @@ is well above the "mic muted, no tone" row.
   DM-1701 running an OpenGD77-family firmware (2026-11-06, a partial read up to 0x025D49) had 0x010000-0x01EFFF
   written, every sector, and 0x01F000 erased. Only which bytes were erased was looked at, not what they hold. Such a
   radio's settings region reads foreign ([settings-store.md](settings-store.md) 5) and its satellite area foreign
-  ([satellite.md](satellite.md) 6.3); the claim erases both.
+  ([satellite.md](satellite.md) 6.3); the claim clears both.
 - The board's `hal_radio` has `tx_tone`, so the MMDVM task keys the 1750 Hz burst ([mmdvm-protocol.md](mmdvm-protocol.md)).
 - USB: the STM32F405 OTG_FS has three IN endpoints besides EP0, so serial and network are alternatives, not a composite
   ([usb-network.md](usb-network.md)).

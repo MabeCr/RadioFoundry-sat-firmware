@@ -43,7 +43,7 @@ bytes ([hardware-dm1701.md](../spec/hardware-dm1701.md) 22), and the installer c
 |---|---|---|
 | 2026-11-14 | The satellite build, GCC 13.3.rel1 | 550,844 B flash (74.7 %), 121,736 B RAM (9.3 KB free); stack check: every task fits, `ui` 0 B over the 128 B margin |
 | 2026-11-14 | Installed with the web installer's own-build upload over RadioFoundry | installed; the radio's settings and fixed APRS position kept |
-| 2026-11-14 | Receive sound, first time | "No place to keep satellites": `sat.store=foreign`. The radio ran an OpenGD77-family firmware before RadioFoundry; its backup from 2026-11-06 had every sector of 0x010000-0x01EFFF written. `sat clear` made it `ours` (the bytes are in that backup). The claim and the installer now clear the area, and the screen names the cause |
+| 2026-11-14 | Receive sound, first time | "No place to keep satellites": `sat.store=foreign`. The radio ran an OpenGD77-family firmware before RadioFoundry; its backup from 2026-11-06 had every sector of 0x010000-0x01EFFF written. `sat clear` made it `ours` (the bytes are in that backup). The claim and the installer now clear the other firmware's bytes from the area, and the screen names the cause |
 | 2026-11-14 | Receive sound, the ISS alone | received and stored |
 | 2026-11-14 | Set time (Settings > Location), then Tracking | tracks with the fixed APRS position |
 | 2026-11-14 | Power off and on | the stored satellite kept; the time lost (no battery-backed clock) |
