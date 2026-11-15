@@ -26,6 +26,10 @@ Not run on a radio. The codec builds were checked on a host only (untested on th
 219.74, 5 W and 10 W; TYT and Retevis 18.11 and 18.16; Retevis RT3S 19.06 and 219.60. A first DMR test
 should use a 19.26 file and one whose code goes to the start of sector 10 (RT3S 219.60, any 219.74, S19.74).
 
+Stored satellites (`CONFIG_SAT`): the satellite area at 0x01B000 comes from the UV380 family's flash map, shared with
+the DM-1701, and is untested on this radio. Check that 0x01B000-0x01BFFF is free on a used radio before relying on it,
+then `rfoundry_debug.py sat show` (`sat.store=ours`, `sat.slots=32`) and a stored satellite kept across power off.
+
 ## 0. Before anything
 
 1. Back up the radio: the codeplug with the stock CPS, then the whole SPI flash and the internal flash through the

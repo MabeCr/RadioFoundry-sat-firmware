@@ -645,6 +645,8 @@ static const flow_t flows[] = {
 	{ "S sound: transmitting or storing", "sound:busy ok 6 0 7", "", "screen=sat-sound shows=Transmitting", 0, false },
 	{ "S sound: no place to keep satellites", "sound:nostore ok 6 0 7", "", "screen=sat-sound shows=No_place", 0, false },
 	{ "S sound: no audio on the board", "sound:noaudio ok 6 0 7", "", "screen=sat-sound shows=can't", 0, false },
+	{ "S sound: another firmware's data in the satellite area", "sound:foreign ok 6 0 7", "",
+	  "screen=sat-sound shows=Another_firmware shows=web_installer hides=No_place", 0, false },
 	{ "S sound: Back leaves and stops the radio listening", "ok 6 0 7", "back", "screen=satellites sound=0", 1, false },
 #endif
 	{ "S passes back to the list", "ok 6 0 2", "back", "screen=satellites", 1, false },

@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include "storage/storage.h"
 #include "settings/settings.h"
+#include "sat/sat_store.h"
 #include "sim/sim_flash.h"
 
 static int failures;
@@ -26,6 +27,7 @@ static const hal_flash_map_t map = {
 	.settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
 	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = FLASH_SIZE,
 	.calibration_addr = 0x10000u, .calibration_size = 0x200u,
+	.sat_addr = 0x1B000u, .sat_size = 0x2000u,
 };
 
 const board_t board = { .name = "test", .flash = &sim_flash };
@@ -365,6 +367,22 @@ static void junk(uint32_t addr, uint32_t len, uint8_t seed)
 	}
 }
 
+// One of our satellite records at addr (satellite.md 6.4: the frame the claim checks; the fields don't matter)
+static void sat_record(uint32_t addr, uint32_t norad)
+{
+	uint8_t *r = sim_flash_data + addr;
+	memset(r, 0, SAT_STORE_RECORD);
+	for (unsigned k = 0; k < 4; k++) {
+		r[k] = (uint8_t)(SAT_STORE_MAGIC >> (8 * k));
+		r[20 + k] = (uint8_t)(norad >> (8 * k));
+	}
+	r[4] = SAT_STORE_LAYOUT;
+	uint32_t crc = storage_crc32(0, r, SAT_STORE_RECORD - 4);
+	for (unsigned k = 0; k < 4; k++) {
+		r[SAT_STORE_RECORD - 4 + k] = (uint8_t)(crc >> (8 * k));
+	}
+}
+
 // A boot that may find the region foreign (boot() checks it isn't)
 static bool boot_any(void)
 {
@@ -386,6 +404,13 @@ static void test_foreign(void)
 	sim_flash_create(FLASH_SIZE, &map);
 	junk(ring + 2 * STORAGE_SECTOR, 3000, 7);
 	junk(jr, 100, 9);
+	// The satellite area: its bytes and one of our records in the first sector, only ours in the second (the user's
+	// satellites, from before the region read foreign)
+	const uint32_t sat0 = map.sat_addr, sat1 = map.sat_addr + STORAGE_SECTOR;
+	junk(sat0, 500, 3);
+	sat_record(sat0 + 8 * SAT_STORE_RECORD, 25544);
+	sat_record(sat1, 43017);
+	sat_record(sat1 + 31 * SAT_STORE_RECORD, 27607);
 	uint8_t *snap = malloc(FLASH_SIZE);
 	memcpy(snap, sim_flash_data, FLASH_SIZE);
 	uint32_t u0 = sim_flash_units();
@@ -415,20 +440,30 @@ static void test_foreign(void)
 	CHECK(storage_debug_read_allowed(ring, map.settings_size));
 	CHECK(storage_debug_read_allowed(jr, 2 * STORAGE_SECTOR));
 	CHECK(storage_debug_read_allowed(map.calibration_addr, map.calibration_size));
+	CHECK(storage_debug_read_allowed(map.sat_addr, map.sat_size));	// the claim erases it too
+	CHECK(!storage_debug_read_allowed(map.sat_addr + map.sat_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(ring - 1, 2));
 	CHECK(!storage_debug_read_allowed(jr + 2 * STORAGE_SECTOR - 1, 2));
 	CHECK(!storage_debug_read_allowed(map.calibration_addr + 0x1F0, 0x20));
 	CHECK(!storage_debug_read_allowed(0x3000u, 16) && !storage_debug_read_allowed(ring, 0));
 	CHECK(!storage_debug_read_allowed(0xFFFFFFF0u, 0x20));
 
-	// Claim: the housekeeping erases the ring and the journal, then saves what the radio runs with
+	// Claim: the housekeeping erases the ring and the journal, clears the other firmware's bytes from the satellite area
+	// and keeps our records (the second sector not even erased), then saves what the radio runs with
 	CHECK(storage_claim_request() && storage_claim_pending());
+	uint32_t e0 = sim_flash_erases(sat0), e1 = sim_flash_erases(sat1);
 	settings_poll(6000);
 	CHECK(storage_region() == STORAGE_REGION_OURS && storage_ready() && !storage_claim_pending());
 	settings_get_stats(&st);
 	CHECK(!st.dirty && st.saves == 1);
 	CHECK(sim_flash_data[jr] == 0xFF && sim_flash_data[jr + STORAGE_SECTOR + 5] == 0xFF);
 	CHECK(sim_flash_data[ring + 2 * STORAGE_SECTOR + 5] == 0xFF);
+	for (uint32_t i = 0; i < 4 * SAT_STORE_RECORD; i++) {
+		CHECK(sim_flash_data[sat0 + i] == 0xFF);
+	}
+	CHECK(memcmp(snap + sat0 + 4 * SAT_STORE_RECORD, sim_flash_data + sat0 + 4 * SAT_STORE_RECORD,
+	             2 * STORAGE_SECTOR - 4 * SAT_STORE_RECORD) == 0);	// our three records, and nothing else
+	CHECK(sim_flash_erases(sat0) == e0 + 1 && sim_flash_erases(sat1) == e1);
 	CHECK(memcmp(snap + 0x20000, sim_flash_data + 0x20000, FLASH_SIZE - 0x20000) == 0);	// nothing else touched
 	CHECK(storage_sector_write(0x3000u, a));
 	CHECK(boot_any());

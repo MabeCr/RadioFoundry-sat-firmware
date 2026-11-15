@@ -410,12 +410,15 @@ class DebugLink:
         return bytes(r[4:])
 
     def storage_info(self):
-        """STORAGE INFO: region state and the (address, size) of the settings ring, journal, calibration copy"""
+        """STORAGE INFO: region state and the (address, size) of the settings ring, journal, calibration copy and, from
+        firmware that gives it, the satellite area (a claim clears it too)"""
         _, r = self.request(STORAGE, bytes([STORAGE_OP_INFO]))
         region, pending = r[0], r[1]
         sa, ss, ja, js, ca, cs = struct.unpack_from("<6I", r, 2)
-        return {"region": REGIONS.get(region, str(region)), "claim_pending": bool(pending),
-                "ranges": {"settings": (sa, ss), "journal": (ja, js), "calibration": (ca, cs)}}
+        ranges = {"settings": (sa, ss), "journal": (ja, js), "calibration": (ca, cs)}
+        if len(r) >= 34:
+            ranges["satellites"] = struct.unpack_from("<2I", r, 26)
+        return {"region": REGIONS.get(region, str(region)), "claim_pending": bool(pending), "ranges": ranges}
 
     # ── audio probe (CONFIG_AUDIO_PROBE, docs/spec/debuglink.md 3.14) ──
     def probe_status(self):

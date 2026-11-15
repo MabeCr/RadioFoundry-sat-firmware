@@ -1357,7 +1357,7 @@ static void sound_draw(void)
 	const font_t *sm = ui_layout.small;
 	const int hy = ui_layout.hint_y;
 	if (snd_state != SOUND_LISTENING) {
-		const char *l1 = TR("Starting"), *l2 = "";
+		const char *l1 = TR("Starting"), *l2 = "", *l3 = "", *l4 = "";
 		switch (snd_state) {
 		case SOUND_NEED_DMR:
 			l1 = TR("Switch to a DMR channel,");
@@ -1375,11 +1375,21 @@ static void sound_draw(void)
 			l1 = TR("This radio can't");
 			l2 = TR("listen for sound");
 			break;
+		case SOUND_FOREIGN:
+			// another firmware's bytes where satellites go (satellite.md 6.3): the installer clears them after its backup
+			l1 = TR("Another firmware's data");
+			l2 = TR("is where satellites go");
+			l3 = TR("The web installer clears");
+			l4 = TR("it after a full backup");
+			break;
 		default:
 			break;
 		}
 		snd_line(2, &y, sm, l1, snd_state == SOUND_OFF ? ui_col.dim : ui_col.warn, hy);
 		snd_line(2, &y, sm, l2, ui_col.warn, hy);
+		y += 4;
+		snd_line(2, &y, sm, l3, ui_col.dim, hy);
+		snd_line(2, &y, sm, l4, ui_col.dim, hy);
 		ui_draw_bottom(&ui_st, TR("Back close"));
 		ui_draw_banner(&ui_st);
 		return;

@@ -516,11 +516,23 @@ export class FakeRadio {
 				if (f.payload[0] === 2) {
 					if (!foreign) return frame(f.cmd | 0x80, f.seq, new Uint8Array([4]));
 					if (u32le(f.payload, 1) !== u32le(this.uid, 0)) return frame(f.cmd | 0x80, f.seq, new Uint8Array([7, 1]));
-					this.spi.fill(0xFF, 0x11000, 0x1B000);
+					this.spi.fill(0xFF, 0x11000, 0x1C000);	// the satellite area at 0x1B000 with it
 					this.storageOurs = true;
 					this.events.push("storage claimed");
 					return ok(new Uint8Array(0));
 				}
+			}
+			if (f.cmd === 0x09 && f.payload[0] === 28) {
+				// GET_VIEW's satellite section (debuglink.md 3.7): the store at 0x1B000 is foreign while it holds anything
+				const store = this.spi.subarray(0x1B000, 0x1C000).every((x) => x === 0xFF) ? "ours" : "foreign";
+				return ok(concat(le32(0), new Uint8Array([0xFF]), new TextEncoder().encode(`section=sat\nsat.built=1\nsat.store=${store}\n`)));
+			}
+			if (f.cmd === 0x20 && f.payload[0] === 12) {
+				// SAT CLEAR (debuglink.md 3.24): the token 'SATC', then the whole area erased
+				if (u32le(f.payload, 1) !== 0x43544153) return frame(f.cmd | 0x80, f.seq, new Uint8Array([7]));
+				this.spi.fill(0xFF, 0x1B000, 0x1C000);
+				this.events.push("satellite area cleared");
+				return ok(new Uint8Array(0));
 			}
 			if (f.cmd === 0x0C) {
 				const addr = u32le(f.payload, 0), n = f.payload[4] | (f.payload[5] << 8);

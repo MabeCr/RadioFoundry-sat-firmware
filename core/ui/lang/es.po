@@ -3457,6 +3457,22 @@ msgid "listen for sound"
 msgstr "escuchar sonido"
 
 #: core/ui/ui_sat.c
+msgid "Another firmware's data"
+msgstr "Datos de otro firmware"
+
+#: core/ui/ui_sat.c
+msgid "is where satellites go"
+msgstr "donde van los satélites"
+
+#: core/ui/ui_sat.c
+msgid "The web installer clears"
+msgstr "El instalador web los"
+
+#: core/ui/ui_sat.c
+msgid "it after a full backup"
+msgstr "borra tras un respaldo"
+
+#: core/ui/ui_sat.c
 msgid "Lvl"
 msgstr "Niv"
 

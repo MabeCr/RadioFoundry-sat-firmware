@@ -15,6 +15,7 @@
 // sector erased and programmed from J1, "done". Replay: a sector not staged is still intact, so it is merged again.
 #include <string.h>
 #include "storage/storage.h"
+#include "sat/sat_store.h"		// the satellite record's frame, which the claim keeps (satellite.md 6.4)
 
 #define J_MAGIC		0x4C4E4A4Fu	// "OJNL"
 #define J_HDR_LEN	16u		// magic, target, data CRC, header CRC
@@ -417,6 +418,41 @@ bool storage_claim_pending(void)
 	return claim_pending;
 }
 
+// Whether a satellite slot holds one of our records (satellite.md 6.3: magic, layout and CRC right)
+static bool sat_record(const uint8_t *r)
+{
+	return get32(r) == SAT_STORE_MAGIC && r[4] == SAT_STORE_LAYOUT &&
+	       get32(r + SAT_STORE_RECORD - 4u) == storage_crc32(0, r, SAT_STORE_RECORD - 4u);
+}
+
+// Clear another firmware's bytes from a sector of the satellite area and keep our records: a sector whose slots are all
+// free or ours is not touched, so a claim never costs the user a stored satellite
+static bool claim_sat_sector(uint32_t a)
+{
+	uint8_t *b = storage_buffer_acquire();
+	bool ok = b != NULL && rd(a, b, STORAGE_SECTOR), other = false, kept = false;
+
+	for (uint32_t off = 0; ok && off < STORAGE_SECTOR; off += SAT_STORE_RECORD) {
+		bool empty = true;
+		for (uint32_t i = 0; i < SAT_STORE_RECORD; i++) {
+			empty = empty && b[off + i] == 0xFF;
+		}
+		if (sat_record(b + off)) {
+			kept = true;
+		} else if (!empty) {
+			memset(b + off, 0xFF, SAT_STORE_RECORD);
+			other = true;
+		}
+	}
+	if (ok && other) {
+		ok = er(a) && (kept ? wr(a, b, STORAGE_SECTOR) && same(a, b, STORAGE_SECTOR) : blank(a, STORAGE_SECTOR));
+	}
+	if (b != NULL) {
+		storage_buffer_release();
+	}
+	return ok;
+}
+
 bool storage_claim(void)
 {
 	const hal_flash_map_t *m = storage_map();
@@ -433,6 +469,13 @@ bool storage_claim(void)
 	}
 	for (uint32_t a = m->journal_addr; ok && a < m->journal_addr + 2u * STORAGE_SECTOR; a += STORAGE_SECTOR) {
 		ok = er(a) && blank(a, STORAGE_SECTOR);
+	}
+	// The satellite area too (satellite.md 6.3): a firmware that used the region often used the sectors beside it, and
+	// its bytes there would keep the satellite store read only. Our records stay: the region can read foreign while
+	// the area holds the user's satellites
+	for (uint32_t a = m->sat_addr; ok && m->sat_size % STORAGE_SECTOR == 0 && a < m->sat_addr + m->sat_size;
+	     a += STORAGE_SECTOR) {
+		ok = target_ok(m, a) && claim_sat_sector(a);
 	}
 	if (ok) {
 		region = STORAGE_REGION_OURS;
@@ -456,7 +499,8 @@ bool storage_debug_read_allowed(uint32_t addr, uint32_t len)
 	}
 	return inside(addr, len, m->settings_addr, m->settings_size) ||
 	       inside(addr, len, m->journal_addr, 2u * STORAGE_SECTOR) ||
-	       inside(addr, len, m->calibration_addr, m->calibration_size);
+	       inside(addr, len, m->calibration_addr, m->calibration_size) ||
+	       inside(addr, len, m->sat_addr, m->sat_size);	// a claim erases it too: backed up first
 }
 
 // A write refused because the region is foreign (counted), or because there is no flash
