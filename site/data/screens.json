@@ -777,6 +777,12 @@
     "SAT_SOUND"
    ]
   },
+  "satellite_sound_foreign": {
+   "group": "tools",
+   "needs": [
+    "SAT_SOUND"
+   ]
+  },
   "diagnostics": {
    "group": "tools",
    "needs": [
