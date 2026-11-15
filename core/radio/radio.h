@@ -389,8 +389,9 @@ typedef enum {
 	SOUND_LISTENING,
 	SOUND_NEED_DMR,		// the channel isn't a DMR channel
 	SOUND_BUSY,		// transmitting, a hotspot, or the satellites of the last transfer are still being stored
-	SOUND_NO_STORE,		// no usable satellite store (none on this board, or someone else's bytes)
+	SOUND_NO_STORE,		// no usable satellite store (none on this board, or the flash can't be read)
 	SOUND_NO_AUDIO,		// the board has no PCM stream
+	SOUND_FOREIGN,		// the satellite area holds someone else's bytes (another firmware's): read only until cleared
 } radio_sound_state_t;
 void radio_req_sound(bool on);
 radio_sound_state_t radio_sound_status(sat_sound_stats_t *st);

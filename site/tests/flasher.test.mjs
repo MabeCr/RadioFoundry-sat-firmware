@@ -643,6 +643,23 @@ test("after the backup, the stock data in RadioFoundry's settings area is claime
 	assert.ok(radio.events.includes("storage claimed"));
 });
 
+test("another firmware's bytes in the satellite area: the claim erases them, or SAT CLEAR does once the area is ours", async () => {
+	const { radio } = await simulated("rfoundry");
+	const link = new Link(radio.serialStream());
+	radio.spi.fill(0x5A, 0x1B000, 0x1B000 + 3000);
+	assert.equal(await link.satStore(), "foreign");
+	assert.equal(await link.storageClaim(), true);
+	assert.equal(await link.satStore(), "ours");
+	assert.ok(!radio.events.includes("satellite area cleared"));
+	// a radio whose settings area an earlier install claimed: only the satellite area holds the other firmware's bytes
+	radio.spi.fill(0x5A, 0x1B000, 0x1B000 + 3000);
+	assert.equal((await link.storageInfo()).region, "ours");
+	assert.equal(await link.satStore(), "foreign");
+	assert.equal(await link.satClear(), true);
+	assert.ok(radio.spi.subarray(0x1B000, 0x1C000).every((x) => x === 0xFF));
+	assert.ok(radio.events.includes("satellite area cleared"));
+});
+
 test("a read whose reply lost its tail is asked again", async () => {
 	const { radio } = await simulated("rfoundry");
 	const answer = radio.serialAnswer.bind(radio);

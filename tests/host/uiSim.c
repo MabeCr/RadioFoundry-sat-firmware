@@ -155,6 +155,7 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "satellite_sound_heard", "soundheard:3,32,2,1,0,0,500 ok 6 0 7" },
 	{ "satellite_sound_done", "soundheard:32,32,29,3,0,0,900 ok 6 0 7" },
 	{ "satellite_sound_not_dmr", "sound:notdmr ok 6 0 7" },
+	{ "satellite_sound_foreign", "sound:foreign ok 6 0 7" },
 	{ "satellites_no_time", "sat:notime ok 6 0" },
 	{ "settings_location", "ok 7 5 up up" },
 	{ "satellite_set_time", "ok 7 5 up ok" },

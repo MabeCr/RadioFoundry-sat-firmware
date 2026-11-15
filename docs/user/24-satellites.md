@@ -132,6 +132,11 @@ stored for a satellite that is new on the radio, and fill in one the radio holds
 frequencies you changed keeps them, and the page never overwrites them. If
 the bar stays empty, turn the phone up; if it fills to the end, turn it down. It listens only while the screen is open.
 
+If the screen says **Another firmware's data is where satellites go**, the firmware the radio ran before RadioFoundry left
+its data where satellites are stored, and the radio won't write over it. Install with the
+[web installer](02-installing.md) and keep its **full backup** (the whole memory chip): after the backup it clears that area.
+From a computer, `rfoundry_debug.py storage dump --out DIR` saves the area, then `rfoundry_debug.py sat clear` clears it.
+
 ## Settings
 
 **Settings > Location** ([Settings](17-settings.md)):

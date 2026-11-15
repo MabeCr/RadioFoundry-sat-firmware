@@ -1662,17 +1662,28 @@ function openfwBackupNow({ onDone = null, actions = null } = {}) {
 }
 
 // A radio fresh from its original firmware still holds that firmware's data where RadioFoundry keeps its settings and journal:
-// until that area is claimed the radio keeps no settings and refuses every codeplug write (settings-store.md 5)
+// until that area is claimed the radio keeps no settings and refuses every codeplug write (settings-store.md 5). The
+// claim clears another firmware's bytes from the satellite area too; a radio whose settings area was claimed by an earlier install can still hold
+// another firmware's bytes there, and stores no satellites until they go (satellite.md 6.3)
 async function prepareStorage(box) {
 	try {
 		const link = await connectSerial();
 		const st = await link.storageInfo();
 		diag.note("storage region", st);
-		if (st?.region !== "foreign") return;
-		const line = notice(t("flash.storage.preparing"));
+		if (st?.region === "foreign") {
+			const line = notice(t("flash.storage.preparing"));
+			box.append(line);
+			const ok = await link.storageClaim();
+			line.replaceWith(notice(t(ok ? "flash.storage.done" : "flash.storage.failed"), ok ? "ok" : "bad"));
+			if (!ok) return;
+		}
+		const sat = await link.satStore();
+		diag.note("satellite store", { sat });
+		if (sat !== "foreign") return;
+		const line = notice(t("flash.storage.sat_preparing"));
 		box.append(line);
-		const ok = await link.storageClaim();
-		line.replaceWith(notice(t(ok ? "flash.storage.done" : "flash.storage.failed"), ok ? "ok" : "bad"));
+		const ok = await link.satClear().catch(() => false);
+		line.replaceWith(notice(t(ok ? "flash.storage.sat_done" : "flash.storage.sat_failed"), ok ? "ok" : "bad"));
 	} catch (e) {
 		diag.error("flash/prepare storage", e);
 		box.append(notice(t("flash.storage.failed"), "bad"), reportLine());

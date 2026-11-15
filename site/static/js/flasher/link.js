@@ -13,7 +13,9 @@ export const RFOUNDRY_USB = { usbVendorId: 0x1FC9, usbProductId: 0x0094 };
 // driver owns the interfaces, so a page can only see that it is there (WebUSB lists it without claiming it)
 export const RFOUNDRY_NET = { vendorId: 0x1FC9, productId: 0x0096 };
 const SOF1 = 0xA5, SOF2 = 0x5A;
-export const CMD = { PING: 0x01, VERSION: 0x02, INFO_CHIP: 0x0B, READ_MEM: 0x0C, STORAGE: 0x0F };
+export const CMD = { PING: 0x01, VERSION: 0x02, GET_VIEW: 0x09, INFO_CHIP: 0x0B, READ_MEM: 0x0C, STORAGE: 0x0F, SAT: 0x20 };
+// GET_VIEW's satellite section (debuglink.md 3.7), and SAT CLEAR with its token, 'SATC' (3.24)
+const VIEW_SAT = 28, SAT_CLEAR = 12, SAT_CLEAR_TOKEN = 0x43544153;
 // The status a command not built in, or with nothing to act on, answers (debuglink.md 2)
 const DL_UNAVAILABLE = 4;
 
@@ -256,7 +258,7 @@ export class Link {
 		if (r.length < 2) return null;
 		const region = ["none", "ours", "foreign"][r[0]] || String(r[0]);
 		const range = (o) => (r.length >= o + 8 ? { addr: u32le(r, o), size: u32le(r, o + 4) } : null);
-		return { region, pending: !!r[1], settings: range(2), journal: range(10), calibration: range(18) };
+		return { region, pending: !!r[1], settings: range(2), journal: range(10), calibration: range(18), satellites: range(26) };
 	}
 
 	// STORAGE CLAIM: the radio erases a foreign region and takes it (some 10 sector erases), then the poll sees it
@@ -273,6 +275,28 @@ export class Link {
 			if (i?.region === "ours") return true;
 		}
 		return false;
+	}
+
+	// The satellite store (satellite.md 6.3) from GET_VIEW: "ours", "foreign" (another firmware's bytes, so the radio
+	// stores no satellites) or "none"; null from a build without satellites or the key
+	async satStore() {
+		let r;
+		try {
+			r = await this.request(CMD.GET_VIEW, new Uint8Array([VIEW_SAT]));
+		} catch (e) {
+			if (e instanceof LinkError && !/no answer/.test(e.message)) return null;
+			throw e;
+		}
+		const kv = parseKv(new TextDecoder().decode(r.subarray(5)));
+		return kv.section === "sat" ? kv["sat.store"] ?? null : null;
+	}
+
+	// SAT CLEAR: erases the satellite area, another firmware's bytes included. Asked only after a backup of the whole
+	// memory chip, for an area that isn't ours. True once the radio says it is ours
+	async satClear() {
+		await this.request(CMD.SAT, concat(new Uint8Array([SAT_CLEAR]), le32(SAT_CLEAR_TOKEN)));
+		note("satellite area cleared");
+		return (await this.satStore()) === "ours";
 	}
 
 	// READ_MEM (debuglink.md 3.10) in 1000-byte pieces: internal flash, the stock bootloader included

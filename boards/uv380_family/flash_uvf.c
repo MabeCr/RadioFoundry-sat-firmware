@@ -22,6 +22,8 @@ static const hal_flash_map_t map = {
 	.native_size = 0x100000u,
 	.staging_addr = 0xF00000u,	// 256 KB of the unused top megabyte (docs/spec/tftp.md 4)
 	.staging_size = 0x040000u,
+	.sat_addr = 0x01B000u,		// 32 satellites (docs/spec/satellite.md 6.3), the sector after the journal
+	.sat_size = 0x001000u,
 };
 
 static const stm32_spi_flash_cfg_t cfg = {
