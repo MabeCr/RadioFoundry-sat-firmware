@@ -129,6 +129,68 @@ static void test_apply(void)
 	CHECK(sim_flash_violations() == 0);
 }
 
+// --- a profile in the frame ---
+
+static void test_profile(void)
+{
+	sat_track_t *scratch = &rcv.scratch;
+	sat_record_t r;
+	sim_flash_create(FLASH_SIZE, &map);
+	boot();
+	CHECK(sat_store_state() == SAT_STORE_OURS);
+
+	// a new satellite takes the frame's profile, and it beats the radio's built-in one
+	sat_sound_item_t iss = item_of(0);
+	iss.has_prof = true;
+	iss.prof = (sat_sound_prof_t){ .up_hz = 145990000u, .down_hz = 437800000u, .up_tone = 1000, .arm_tone = 744, .arm_ms = 2000, .armed_s = 600 };
+	CHECK(sat_sound_apply(&iss, scratch) == SAT_SOUND_APPLY_NEW);
+	CHECK(sat_store_read((uint16_t)sat_store_find(25544), &r) && r.profile.up_hz == 145990000u && r.profile.down_hz == 437800000u &&
+	      r.profile.up_tone == 1000 && r.profile.arm_tone == 744 && r.profile.arm_ms == 2000 && r.profile.armed_s == 600 &&
+	      r.profile.norad == 25544);
+	// one the radio doesn't know gets frequencies too, under the frame's name
+	sat_sound_item_t unk = item_of(3);
+	strcpy(unk.name, "TEVEL2-1");
+	unk.has_prof = true;
+	unk.prof = (sat_sound_prof_t){ .up_hz = 145970000u, .down_hz = 436400000u };
+	CHECK(sat_sound_apply(&unk, scratch) == SAT_SOUND_APPLY_NEW);
+	CHECK(sat_store_read((uint16_t)sat_store_find(99001), &r) && strcmp(r.profile.name, "TEVEL2-1") == 0 && r.profile.up_hz == 145970000u &&
+	      r.profile.down_hz == 436400000u && r.profile.up_tone == 0);
+
+	// a profile the user has set stays: the same set, and a later one, leave it
+	CHECK(sat_store_read((uint16_t)sat_store_find(25544), &r));
+	r.profile.up_hz = 145999000u;
+	CHECK(sat_store_put(&r));
+	sat_sound_item_t newer = iss;
+	newer.el.epoch += 86400.0;
+	newer.prof.up_hz = 145123000u;
+	CHECK(sat_sound_apply(&newer, scratch) == SAT_SOUND_APPLY_UPDATED);
+	CHECK(sat_store_read((uint16_t)sat_store_find(25544), &r) && r.profile.up_hz == 145999000u && r.elements.epoch == newer.el.epoch);
+	CHECK(sat_sound_apply(&iss, scratch) == SAT_SOUND_APPLY_OLDER);
+	CHECK(sat_store_read((uint16_t)sat_store_find(25544), &r) && r.profile.up_hz == 145999000u);
+
+	// a satellite held with no frequencies (loaded by name over the cable) has them filled in, the elements as they are
+	sat_sound_item_t so50 = item_of(1);
+	so50.has_prof = false;
+	CHECK(sat_sound_apply(&so50, scratch) == SAT_SOUND_APPLY_NEW);
+	CHECK(sat_store_read((uint16_t)sat_store_find(27607), &r) && r.profile.down_hz == 436795000u);	// the built-in one
+	sat_record_t blank = { .has_elements = true, .elements = so50.el, .profile = { .name = "SO-50", .norad = 27607 } };
+	CHECK(sat_store_put(&blank));
+	so50.has_prof = true;
+	so50.prof = (sat_sound_prof_t){ .up_hz = 145850000u, .down_hz = 436795000u, .up_tone = 670, .arm_tone = 744, .arm_ms = 2000, .armed_s = 600 };
+	CHECK(sat_sound_apply(&so50, scratch) == SAT_SOUND_APPLY_UPDATED);
+	CHECK(sat_store_read((uint16_t)sat_store_find(27607), &r) && r.profile.up_hz == 145850000u && r.profile.arm_tone == 744 &&
+	      r.profile.armed_s == 600 && strcmp(r.profile.name, "SO-50") == 0 && memcmp(&r.elements.epoch, &so50.el.epoch, 8) == 0);
+	// and once it has them, the same frame again changes nothing
+	CHECK(sat_sound_apply(&so50, scratch) == SAT_SOUND_APPLY_CURRENT);
+	// a frame without a profile fills nothing in
+	sat_record_t blank2 = { .has_elements = true, .elements = item_of(2).el, .profile = { .name = "FOX", .norad = 43017 } };
+	CHECK(sat_store_put(&blank2));
+	sat_sound_item_t ao91 = item_of(2);
+	CHECK(sat_sound_apply(&ao91, scratch) == SAT_SOUND_APPLY_CURRENT);
+	CHECK(sat_store_read((uint16_t)sat_store_find(43017), &r) && r.profile.up_hz == 0 && r.profile.down_hz == 0);
+	CHECK(sim_flash_violations() == 0);
+}
+
 // --- audio to records ---
 
 static void make_tle(unsigned norad, char *l1, char *l2)
@@ -294,6 +356,7 @@ static void test_transfer(void)
 int main(void)
 {
 	test_apply();
+	test_profile();
 	test_transfer();
 	if (failures != 0) {
 		printf("# FAILED %d\n", failures);

@@ -88,6 +88,24 @@ static void load_vectors(void)
 	fclose(f);
 }
 
+// The six profile fields that follow a vector's other keys: up_hz, down_hz, up_tone, arm_tone, arm_ms, armed_s
+static const char *read_profile(const char *q, sat_sound_prof_t *p)
+{
+	long v[6];
+	static const char *const key[6] = { "up_hz", "down_hz", "up_tone", "arm_tone", "arm_ms", "armed_s" };
+	for (int i = 0; i < 6 && q != NULL; i++)
+		q = jint(q, key[i], &v[i]);
+	if (q != NULL) {
+		p->up_hz = (uint32_t)v[0];
+		p->down_hz = (uint32_t)v[1];
+		p->up_tone = (uint16_t)v[2];
+		p->arm_tone = (uint16_t)v[3];
+		p->arm_ms = (uint16_t)v[4];
+		p->armed_s = (uint16_t)v[5];
+	}
+	return q;
+}
+
 static void test_vectors(void)
 {
 	const char *good = strstr(vec_text, "\"good\"");
@@ -110,6 +128,8 @@ static void test_vectors(void)
 		q = q != NULL ? jstr(q, "frame_hex", fh, sizeof(fh)) : NULL;
 		q = q != NULL ? jstr(q, "tones_hex", th, sizeof(th)) : NULL;
 		q = q != NULL ? jint(q, "tone_bits", &bits) : NULL;
+		sat_sound_prof_t prof;
+		q = read_profile(q, &prof);
 		if (q == NULL) {
 			CHECK(0, "vector %d is malformed", cases);
 			break;
@@ -117,7 +137,7 @@ static void test_vectors(void)
 		cases++;
 		uint8_t want[SAT_SOUND_FRAME_MAX], got[SAT_SOUND_FRAME_MAX];
 		size_t wn = unhex(fh, want, sizeof(want));
-		size_t gn = sat_sound_build(got, sizeof(got), (uint8_t)id, (uint8_t)index, (uint8_t)count, name, l1, l2);
+		size_t gn = sat_sound_build_profile(got, sizeof(got), (uint8_t)id, (uint8_t)index, (uint8_t)count, name, l1, l2, &prof);
 		CHECK(gn == wn && memcmp(got, want, wn) == 0, "vector %d: the frame differs from the Python encoder's", cases);
 
 		static uint8_t tones[1024], want_tones[1024];
@@ -132,11 +152,12 @@ static void test_vectors(void)
 
 		sat_sound_rec_t r;
 		CHECK(sat_sound_parse(want, wn, &r) == SAT_SOUND_OK && r.id == id && r.index == index && r.count == count &&
-		      strcmp(r.name, name) == 0 && strcmp(r.line1, l1) == 0 && strcmp(r.line2, l2) == 0,
+		      strcmp(r.name, name) == 0 && strcmp(r.line1, l1) == 0 && strcmp(r.line2, l2) == 0 &&
+		      r.has_prof == (prof.up_hz != 0 || prof.down_hz != 0) && (!r.has_prof || memcmp(&r.prof, &prof, sizeof prof) == 0),
 		      "vector %d: the parse differs", cases);
 		p = q;
 	}
-	CHECK(cases == 3, "%d good vectors read, 3 expected", cases);
+	CHECK(cases == 5, "%d good vectors read, 5 expected", cases);
 
 	p = refused;
 	int refusals = 0;
@@ -153,17 +174,19 @@ static void test_vectors(void)
 		q = q != NULL ? jint(q, "id", &id) : NULL;
 		q = q != NULL ? jint(q, "index", &index) : NULL;
 		q = q != NULL ? jint(q, "count", &count) : NULL;
+		sat_sound_prof_t prof;
+		q = read_profile(q, &prof);
 		if (q == NULL) {
 			CHECK(0, "refusal %d is malformed", refusals);
 			break;
 		}
 		uint8_t buf[SAT_SOUND_FRAME_MAX + 8];
-		CHECK(sat_sound_build(buf, sizeof(buf), (uint8_t)id, (uint8_t)index, (uint8_t)count, name, l1, l2) == 0,
+		CHECK(sat_sound_build_profile(buf, sizeof(buf), (uint8_t)id, (uint8_t)index, (uint8_t)count, name, l1, l2, &prof) == 0,
 		      "a frame was built for: %s", why);
 		refusals++;
 		p = q;
 	}
-	CHECK(refusals == 5, "%d refusals read, 5 expected", refusals);
+	CHECK(refusals == 8, "%d refusals read, 8 expected", refusals);
 }
 
 // --- a TLE family: the ISS's lines with another catalog number, the check digits redone ---
@@ -188,6 +211,8 @@ static size_t make_frame_n(uint8_t id, unsigned index, unsigned count, uint8_t *
 	return sat_sound_build(out, max, id, (uint8_t)index, (uint8_t)count, name, l1, l2);
 }
 
+static uint8_t g_buf[SAT_SOUND_FRAME_MAX + 8];
+
 static void test_frames(void)
 {
 	uint8_t f[SAT_SOUND_FRAME_MAX + 4];
@@ -202,11 +227,45 @@ static void test_frames(void)
 	char l1[80], l2[80];
 	make_tle(25544, l1, l2);
 	n = sat_sound_build(f, sizeof(f), 1, 0, 1, "ABCDEFGHIJKLMNOPQRSTUVWX", l1, l2);
-	CHECK(n == SAT_SOUND_FRAME_MAX, "the longest frame is %zu, expected %u", n, (unsigned)SAT_SOUND_FRAME_MAX);
+	CHECK(n == SAT_SOUND_FRAME_MAX - SAT_SOUND_PROF_LEN, "the longest version 1 frame is %zu", n);
 	CHECK(sat_sound_parse(f, n, &r) == SAT_SOUND_OK && strlen(r.name) == 24, "a 24 character name parses");
 	n = sat_sound_build(f, sizeof(f), 1, 0, 1, "", l1, l2);
 	CHECK(n == SAT_SOUND_HEAD + 2 * TLE_LINE_LEN && sat_sound_parse(f, n, &r) == SAT_SOUND_OK && r.name[0] == '\0',
 	      "no name parses");
+
+	// a profile: a version 2 frame, the longest of them the frame limit; none (or all zero) stays a version 1 frame
+	sat_sound_prof_t so = { .up_hz = 145850000u, .down_hz = 436795000u, .up_tone = 670, .arm_tone = 744, .arm_ms = 2000, .armed_s = 600 };
+	n = sat_sound_build_profile(f, sizeof(f), 1, 0, 1, "ABCDEFGHIJKLMNOPQRSTUVWX", l1, l2, &so);
+	CHECK(n == SAT_SOUND_FRAME_MAX && f[1] == SAT_SOUND_VERSION_PROF, "the longest frame is %zu, expected %u", n, (unsigned)SAT_SOUND_FRAME_MAX);
+	CHECK(sat_sound_parse(f, n, &r) == SAT_SOUND_OK && r.has_prof && memcmp(&r.prof, &so, sizeof so) == 0, "the profile comes back");
+	sat_sound_prof_t none = { 0 };
+	n = sat_sound_build_profile(f, sizeof(f), 1, 0, 1, "ISS", l1, l2, &none);
+	CHECK(f[1] == SAT_SOUND_VERSION && n == SAT_SOUND_HEAD + 3 + 2 * TLE_LINE_LEN, "an all zero profile is a version 1 frame");
+	CHECK(sat_sound_parse(f, n, &r) == SAT_SOUND_OK && !r.has_prof, "and has no profile");
+	// a downlink alone is a profile; every value out of range is refused, in the build and in the parse
+	sat_sound_prof_t down = { .down_hz = 145960000u };
+	n = sat_sound_build_profile(f, sizeof(f), 1, 0, 1, "AO-91", l1, l2, &down);
+	CHECK(n != 0 && sat_sound_parse(f, n, &r) == SAT_SOUND_OK && r.has_prof && r.prof.up_hz == 0 && r.prof.up_tone == 0, "a downlink alone");
+	sat_sound_prof_t bad[] = { { .up_hz = 99999999u }, { .down_hz = 1300000001u }, { .up_hz = 145850000u, .up_tone = 599 },
+				   { .up_hz = 145850000u, .arm_tone = 2601 }, { .up_hz = 145850000u, .arm_ms = 10001 },
+				   { .up_hz = 145850000u, .armed_s = 3601 } };
+	for (size_t i = 0; i < sizeof bad / sizeof bad[0]; i++) {
+		CHECK(sat_sound_build_profile(f, sizeof(f), 1, 0, 1, "X", l1, l2, &bad[i]) == 0, "profile %zu is refused by the build", i);
+		// a frame with it written in anyway: the parse refuses it too
+		size_t m = sat_sound_build_profile(g_buf, sizeof(g_buf), 1, 0, 1, "X", l1, l2, &so);
+		uint8_t *o = g_buf + SAT_SOUND_HEAD + 1 + 2 * TLE_LINE_LEN;
+		o[0] = (uint8_t)bad[i].up_hz; o[1] = (uint8_t)(bad[i].up_hz >> 8); o[2] = (uint8_t)(bad[i].up_hz >> 16); o[3] = (uint8_t)(bad[i].up_hz >> 24);
+		o[4] = (uint8_t)bad[i].down_hz; o[5] = (uint8_t)(bad[i].down_hz >> 8); o[6] = (uint8_t)(bad[i].down_hz >> 16); o[7] = (uint8_t)(bad[i].down_hz >> 24);
+		o[8] = (uint8_t)bad[i].up_tone; o[9] = (uint8_t)(bad[i].up_tone >> 8);
+		o[10] = (uint8_t)bad[i].arm_tone; o[11] = (uint8_t)(bad[i].arm_tone >> 8);
+		o[12] = (uint8_t)bad[i].arm_ms; o[13] = (uint8_t)(bad[i].arm_ms >> 8);
+		o[14] = (uint8_t)bad[i].armed_s; o[15] = (uint8_t)(bad[i].armed_s >> 8);
+		CHECK(sat_sound_parse(g_buf, m, &r) == SAT_SOUND_ERR_PROFILE, "profile %zu is refused by the parse", i);
+	}
+	// a version 2 frame cut short or with bytes over: the length is wrong
+	n = sat_sound_build_profile(f, sizeof(f), 1, 0, 1, "X", l1, l2, &so);
+	CHECK(sat_sound_parse(f, n - 1, &r) == SAT_SOUND_ERR_LENGTH && sat_sound_parse(f, n + 1, &r) == SAT_SOUND_ERR_LENGTH,
+	      "a version 2 frame of the wrong length");
 
 	// every way a received frame can be wrong
 	uint8_t g[SAT_SOUND_FRAME_MAX + 4];
@@ -214,7 +273,7 @@ static void test_frames(void)
 	CHECK(sat_sound_parse(f, 3, &r) == SAT_SOUND_ERR_SHORT, "short");
 	memcpy(g, f, n); g[0] = 0x55;
 	CHECK(sat_sound_parse(g, n, &r) == SAT_SOUND_ERR_MAGIC, "magic");
-	memcpy(g, f, n); g[1] = 2;
+	memcpy(g, f, n); g[1] = 3;
 	CHECK(sat_sound_parse(g, n, &r) == SAT_SOUND_ERR_VERSION, "version");
 	memcpy(g, f, n); g[3] = 8;
 	CHECK(sat_sound_parse(g, n, &r) == SAT_SOUND_ERR_INDEX, "index at the count");

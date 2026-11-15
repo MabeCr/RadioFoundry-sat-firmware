@@ -12,11 +12,22 @@
 #include "sat/sat_tle.h"
 
 #define SAT_SOUND_MAGIC		0x54u	// 'T'
-#define SAT_SOUND_VERSION	1u
+#define SAT_SOUND_VERSION	1u	// name and elements
+#define SAT_SOUND_VERSION_PROF	2u	// the same, then a profile: what picking the satellite sets (frequencies, tones, arming)
 #define SAT_SOUND_NAME_MAX	24u
 #define SAT_SOUND_HEAD		6u	// magic, version, transfer id, index, count, name length
-#define SAT_SOUND_FRAME_MAX	(SAT_SOUND_HEAD + SAT_SOUND_NAME_MAX + 2u * TLE_LINE_LEN)
+#define SAT_SOUND_PROF_LEN	16u	// the profile block of a version 2 frame, all little endian
+#define SAT_SOUND_FRAME_MAX	(SAT_SOUND_HEAD + SAT_SOUND_NAME_MAX + 2u * TLE_LINE_LEN + SAT_SOUND_PROF_LEN)
 #define SAT_SOUND_SETS_MAX	32u	// the satellite store's slots
+
+// A satellite's profile as a version 2 frame carries it (the fields of sat_profile_t, docs/spec/sound-transfer.md). Checked as
+// it is parsed: a frequency is 0 (none) or 100 MHz to 1.3 GHz, a CTCSS tone 0 or 60.0 to 260.0 Hz, an arming carrier at
+// most 10 s and the repeater's awake time at most an hour
+typedef struct {
+	uint32_t up_hz, down_hz;
+	uint16_t up_tone, arm_tone;	// CTCSS, Hz x 10
+	uint16_t arm_ms, armed_s;
+} sat_sound_prof_t;
 
 // One satellite as a frame carries it
 typedef struct {
@@ -27,6 +38,8 @@ typedef struct {
 	char line1[TLE_LINE_LEN + 1];
 	char line2[TLE_LINE_LEN + 1];
 	sat_elements_t el;	// the two lines parsed
+	bool has_prof;		// a version 2 frame with a profile in it (not all zero)
+	sat_sound_prof_t prof;
 } sat_sound_rec_t;
 
 typedef enum {
@@ -38,12 +51,16 @@ typedef enum {
 	SAT_SOUND_ERR_NAME,	// a name over SAT_SOUND_NAME_MAX, or a character outside printable ASCII
 	SAT_SOUND_ERR_LENGTH,	// the bytes aren't the header, the name and two lines
 	SAT_SOUND_ERR_TLE,	// the lines fail the TLE rules (length, check digits, the same satellite)
+	SAT_SOUND_ERR_PROFILE,	// a profile with a value out of range
 } sat_sound_err_t;
 
 // The frame for one satellite into out. Returns its length, 0 when an argument is out of range, a line isn't a valid
 // TLE, or max is too small
 size_t sat_sound_build(uint8_t *out, size_t max, uint8_t id, uint8_t index, uint8_t count, const char *name,
 		       const char *line1, const char *line2);
+// The same with a profile, as a version 2 frame (p NULL, or all zero: a version 1 frame). 0 also when the profile is out of range
+size_t sat_sound_build_profile(uint8_t *out, size_t max, uint8_t id, uint8_t index, uint8_t count, const char *name,
+			       const char *line1, const char *line2, const sat_sound_prof_t *p);
 // A received frame (without its HDLC FCS) into r, which means something only on SAT_SOUND_OK
 sat_sound_err_t sat_sound_parse(const uint8_t *frame, size_t n, sat_sound_rec_t *r);
 

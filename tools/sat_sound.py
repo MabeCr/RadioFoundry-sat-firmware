@@ -23,7 +23,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 VECTORS = os.path.join(HERE, "..", "tests", "data", "sat_sound_vectors.json")
 
 MAGIC = 0x54
-VERSION = 1
+VERSION = 1             # name and elements
+VERSION_PROF = 2        # the same, then a 16 byte profile
 NAME_MAX = 24
 SETS_MAX = 32
 TLE_LEN = 69
@@ -52,14 +53,36 @@ def tle_ok(l1, l2):
     return l1[2:7] == l2[2:7]
 
 
-def build_frame(sid, index, count, name, l1, l2):
-    """One satellite's frame; None where the C build (sat_sound_build) returns 0"""
+PROFILE_KEYS = ("up_hz", "down_hz", "up_tone", "arm_tone", "arm_ms", "armed_s")
+
+
+def profile_ok(p):
+    """The ranges core/sat/sat_sound.c's prof_ok takes: a frequency 0 or 100 MHz to 1.3 GHz, a CTCSS tone (Hz x 10) 0 or 60.0 to
+    260.0 Hz, an arming carrier of at most 10 s, an awake time of at most an hour"""
+    freq = lambda hz: hz == 0 or 100_000_000 <= hz <= 1_300_000_000
+    tone = lambda t: t == 0 or 600 <= t <= 2600
+    return (freq(p["up_hz"]) and freq(p["down_hz"]) and tone(p["up_tone"]) and tone(p["arm_tone"]) and
+            0 <= p["arm_ms"] <= 10000 and 0 <= p["armed_s"] <= 3600 and all(p[k] >= 0 for k in PROFILE_KEYS))
+
+
+def profile_bytes(p):
+    return (p["up_hz"].to_bytes(4, "little") + p["down_hz"].to_bytes(4, "little") + p["up_tone"].to_bytes(2, "little") +
+            p["arm_tone"].to_bytes(2, "little") + p["arm_ms"].to_bytes(2, "little") + p["armed_s"].to_bytes(2, "little"))
+
+
+def build_frame(sid, index, count, name, l1, l2, profile=None):
+    """One satellite's frame; None where the C build (sat_sound_build_profile) returns 0. A profile (dict of PROFILE_KEYS) makes it a
+    version 2 frame; none, or all zero, a version 1 frame"""
     nb = name.encode("ascii", "strict")
     if not (0 < count <= SETS_MAX and 0 <= index < count and len(nb) <= NAME_MAX):
         return None
     if any(c < 0x20 or c > 0x7E for c in nb) or not tle_ok(l1, l2):
         return None
-    return bytes([MAGIC, VERSION, sid & 255, index, count, len(nb)]) + nb + l1.encode() + l2.encode()
+    with_profile = profile is not None and any(profile[k] for k in PROFILE_KEYS)
+    if with_profile and not profile_ok(profile):
+        return None
+    head = bytes([MAGIC, VERSION_PROF if with_profile else VERSION, sid & 255, index, count, len(nb)])
+    return head + nb + l1.encode() + l2.encode() + (profile_bytes(profile) if with_profile else b"")
 
 
 def fcs(data):
@@ -192,17 +215,24 @@ SO1 = fix("1 27607U 02058C   26301.20512011  .00000825  00000-0  11606-3 0  999"
 SO2 = fix("2 27607  64.5560 140.2232 0048032 102.6391 257.9944 14.7939185426102")
 
 
+NO_PROFILE = dict.fromkeys(PROFILE_KEYS, 0)
+ISS_PROFILE = {"up_hz": 145990000, "down_hz": 437800000, "up_tone": 670, "arm_tone": 0, "arm_ms": 0, "armed_s": 0}
+SO50_PROFILE = {"up_hz": 145850000, "down_hz": 436795000, "up_tone": 670, "arm_tone": 744, "arm_ms": 2000, "armed_s": 600}
+
+
 def vectors():
-    cases = [("ISS (ZARYA)", ISS1, ISS2, 7, 0, 2), ("SO-50", SO1, SO2, 7, 1, 2), ("", ISS1, ISS2, 255, 31, 32)]
+    cases = [("ISS (ZARYA)", ISS1, ISS2, 7, 0, 2, NO_PROFILE), ("SO-50", SO1, SO2, 7, 1, 2, NO_PROFILE),
+             ("", ISS1, ISS2, 255, 31, 32, NO_PROFILE), ("ISS (ZARYA)", ISS1, ISS2, 9, 0, 2, ISS_PROFILE),
+             ("SAUDISAT 1C (SO-50)", SO1, SO2, 9, 1, 2, SO50_PROFILE)]
     good = []
-    for name, l1, l2, sid, index, count in cases:
-        f = build_frame(sid, index, count, name, l1, l2)
+    for name, l1, l2, sid, index, count, prof in cases:
+        f = build_frame(sid, index, count, name, l1, l2, prof)
         h = Hdlc()
         h.flags(4)
         h.frame(f)
         h.flags(2)
         good.append({"name": name, "line1": l1, "line2": l2, "id": sid, "index": index, "count": count,
-                     "frame_hex": f.hex(), "tones_hex": tones_packed(h.tones).hex(), "tone_bits": len(h.tones)})
+                     "frame_hex": f.hex(), "tones_hex": tones_packed(h.tones).hex(), "tone_bits": len(h.tones), **prof})
     bad_l1 = ISS1[:68] + str((int(ISS1[68]) + 1) % 10)
     refused = [
         {"why": "check digit", "name": "X", "line1": bad_l1, "line2": ISS2, "id": 1, "index": 0, "count": 1},
@@ -211,10 +241,20 @@ def vectors():
         {"why": "count over 32", "name": "X", "line1": ISS1, "line2": ISS2, "id": 1, "index": 0, "count": 33},
         {"why": "name too long", "name": "N" * 25, "line1": ISS1, "line2": ISS2, "id": 1, "index": 0, "count": 1},
         {"why": "name not ASCII", "name": "café", "line1": ISS1, "line2": ISS2, "id": 1, "index": 0, "count": 1},
+        {"why": "uplink under 100 MHz", "name": "X", "line1": ISS1, "line2": ISS2, "id": 1, "index": 0, "count": 1,
+         **ISS_PROFILE, "up_hz": 50000000},
+        {"why": "CTCSS tone over 260 Hz", "name": "X", "line1": ISS1, "line2": ISS2, "id": 1, "index": 0, "count": 1,
+         **ISS_PROFILE, "up_tone": 2700},
+        {"why": "arming carrier over 10 s", "name": "X", "line1": SO1, "line2": SO2, "id": 1, "index": 0, "count": 1,
+         **SO50_PROFILE, "arm_ms": 10001},
     ]
     for r in refused:
+        r.setdefault("up_hz", 0), r.setdefault("down_hz", 0), r.setdefault("up_tone", 0)
+        r.setdefault("arm_tone", 0), r.setdefault("arm_ms", 0), r.setdefault("armed_s", 0)
+    for r in refused:
         try:
-            assert build_frame(r["id"], r["index"], r["count"], r["name"], r["line1"], r["line2"]) is None
+            assert build_frame(r["id"], r["index"], r["count"], r["name"], r["line1"], r["line2"],
+                               {k: r[k] for k in PROFILE_KEYS}) is None
         except UnicodeEncodeError:
             pass
     refused = [r for r in refused if r["why"] != "name not ASCII"]
