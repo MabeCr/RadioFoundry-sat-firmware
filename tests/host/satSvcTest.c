@@ -183,7 +183,8 @@ int main(void)
 	sat_live_t live;
 	CHECK(sat_svc_live(&live) && live.at == (uint32_t)in.now && fabs((double)live.el - p0->max_el) < 1.0);
 	CHECK(live.range_km > 300.0f && live.range_km < 3000.0f && fabsf(live.rate_kms) < 1.0f);
-	CHECK(live.rx_hz == sat_doppler_rx_hz(437800000u, live.rate_kms) && live.tx_hz == sat_doppler_tx_hz(145990000u, live.rate_kms));
+	CHECK(live.rx_hz == sat_doppler_rx_hz(437800000u, (double)live.rate_kms) &&
+	      live.tx_hz == sat_doppler_tx_hz(145990000u, (double)live.rate_kms));
 	CHECK(sat_svc_path_count() == SAT_SVC_PATH);
 	sat_path_pt_t pt;
 	int top = 0;
