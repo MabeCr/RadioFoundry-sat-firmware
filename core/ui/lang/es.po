@@ -3369,6 +3369,18 @@ msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq 
 msgstr "{0 Squelch  # Sintonizar  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
 
 #: core/ui/ui_sat.c
+msgid "Next tune"
+msgstr "Próxima sintonía"
+
+#: core/ui/ui_sat.c
+msgid ": press #"
+msgstr ": pulsa #"
+
+#: core/ui/ui_sat.c
+msgid "Next tune: its own, press #"
+msgstr "Próxima sintonía: la propia, pulsa #"
+
+#: core/ui/ui_sat.c
 msgid "Listening on"
 msgstr "Escuchando en"
 

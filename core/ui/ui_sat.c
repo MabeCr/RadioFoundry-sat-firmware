@@ -1155,13 +1155,23 @@ static void track_alt_apply(void)
 	}
 }
 
-// What a swap says: the frequency now listened on
+// What a swap says. Tuned (# or *), the receiver is on the frequency now: "Listening on". Not tuned, nothing has moved: the
+// choice waits for #, and the message says that instead of claiming the radio is listening
 static void alt_toast(const ui_sat_profile_t *p)
 {
 	static char msg[40];
 	sbuf_t b;
 	sb_init(&b, msg, sizeof msg);
-	if (trk_alt_on) {
+	if (!(trk_tuned && ui_view()->vfo)) {
+		if (trk_alt_on) {
+			sb_str(&b, TR("Next tune"));
+			sb_chr(&b, ' ');
+			sb_freq(&b, alt_hz);
+			sb_str(&b, TR(": press #"));
+		} else {
+			sb_str(&b, TR("Next tune: its own, press #"));
+		}
+	} else if (trk_alt_on) {
 		sb_str(&b, TR("Listening on"));
 		sb_chr(&b, ' ');
 		sb_freq(&b, alt_hz);
