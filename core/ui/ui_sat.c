@@ -13,7 +13,6 @@
 #include "sat/sat_follow.h"
 #include "sat/sat_doppler.h"
 #include "fmt.h"
-#include "font.h"
 #include "i18n.h"
 #include "radio/radio.h"
 
@@ -22,6 +21,8 @@ static uint32_t st_ms = 1;		// ... the UI's time then
 static char open_name[12];
 static uint32_t open_norad;		// that satellite's catalog number
 static uint32_t trk_aos, trk_los, trk_tca;	// the pass being tracked (UTC); tca is its highest point
+static int8_t trk_max_el;	// the pass's highest elevation, degrees
+static bool trk_info;		// the Info view of the pass is showing (3)
 static uint16_t trk_dir;		// its way across the sky
 
 // The service's status, read again once per draw: whichever of the list's callbacks runs first
@@ -182,6 +183,7 @@ static void list_select(uint16_t i, bool hold)
 		trk_aos = s.aos;
 		trk_los = s.los;
 		trk_tca = s.tca;
+		trk_max_el = s.max_el;
 		trk_dir = s.dir;
 		ui_push(SCR_SAT_TRACK, 0);
 		return;
@@ -341,6 +343,7 @@ static void passes_select(uint16_t row, bool hold)
 	trk_aos = p.aos;
 	trk_los = p.los;
 	trk_tca = p.tca;
+	trk_max_el = p.max_el;
 	trk_dir = p.dir;
 	ui_push(SCR_SAT_TRACK, 0);
 }
@@ -567,6 +570,7 @@ static uint32_t track_want(const ui_sat_profile_t *p)
 static void track_enter(void)
 {
 	trk_tuned = trk_entered_vfo = trk_mon_ours = trk_rx_only = trk_alt_on = false;
+	trk_info = false;
 	alt_hz = alt_load();
 	trk_nudge_hz = 0;
 	trk_follow.on = false;
@@ -708,6 +712,15 @@ static void track_alt_swap(void);	// below, with the Frequency screen
 static bool track_key(const input_event_t *ev)
 {
 	bool press = ev->gesture == GESTURE_PRESS, repeat = ev->gesture == GESTURE_REPEAT;
+	if (press && ev->action == ACT_DIGIT_3) {	// 3: the pass's Info view, and back
+		trk_info = !trk_info;
+		return true;
+	}
+	if (trk_info) {		// Back closes the Info view; the other keys wait for the screen they act on
+		if (press && ev->action == ACT_BACK)
+			trk_info = false;
+		return true;
+	}
 	if (ev->action == ACT_ENC_STEP && ev->value != 0) {
 		track_nudge(ev->value > 0 ? 1 : -1);
 		return true;
@@ -743,17 +756,88 @@ static bool track_key(const input_event_t *ev)
 	return false;
 }
 
-// The narrowest text that stays readable (6 px wide on a panel 220 px wide or more, where the larger text sizes would put
-// a whole pass's times out of a row): the 6 px font of the family the layout's tiny text is in, else the tiny text itself.
-// Not a field of the layout: the radios with the least RAM would pay for it
-static const font_t *micro_font(void)
+// The Info view (3): the pass's times to the second in large text, and what the Tracking screen has no room for: the highest
+// elevation, the length of the pass, the satellite's frequencies and tone, your grid locator and how old its elements are
+static void info_draw(void)
 {
-	const font_t *t = ui_layout.tiny;
-	if (t == &font_aa_8x16)
-		return &font_aa_6x12;
-	if (t == &font_8x16)
-		return &font_6x12;
-	return t;
+	static char buf[40], loc[8];
+	sbuf_t b;
+	gfx_clear(ui_col.bg);
+	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Pass info")) + 4;
+	int w = gfx_width();
+	const font_t *fs = ui_layout.small, *tf = w >= 200 ? ui_layout.medium : fs;
+	if (trk_aos != 0 && trk_los != 0) {
+		uint32_t t_max = trk_tca != 0 ? trk_tca : trk_aos / 2u + trk_los / 2u;
+		const char *lab[3] = { "AOS", "MAX", "LOS" };
+		uint32_t at[3] = { trk_aos, t_max, trk_los };
+		int vx = gfx_text_width(fs, "MAX") + 2 * fs->w;
+		for (int k = 0; k < 3 && y + tf->h <= ui_layout.hint_y; k++) {
+			gfx_text(fs, 0, y + tf->h - fs->h, lab[k], ui_col.dim);
+			sb_init(&b, buf, sizeof buf);
+			sb_hhmmss(&b, local(at[k]));
+			int ex = gfx_text(tf, vx, y, buf, ui_col.fg);
+			if (k == 1 && trk_max_el > 0) {		// the highest elevation by the highest point's time
+				sb_init(&b, buf, sizeof buf);
+				sb_i32(&b, trk_max_el);
+				sb_str(&b, GLYPH_DEGREE);
+				gfx_text(fs, ex + fs->w, y + tf->h - fs->h, buf, ui_col.rx);
+			}
+			y += tf->h + 2;
+		}
+		y += 4;
+		sb_init(&b, buf, sizeof buf);
+		sb_clock(&b, trk_los - trk_aos);
+		trow(0, &y, TR("Length"), buf, ui_col.fg);
+	}
+	ui_sat_profile_t p;
+	if (ui_svc_sat_profile(&p)) {
+		if (p.down_hz != 0) {
+			sb_init(&b, buf, sizeof buf);
+			sb_freq(&b, p.down_hz);
+			trow(0, &y, TR("Down"), buf, ui_col.fg);
+		}
+		if (p.up_hz != 0) {
+			sb_init(&b, buf, sizeof buf);
+			sb_freq(&b, p.up_hz);
+			if (p.up_tone != 0) {
+				subtone_t tone = { .type = TONE_CTCSS, .value = p.up_tone };
+				sb_chr(&b, ' ');
+				sb_tone(&b, &tone);
+			}
+			trow(0, &y, TR("Up"), buf, ui_col.fg);
+		}
+	}
+	if (st.pos_ok) {
+		sb_init(&b, loc, sizeof loc);
+		sb_locator(&b, st.lat_e7, st.lon_e7);
+		trow(0, &y, TR("Grid"), loc, ui_col.fg);
+	}
+	if (ui_svc_sat_profile(&p) && p.age_d != INT16_MIN) {
+		sb_init(&b, buf, sizeof buf);
+		sb_u32(&b, p.age_d < 0 ? 0u : (uint32_t)p.age_d, 1);
+		sb_str(&b, " d");
+		trow(0, &y, TR("Elements"), buf, p.age_d > 7 ? ui_col.warn : ui_col.fg);
+	}
+	ui_draw_bottom(&ui_st, TR("Back close"));
+	ui_draw_banner(&ui_st);
+}
+
+// The signal row: the meter and the level in dBm, as the home screen draws them, from x across to the right edge
+static void signal_row(int x, int *y, int16_t dbm)
+{
+	const font_t *f = ui_layout.small;
+	if (*y + f->h > ui_layout.hint_y)
+		return;
+	static char sb_buf[16];
+	sbuf_t b;
+	sb_init(&b, sb_buf, sizeof sb_buf);
+	sb_i32(&b, dbm);
+	sb_str(&b, " dBm");
+	int tw = gfx_text_width(f, sb_buf);
+	int w = gfx_width();
+	gfx_text(f, w - tw - 2, *y, sb_buf, ui_col.fg);
+	ui_draw_meter(x, *y + f->h / 4, w - tw - x - f->w, f->h / 2, dbm);
+	*y += f->h + (ui_layout.row_h > f->h ? 1 : 0);
 }
 
 static void track_draw(void)
@@ -767,12 +851,22 @@ static void track_draw(void)
 	bool have = ui_svc_sat_live(&live);
 	track_follow();
 	status();
+	if (trk_info) {
+		info_draw();
+		return;
+	}
 	gfx_clear(ui_col.bg);
 	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Tracking")) + 2;
-	int w = gfx_width(), h = ui_layout.hint_y - y - 1;
+	int w = gfx_width();
 	bool below = gfx_height() > w;		// a tall panel: the numbers under the plot
 	const font_t *fs = ui_layout.small;
 	int rh = fs->h + (ui_layout.row_h > fs->h ? 1 : 0);	// a row of the numbers
+	// A tall panel keeps a row above the hint bar for the keys the bar has no room for (3 and 0): everything above ends
+	// before it, so the row's space comes off the numbers' (the hint row is put back before the bar is drawn)
+	int hint_y = ui_layout.hint_y;
+	if (below)
+		ui_layout.hint_y -= rh;
+	int h = ui_layout.hint_y - y - 1;
 	const font_t *big = below || w >= 200 ? ui_layout.large : ui_layout.medium;
 	// The satellite is drawn only while it is above the horizon: below it, or outside the pass's margin, the plot shows
 	// the path alone and the service works nothing out
@@ -816,6 +910,9 @@ static void track_draw(void)
 	bool one_row = below && rxs[0] != '\0' && txs[0] != '\0' && rxw + 2 * fs->w + txw <= w;
 	bool alt_row = alt_hz != 0 && prof && p.down_hz != 0;
 	bool tune_row = !on && have_p;
+	// The signal the receiver hears, as the home screen shows it (the reading is live whether or not the squelch is open):
+	// where to aim. FM only: on a DMR channel the number is the modem's
+	bool sig = rv->ch.rx_hz != 0 && rv->ch.mode != RADIO_MODE_DMR && rv->rssi_dbm != 0;
 	// Where you are, for the grid locator a contact asks for
 	static char loc[8];
 	loc[0] = '\0';
@@ -837,35 +934,7 @@ static void track_draw(void)
 	sb_init(&tbf, t_los, sizeof t_los);
 	sbt(&tbf, local(trk_los));
 	bool times = trk_aos != 0 && trk_los != 0;
-	// On a tall panel: the three in one row of columns if they fit, else AOS and MAX on a row and LOS under them (with the
-	// locator after it): always in the order they happen
-	int tw[3];
-	tw[0] = gfx_text_width(fs, "AOS") + fs->w + gfx_text_width(fs, t_aos);
-	tw[1] = gfx_text_width(fs, "MAX") + fs->w + gfx_text_width(fs, t_max_s);
-	tw[2] = gfx_text_width(fs, "LOS") + fs->w + gfx_text_width(fs, t_los);
-	bool t_cols = below && times && tw[0] + tw[1] + tw[2] + 2 * fs->w <= w;
-	// Too wide in the usual text: the narrowest text, with a thin gap between a label and its time, to keep all three on a row
-	const font_t *tf = fs;
-	int tgap = fs->w, twm[3];
-	if (below && times && !t_cols) {
-		const font_t *mf = micro_font();
-		const char *tl[3] = { "AOS", "MAX", "LOS" }, *tv[3] = { t_aos, t_max_s, t_los };
-		int tot = 0;
-		for (int k = 0; k < 3; k++) {
-			twm[k] = gfx_text_width(mf, tl[k]) + mf->w / 2 + gfx_text_width(mf, tv[k]);
-			tot += twm[k];
-		}
-		if (tot + 2 * mf->w <= w) {
-			t_cols = true;
-			tf = mf;
-			tgap = mf->w / 2;
-			for (int k = 0; k < 3; k++)
-				tw[k] = twm[k];
-		}
-	}
-	bool t_pair = !t_cols && tw[0] + tw[1] + 2 * fs->w <= w;
-	int t_rows = !below || !times ? 0 : t_cols ? 1 : t_pair ? 2 : 3;
-	// The azimuth: on a tall panel at the right of the countdown's row when the worst case countdown leaves room for it
+	// The azimuth
 	static char az[24];
 	az[0] = '\0';
 	if (seen) {
@@ -875,7 +944,6 @@ static void track_draw(void)
 		sb_str(&ab, GLYPH_DEGREE " ");
 		sb_compass(&ab, live.az);
 	}
-	int az_w = gfx_text_width(fs, "Az") + fs->w + gfx_text_width(fs, az);
 	// The countdown: to the set while it is up, else to the rise
 	bool up = st.utc >= trk_aos && st.utc < trk_los;
 	static char cd[16];
@@ -889,13 +957,11 @@ static void track_draw(void)
 			sb_clock(&cb, up ? trk_los - st.utc : trk_aos - st.utc);
 	}
 	const char *cd_word = st.utc >= trk_los ? "" : up ? TR("Sets in") : TR("Rises in");
-	bool az_inline = below && seen && st.utc != 0 &&
-			 gfx_text_width(fs, cd_word) + fs->w + gfx_text_width(fs, cd) + 2 * fs->w + az_w <= w;
 	int side = below ? w : (h < w / 2 ? h : w / 2);
 	if (below) {
-		int need = (seen ? (az_inline ? 0 : rh) : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) + t_rows * rh +
+		int need = (seen ? rh : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) +
 			   (one_row ? rh : (rxs[0] != '\0' ? rh : 0) + (txs[0] != '\0' ? rh : 0)) + (alt_row ? rh : 0) +
-			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0);
+			   (tune_row ? rh : 0) + (trk_follow.on && !one_row ? rh : 0) + (seen ? rh : 0) + (sig && below ? rh : 0);
 		int fit = h - need - 3;
 		if (side > h / 2)
 			side = h / 2;
@@ -933,8 +999,7 @@ static void track_draw(void)
 			ty += ui_layout.small->h + 2;
 		}
 	} else if (below) {
-		if (!az_inline)
-			trow(x, &ty, "Az", az, ui_col.fg);
+		trow(x, &ty, "Az", az, ui_col.fg);
 	} else {
 		// "62°" large, then the way across the sky: on the same row when it fits (a line saved for the times), else under it
 		sb_init(&b, buf, sizeof buf);
@@ -965,7 +1030,13 @@ static void track_draw(void)
 		const char *ev = up ? t_los : t_aos;
 		const char *cands[3];
 		int nc = 0;
-		if (below || !times || st.utc >= trk_los) {
+		if (!times || st.utc >= trk_los) {
+			cands[nc++] = cd;
+		} else if (below) {
+			// The next event's time to the second, after the countdown, if the row has the width
+			sb_init(&b, c1, sizeof c1);
+			sb_str(&b, cd), sb_str(&b, "  "), sb_str(&b, ev);
+			cands[nc++] = c1;
 			cands[nc++] = cd;
 		} else {
 			sb_init(&b, c1, sizeof c1);
@@ -980,46 +1051,9 @@ static void track_draw(void)
 			sb_str(&b, ev);
 			cands[nc++] = c2;
 		}
-		// Beside the plot the label is the event (its time is in the row); on a tall panel the times row below has AOS and LOS,
-		// so this one says what the countdown is to, in words
+		// Beside the plot the label is the event; on a tall panel it says what the countdown is to, in words
 		const char *lab = st.utc >= trk_los ? "" : below ? cd_word : up ? "LOS" : "AOS";
-		int cd_y = ty;
 		trow_fit(x, &ty, lab, cands, nc, st.utc >= trk_los ? ui_col.warn : ui_col.fg);
-		if (az_inline && cd_y + fs->h <= ui_layout.hint_y) {
-			int lx = gfx_text(fs, w - az_w - 2, cd_y, "Az", ui_col.dim);
-			gfx_text(fs, lx + fs->w, cd_y, az, ui_col.fg);
-		}
-	}
-	// The pass's times (a tall panel; beside the plot they come after the frequencies, below)
-	if (below && times) {
-		int gap = t_cols ? (w - tw[0] - tw[1] - tw[2]) / 2 : 0;
-		if (t_cols && ty + tf->h <= ui_layout.hint_y) {
-			const char *lab[3] = { "AOS", "MAX", "LOS" }, *val[3] = { t_aos, t_max_s, t_los };
-			int px = 0;
-			for (int k = 0; k < 3; k++) {
-				int lx = gfx_text(tf, px, ty, lab[k], ui_col.dim);
-				gfx_text(tf, lx + tgap, ty, val[k], ui_col.fg);
-				px += tw[k] + gap;
-			}
-			ty += tf->h + 3;
-		} else if (t_pair) {
-			if (ty + fs->h <= ui_layout.hint_y) {
-				int lx = gfx_text(fs, 0, ty, "AOS", ui_col.dim);
-				lx = gfx_text(fs, lx + fs->w, ty, t_aos, ui_col.fg);
-				lx = gfx_text(fs, lx + 2 * fs->w, ty, "MAX", ui_col.dim);
-				gfx_text(fs, lx + fs->w, ty, t_max_s, ui_col.fg);
-				ty += rh;
-			}
-			if (ty + fs->h <= ui_layout.hint_y) {
-				int lx = gfx_text(fs, 0, ty, "LOS", ui_col.dim);
-				gfx_text(fs, lx + fs->w, ty, t_los, ui_col.fg);
-				ty += rh;
-			}
-		} else {
-			trow(x, &ty, "AOS", t_aos, ui_col.fg);
-			trow(x, &ty, "MAX", t_max_s, ui_col.fg);
-			trow(x, &ty, "LOS", t_los, ui_col.fg);
-		}
 	}
 	if (one_row && ty + fs->h <= ui_layout.hint_y) {
 		int lx = gfx_text(fs, 0, ty, "RX", ui_col.dim);
@@ -1033,6 +1067,8 @@ static void track_draw(void)
 		if (txs[0] != '\0')
 			trow(x, &ty, "TX", txs, tc);
 	}
+	if (sig && below)
+		signal_row(x, &ty, rv->rssi_dbm);
 	if (alt_row) {
 		// What OK swaps to: the frequency not listened on now (two letters like RX: a longer label pushes it off a narrow panel)
 		sb_init(&b, buf, sizeof buf);
@@ -1075,6 +1111,15 @@ static void track_draw(void)
 	}
 	if (!below && times && st.utc != 0 && st.utc < trk_los)
 		trow(x, &ty, up2 ? "AOS" : "LOS", up2 ? t_aos : t_los, ui_col.dim);
+	if (sig && !below)
+		signal_row(x, &ty, rv->rssi_dbm);
+	ui_layout.hint_y = hint_y;
+	if (below) {
+		// The keys the bar has no room for: 3 for the Info view at the left, 0 for the squelch at the right
+		const char *sq = TR("0 Squelch");
+		gfx_text(fs, 2, hint_y - rh, TR("3 Info"), ui_col.dim);
+		gfx_text(fs, w - gfx_text_width(fs, sq) - 2, hint_y - rh, sq, ui_col.dim);
+	}
 	ui_draw_bottom(&ui_st, trk_follow.on ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  Back" TEXT_ALT_NEXT "# Tune  * Stop  Back" TEXT_ALT_CLOSE) :
 		       trk_tuned ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE) :
 		       TR(TEXT_ALT_OPEN "0 Squelch  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE));
@@ -1110,13 +1155,23 @@ static void track_alt_apply(void)
 	}
 }
 
-// What a swap says: the frequency now listened on
+// What a swap says. Tuned (# or *), the receiver is on the frequency now: "Listening on". Not tuned, nothing has moved: the
+// choice waits for #, and the message says that instead of claiming the radio is listening
 static void alt_toast(const ui_sat_profile_t *p)
 {
 	static char msg[40];
 	sbuf_t b;
 	sb_init(&b, msg, sizeof msg);
-	if (trk_alt_on) {
+	if (!(trk_tuned && ui_view()->vfo)) {
+		if (trk_alt_on) {
+			sb_str(&b, TR("Next tune"));
+			sb_chr(&b, ' ');
+			sb_freq(&b, alt_hz);
+			sb_str(&b, TR(": press #"));
+		} else {
+			sb_str(&b, TR("Next tune: its own, press #"));
+		}
+	} else if (trk_alt_on) {
 		sb_str(&b, TR("Listening on"));
 		sb_chr(&b, ' ');
 		sb_freq(&b, alt_hz);

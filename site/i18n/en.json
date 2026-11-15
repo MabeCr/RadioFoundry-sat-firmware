@@ -317,6 +317,7 @@
  "screen.satellite_passes": "One satellite's passes",
  "screen.satellite_track": "Tracking a pass",
  "screen.satellite_track_wait": "Tracking a pass: waiting for the rise",
+ "screen.satellite_track_info": "Tracking a pass: the pass info",
  "screen.satellite_track_auto": "Tracking a pass: following the Doppler",
  "screen.satellite_frequency": "Tracking on a frequency of your own",
  "screen.satellite_sound": "Receive satellites by sound",
