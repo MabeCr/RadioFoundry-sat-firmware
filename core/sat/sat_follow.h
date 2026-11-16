@@ -17,7 +17,7 @@
 #define SAT_FOLLOW_MIN_MS	3000u
 // How far behind the receive line must be before the Tracking screen colors it as a warning (not following, or a retune
 // pending): the distance at which a signal starts to suffer, not the following's own threshold
-#define SAT_FOLLOW_WARN_HZ	1500u
+#define SAT_FOLLOW_WARN_HZ	1000u
 
 typedef struct {
 	bool on;
