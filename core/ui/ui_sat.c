@@ -781,15 +781,30 @@ static int keys_reserve(void)
 
 static void keys_row(int hy)
 {
-	static char row[40];
+	static char lt[12], mid[12], rt[12];
 	const font_t *fs = ui_layout.small;
 	ui_layout.hint_y = hy;
-	if (gfx_height() <= gfx_width())
+	int w = gfx_width();
+	if (gfx_height() <= w)
 		return;
-	gfx_text_fit(fs, CONFIG_SAT_CHART ? TR(TEXT_ALT_OPEN "2 Chart  3 Info  0 Squelch" TEXT_ALT_NEXT "2 Sig  3 Info  0 Sql" TEXT_ALT_CLOSE) :
-		     TR(TEXT_ALT_OPEN "3 Info  0 Squelch" TEXT_ALT_NEXT "3 Info  0 Sql" TEXT_ALT_CLOSE),
-		     gfx_width() - 4, row, sizeof row);
-	gfx_text(fs, 2, hy - fs->h - (ui_layout.row_h > fs->h ? 1 : 0), row, ui_col.dim);
+	// The keys spread across the row: 2 at the left, 3 in the middle, 0 at the right. The long labels if all three fit
+	// with a gap between, else the short ones (text alternates, one level for the three so they read alike)
+	for (int level = 0; level < 2; level++) {
+		bool more;
+		lt[0] = '\0';
+		if (CONFIG_SAT_CHART)
+			gfx_text_alt(TR(TEXT_ALT_OPEN "2 Chart" TEXT_ALT_NEXT "2 Sig" TEXT_ALT_CLOSE), level, lt, sizeof lt, &more);
+		str_copy(mid, sizeof mid, TR("3 Info"));
+		gfx_text_alt(TR(TEXT_ALT_OPEN "0 Squelch" TEXT_ALT_NEXT "0 Sql" TEXT_ALT_CLOSE), level, rt, sizeof rt, &more);
+		int lw = gfx_text_width(fs, lt), mw = gfx_text_width(fs, mid), rw = gfx_text_width(fs, rt);
+		int mx = (w - mw) / 2;
+		if (level == 1 || (2 + lw + fs->w <= mx && mx + mw + fs->w <= w - 2 - rw))
+			break;
+	}
+	int ky = hy - fs->h - (ui_layout.row_h > fs->h ? 1 : 0);
+	gfx_text(fs, 2, ky, lt, ui_col.dim);
+	gfx_text(fs, (w - gfx_text_width(fs, mid)) / 2, ky, mid, ui_col.dim);
+	gfx_text(fs, w - gfx_text_width(fs, rt) - 2, ky, rt, ui_col.dim);
 }
 
 // The Info view (3): the pass's times to the second in large text, and what the Tracking screen has no room for: the highest
