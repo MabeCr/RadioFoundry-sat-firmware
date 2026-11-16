@@ -787,18 +787,19 @@ static void keys_row(int hy)
 	int w = gfx_width();
 	if (gfx_height() <= w)
 		return;
-	// The keys spread across the row: 2 at the left, 3 in the middle, 0 at the right. The long labels if all three fit
-	// with a gap between, else the short ones (text alternates, one level for the three so they read alike)
-	for (int level = 0; level < 2; level++) {
+	// The keys spread across the row: 2 at the left, 3 in the middle, 0 at the right. The long labels if all three fit with
+	// a gap between; else "0 Sql", and only then "2 Sig" (text alternates)
+	static const uint8_t levels[3][2] = { { 0, 0 }, { 0, 1 }, { 1, 1 } };
+	for (int k = 0; k < 3; k++) {
 		bool more;
 		lt[0] = '\0';
 		if (CONFIG_SAT_CHART)
-			gfx_text_alt(TR(TEXT_ALT_OPEN "2 Chart" TEXT_ALT_NEXT "2 Sig" TEXT_ALT_CLOSE), level, lt, sizeof lt, &more);
+			gfx_text_alt(TR(TEXT_ALT_OPEN "2 Signal" TEXT_ALT_NEXT "2 Sig" TEXT_ALT_CLOSE), levels[k][0], lt, sizeof lt, &more);
 		str_copy(mid, sizeof mid, TR("3 Info"));
-		gfx_text_alt(TR(TEXT_ALT_OPEN "0 Squelch" TEXT_ALT_NEXT "0 Sql" TEXT_ALT_CLOSE), level, rt, sizeof rt, &more);
+		gfx_text_alt(TR(TEXT_ALT_OPEN "0 Squelch" TEXT_ALT_NEXT "0 Sql" TEXT_ALT_CLOSE), levels[k][1], rt, sizeof rt, &more);
 		int lw = gfx_text_width(fs, lt), mw = gfx_text_width(fs, mid), rw = gfx_text_width(fs, rt);
 		int mx = (w - mw) / 2;
-		if (level == 1 || (2 + lw + fs->w <= mx && mx + mw + fs->w <= w - 2 - rw))
+		if (k == 2 || (2 + lw + fs->w <= mx && mx + mw + fs->w <= w - 2 - rw))
 			break;
 	}
 	int ky = hy - fs->h - (ui_layout.row_h > fs->h ? 1 : 0);
@@ -889,7 +890,9 @@ static void signal_row(int x, int *y, int16_t dbm)
 	int tw = gfx_text_width(f, sb_buf);
 	int w = gfx_width();
 	gfx_text(f, w - tw - 2, *y, sb_buf, ui_col.fg);
-	ui_draw_meter(x, *y + f->h / 4, w - tw - x - f->w, f->h / 2, dbm);
+	// The meter's width is the same for "-95 dBm" as for "-105 dBm": it is sized for the longest the text gets
+	int mw = gfx_text_width(f, "-100 dBm");
+	ui_draw_meter(x, *y + f->h / 4, w - mw - x - f->w, f->h / 2, dbm);
 	*y += f->h + (ui_layout.row_h > f->h ? 1 : 0);
 }
 
