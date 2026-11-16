@@ -1069,7 +1069,7 @@ static void __attribute__((noinline)) track_main_draw(void)
 		if (on && have_p) {
 			sb_shifted(&rb, rv->ch.rx_hz, track_base(&p));
 			int32_t behind = (int32_t)(track_want(&p) - rv->ch.rx_hz);
-			rc = (behind >= (int32_t)SAT_FOLLOW_THRESHOLD_HZ || behind <= -(int32_t)SAT_FOLLOW_THRESHOLD_HZ) ? ui_col.warn : ui_col.rx;
+			rc = (behind >= (int32_t)SAT_FOLLOW_WARN_HZ || behind <= -(int32_t)SAT_FOLLOW_WARN_HZ) ? ui_col.warn : ui_col.rx;
 		} else {
 			sb_freq(&rb, rv->ch.rx_hz);
 		}
