@@ -735,6 +735,13 @@
     "SAT"
    ]
   },
+  "satellite_track_chart": {
+   "group": "tools",
+   "needs": [
+    "SAT",
+    "SAT_CHART"
+   ]
+  },
   "satellite_track_auto": {
    "group": "tools",
    "needs": [

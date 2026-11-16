@@ -1012,7 +1012,7 @@ msgstr "Estado"
 msgid "Sky"
 msgstr "Cielo"
 
-#: core/ui/ui_gps.c
+#: core/ui/ui_gps.c core/ui/ui_sat.c
 msgid "Signal"
 msgstr "Señal"
 
@@ -3293,6 +3293,14 @@ msgid "Dial"
 msgstr "Dial"
 
 #: core/ui/ui_sat.c
+msgid "{2 Chart  3 Info  0 Squelch|2 Sig  3 Info  0 Sql}"
+msgstr "{2 Gráfico  3 Info  0 Squelch|2 Señ  3 Info  0 Sql}"
+
+#: core/ui/ui_sat.c
+msgid "{3 Info  0 Squelch|3 Info  0 Sql}"
+msgstr "{3 Info  0 Squelch|3 Info  0 Sql}"
+
+#: core/ui/ui_sat.c
 msgid "Pass info"
 msgstr "Info del pase"
 
@@ -3315,6 +3323,22 @@ msgstr "Elementos"
 #: core/ui/ui_sat.c
 msgid "Back close"
 msgstr "Atrás cierra"
+
+#: core/ui/ui_sat.c
+msgid "No readings yet"
+msgstr "Aún sin lecturas"
+
+#: core/ui/ui_sat.c
+msgid "Best"
+msgstr "Mejor"
+
+#: core/ui/ui_sat.c
+msgid "Lowest"
+msgstr "Más baja"
+
+#: core/ui/ui_sat.c
+msgid "Now"
+msgstr "Ahora"
 
 #: core/ui/ui_sat.c
 msgid "Tracking"
@@ -3347,14 +3371,6 @@ msgstr "activo"
 #: core/ui/ui_sat.c
 msgid "Rng"
 msgstr "Dist"
-
-#: core/ui/ui_sat.c
-msgid "0 Squelch"
-msgstr "0 Squelch"
-
-#: core/ui/ui_sat.c
-msgid "3 Info"
-msgstr "3 Info"
 
 #: core/ui/ui_sat.c
 msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
