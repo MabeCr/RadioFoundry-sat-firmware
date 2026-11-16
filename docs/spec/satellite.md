@@ -213,7 +213,7 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   Against the reference passes (`satFollowTest`) it retunes about 36 times a pass at 437.8 MHz, never further off than
   about 600 Hz, with at least 5 s between retunes, and the same with a 5 kHz nudge. (It was 12 retunes and 1.5 kHz until the
   first SO-50 pass on the radio, 2026-11-15, where a signal 1.5 kHz off was too far.) The Tracking screen colors the
-  receive line as a warning at `SAT_FOLLOW_WARN_HZ` (1.5 kHz) behind. It ends with Back, or when the radio
+  receive line as a warning at `SAT_FOLLOW_WARN_HZ` (1 kHz, twice the following threshold) behind. It ends with Back, or when the radio
   leaves the VFO.
 - `OK` swaps the base of the downlink between the profile's and one saved for the satellite (`settings_t.sat_alt_norad` / `sat_alt_hz`, typed on the Frequency screen, `1`): the saved one replaces the profile's as the base the Doppler works
   on. The screen works the shift out itself from the live range rate (`sat_doppler_rx_hz`, `sat_doppler.h`), so it needs

@@ -521,7 +521,6 @@ static void sb_shifted(sbuf_t *b, uint32_t hz, uint32_t nominal)
 
 #define TRK_NUDGE_STEP_HZ	1000		// one detent of the dial
 #define TRK_NUDGE_MAX_HZ	10000
-#define TRK_BEHIND_HZ		1500		// the receiver this far from where it should be: shown as behind
 
 static bool trk_tuned;			// # was pressed: the receiver is on this pass's downlink
 static bool trk_entered_vfo;		// Tracking put the radio in the VFO: Back leaves it
