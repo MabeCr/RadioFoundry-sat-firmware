@@ -3293,12 +3293,16 @@ msgid "Dial"
 msgstr "Dial"
 
 #: core/ui/ui_sat.c
-msgid "{2 Chart  3 Info  0 Squelch|2 Sig  3 Info  0 Sql}"
-msgstr "{2 Gráfico  3 Info  0 Squelch|2 Señ  3 Info  0 Sql}"
+msgid "{2 Chart|2 Sig}"
+msgstr "{2 Gráfico|2 Señ}"
 
 #: core/ui/ui_sat.c
-msgid "{3 Info  0 Squelch|3 Info  0 Sql}"
-msgstr "{3 Info  0 Squelch|3 Info  0 Sql}"
+msgid "3 Info"
+msgstr "3 Info"
+
+#: core/ui/ui_sat.c
+msgid "{0 Squelch|0 Sql}"
+msgstr "{0 Squelch|0 Sql}"
 
 #: core/ui/ui_sat.c
 msgid "Pass info"
