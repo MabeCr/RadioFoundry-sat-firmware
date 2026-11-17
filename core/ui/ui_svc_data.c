@@ -88,6 +88,9 @@ bool ui_svc_call_alert(uint32_t id)
 
 void ui_svc_poll(void)
 {
+#if CONFIG_SAT_ALERT
+	ui_svc_sat_alert_poll();
+#endif
 #if CONFIG_DMR_EMERGENCY
 	ui_svc_emergency_poll();
 #endif

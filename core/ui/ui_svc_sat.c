@@ -55,6 +55,51 @@ void ui_svc_sat_refresh(void)
 void ui_svc_sat_delete(uint32_t norad)
 {
 	sat_svc_delete(norad);
+	(void)ui_svc_sat_alert_set(norad, false);	// its mark goes with it
+}
+
+void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos)
+{
+	sat_svc_pass_alert_toggle(norad, aos);
+}
+
+bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
+{
+	return sat_svc_pass_alert_marked(norad, aos);
+}
+
+void ui_svc_sat_alert_poll(void)
+{
+	static ui_sat_alert_t a;
+	static ui_sat_status_t st;
+	static ui_event_t ev;	// static: the UI task's stack has next to nothing to spare
+	if (!ui_svc_sat_alert_take(&a))
+		return;
+	memset(&ev, 0, sizeof ev);
+	ev.kind = UI_EV_SAT_PASS;
+	ev.id = a.norad;
+	ev.index = (uint16_t)(a.max_el < 0 ? 0 : a.max_el);
+	if (ui_svc_sat_status(&st))
+		ev.ms = a.aos > st.utc ? a.aos - st.utc : 0u;
+	static ui_sat_t row;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &row); i++) {
+		if (row.norad == a.norad) {
+			memcpy(ev.name, row.name, sizeof ev.name - 1);
+			break;
+		}
+	}
+	(void)ui_notify(&ev);
+}
+
+bool ui_svc_sat_alert_take(ui_sat_alert_t *out)
+{
+	sat_svc_alert_t a;
+	if (!sat_svc_alert_take(&a))
+		return false;
+	out->norad = a.norad;
+	out->aos = a.aos;
+	out->max_el = a.max_el;
+	return true;
 }
 
 void ui_svc_sat_open(uint32_t norad)

@@ -39,11 +39,17 @@ static struct {
 // Requests from the screens
 static volatile bool refresh_asked = true;
 static volatile uint32_t open_asked;
+static volatile uint32_t toggle_norad, toggle_aos;	// a pass the user marked or unmarked for an alert
 static volatile uint32_t delete_asked;	// a satellite the user asked to delete: the poll does it (a flash write)
 static volatile bool open_changed;
 static volatile uint32_t track_aos, track_los;	// the tracked pass, 0 none
 static volatile bool track_changed;
 static volatile bool track_alive;	// asked again since the poll last looked: the screen is still there
+
+// Pass alerts: the marks and what was alerted on (the poll's), and the alert waiting for the screens to take
+static sat_alert_t alert;
+static volatile bool alert_pending;
+static sat_svc_alert_t alert_ev;
 
 // The work, the service task's own
 static struct {
@@ -78,6 +84,9 @@ void sat_svc_init(void)
 	refresh_asked = true;
 	open_asked = 0;
 	delete_asked = 0;
+	toggle_norad = toggle_aos = 0;
+	sat_alert_init(&alert);
+	alert_pending = false;
 	open_changed = false;
 	track_aos = track_los = 0;
 	track_changed = false;
@@ -99,6 +108,30 @@ void sat_svc_refresh(void)
 void sat_svc_delete(uint32_t norad)
 {
 	delete_asked = norad;
+}
+
+bool sat_svc_alert_take(sat_svc_alert_t *out)
+{
+	if (!alert_pending)
+		return false;
+	*out = alert_ev;
+	alert_pending = false;
+	return true;
+}
+
+void sat_svc_pass_alert_toggle(uint32_t norad, uint32_t aos)
+{
+	toggle_aos = aos;
+	toggle_norad = norad;	// last: the poll acts on a nonzero satellite
+}
+
+bool sat_svc_pass_alert_marked(uint32_t norad, uint32_t aos)
+{
+	bool m = sat_alert_marked(&alert, norad, aos);
+	uint32_t tn = toggle_norad, ta = toggle_aos;
+	if (tn == norad && norad != 0 && (ta > aos ? ta - aos : aos - ta) <= SAT_ALERT_MATCH_S)
+		m = !m;	// asked for, not done yet
+	return m;
 }
 
 void sat_svc_open(uint32_t norad)
@@ -612,10 +645,15 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		uint32_t n = delete_asked;
 		delete_asked = 0;
 		sat_store_delete(n);
+		sat_alert_forget(&alert, n);
 		if (open_asked == n) {	// its passes are open: close them
 			open_asked = 0;
 			open_changed = true;
 		}
+	}
+	if (toggle_norad != 0) {
+		sat_alert_toggle(&alert, toggle_norad, toggle_aos);
+		toggle_norad = 0;
 	}
 	bool fresh = refresh_asked || sat_store_generation() != w.generation;
 	if (fresh) {
@@ -630,6 +668,22 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		track_start();
 	if (state != SAT_SVC_READY)
 		return false;
+	// An alert due for the next pass of a satellite that is marked, or whose pass is: one at a time, for the screens to take
+	if (!alert_pending && in->alert_lead_s != 0) {
+		for (uint8_t i = 0; i < r.count; i++) {
+			const sat_row_t *row = &r.rows[i];
+			bool always = false;
+			for (unsigned k = 0; k < SAT_ALERT_ALWAYS; k++)
+				always = always || (in->alert_norad[k] == row->norad && row->norad != 0);
+			if (row->state == SAT_ROW_NEXT && sat_alert_due(&alert, in->now, in->alert_lead_s, row->norad, row->aos, always)) {
+				alert_ev.norad = row->norad;
+				alert_ev.aos = row->aos;
+				alert_ev.max_el = row->max_el;
+				alert_pending = true;
+				break;
+			}
+		}
+	}
 
 	double dlat = in->pos_ok ? in->lat - w.lat : 0.0, dlon = in->pos_ok ? in->lon - w.lon : 0.0;
 	if (!w.have_obs || dlat > MOVED_DEG || dlat < -MOVED_DEG || dlon > MOVED_DEG || dlon < -MOVED_DEG ||

@@ -729,6 +729,20 @@
     "SAT"
    ]
   },
+  "satellite_alert_mark": {
+   "group": "tools",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
+   ]
+  },
+  "satellite_alert_banner": {
+   "group": "tools",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
+   ]
+  },
   "satellite_delete": {
    "group": "tools",
    "needs": [

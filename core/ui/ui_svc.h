@@ -224,6 +224,19 @@ bool ui_svc_sat_status(ui_sat_status_t *out);	// false: not in this build
 bool ui_svc_sat_get(uint8_t i, ui_sat_t *out);	// false past the last
 void ui_svc_sat_refresh(void);			// the list opened: work its passes out again from the store
 void ui_svc_sat_delete(uint32_t norad);		// remove it from the store (done by the satellite task; the list follows)
+// Pass alerts (CONFIG_SAT_ALERT): a satellite marked to alert on every pass (the settings keep up to six), and one pass of
+// one marked, which alerts once; the alert that came due (the satellite and the pass), read once a second
+bool ui_svc_sat_alert_get(uint32_t norad);
+bool ui_svc_sat_alert_set(uint32_t norad, bool on);	// false: no room for another
+void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos);
+bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos);
+typedef struct {
+	uint32_t norad, aos;
+	int8_t max_el;
+} ui_sat_alert_t;
+bool ui_svc_sat_alert_take(ui_sat_alert_t *out);
+// Raises UI_EV_SAT_PASS when an alert has come due (run from ui_svc_poll)
+void ui_svc_sat_alert_poll(void);
 void ui_svc_sat_open(uint32_t norad);		// that satellite's passes (0: none)
 bool ui_svc_sat_profile(ui_sat_profile_t *out);	// the opened satellite's frequencies and tones
 // The opened satellite's passes so far: how many, *done once the 24 hours are searched; one of them
@@ -398,6 +411,9 @@ typedef enum {
 	// The downlink typed for a satellite on its Tracking screen: its catalog number and the frequency in Hz, 0 none
 	// (settings_t.sat_alt_norad / sat_alt_hz)
 	UI_SET_SAT_ALT_NORAD, UI_SET_SAT_ALT_HZ,
+	// Pass alerts: minutes before a rise (0 off, 1..30; default 5; settings_t.sat_alert_lead) and whether the alert stays quiet
+	// (0/1; sat_flags SETTINGS_SAT_QUIET)
+	UI_SET_SAT_ALERT_LEAD, UI_SET_SAT_ALERT_QUIET,
 #endif
 	UI_SET_COUNT
 } ui_setting_t;
@@ -437,6 +453,8 @@ typedef enum {
 	UI_EV_ZONE_IMPORTED,	// the import ended: ok with name (the zone here), index (channels), id 1 for an update; else
 				// text says why
 	UI_EV_CODEPLUG_FOREIGN,	// a codeplug write is held: ask what to do with another firmware's codeplug
+	UI_EV_SAT_PASS,		// a marked pass is about to rise (CONFIG_SAT_ALERT): id the satellite's catalog number, name, index its
+				// highest elevation in degrees, ms seconds to the rise
 } ui_event_kind_t;
 
 typedef struct {

@@ -320,6 +320,8 @@
  "screen.satellite_track_info": "Tracking a pass: the pass info",
  "screen.satellite_track_chart": "Tracking a pass: the signal chart",
  "screen.satellite_delete": "Delete a satellite: ask first",
+ "screen.satellite_alert_mark": "Satellites: mark a satellite for pass alerts",
+ "screen.satellite_alert_banner": "A pass about to rise: the alert banner",
  "screen.satellite_track_auto": "Tracking a pass: following the Doppler",
  "screen.satellite_frequency": "Tracking on a frequency of your own",
  "screen.satellite_sound": "Receive satellites by sound",

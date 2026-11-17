@@ -192,7 +192,7 @@ radioCoreTestNoVfoDmr: $(RCORE) $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)
 TESTS   += radioCoreTestSat
 radioCoreTestSat: $(RCORE) $(CORE)/radio/retune_test.c $(wildcard $(CORE)/radio/*.h) $(wildcard $(CORE)/dmr/call/*.h) \
                   $(CORE)/dmr/dmrDataService.h $(CORE)/ui/ui_svc.h
-	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_SAT=1 -o $@ $(RCORE) $(CORE)/radio/retune_test.c -lm
+	$(CC) $(CFLAGS) $(CORE_HAL) -I. -DDMR_RX_TRACE=0 -DCONFIG_DMR_IP_GATEWAY=0 -DCONFIG_SFR=1 -DCONFIG_APRS=0 -DCONFIG_SAT=1 -DCONFIG_SAT_ALERT=0 -o $@ $(RCORE) $(CORE)/radio/retune_test.c -lm
 
 # The everyday features (scan, beeps, battery, TOT warning, BCL, roger beep, 1750 Hz burst, VOX, battery saving)
 TESTS   += radioFeaturesTest
@@ -576,6 +576,16 @@ satTest: satTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 TESTS   += satFollowTest
 satFollowTest: satFollowTest.c sat_ref.h $(SAT_SRC) $(wildcard $(CORE)/sat/*.h)
 	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satFollowTest.c $(SAT_SRC) -lm
+
+# Pass alerts (core/sat/sat_alert.c)
+TESTS   += satAlertTest
+satAlertTest: satAlertTest.c $(CORE)/sat/sat_alert.c $(wildcard $(CORE)/sat/sat_alert.h)
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satAlertTest.c $(CORE)/sat/sat_alert.c
+
+run: run-satAlert
+run-satAlert: satAlertTest
+	./satAlertTest
+.PHONY: run-satAlert
 
 run: run-satFollow
 run-satFollow: satFollowTest

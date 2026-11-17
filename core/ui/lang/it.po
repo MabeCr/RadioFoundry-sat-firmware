@@ -136,6 +136,10 @@ msgstr "⤓ Canale da "
 msgid "⤓ Zone from "
 msgstr "⤓ Zona da "
 
+#: core/ui/ui_app.c core/ui/ui_sat.c
+msgid "Rises in"
+msgstr "Sorge tra"
+
 #: core/ui/ui_app.c
 msgid "Not sent to "
 msgstr "Non inviato a "
@@ -163,6 +167,10 @@ msgstr " canali, solo RX"
 #: core/ui/ui_app.c
 msgid "Zone not imported"
 msgstr "Zona non importata"
+
+#: core/ui/ui_app.c
+msgid "No pass to track"
+msgstr "Nessun passaggio da seguire"
 
 #: core/ui/ui_app.c
 msgid "Bands: "
@@ -2837,6 +2845,14 @@ msgid "Answer GPS requests"
 msgstr "Rispondi a GPS"
 
 #: core/ui/ui_menus.c
+msgid "Pass alert"
+msgstr "Avviso passaggio"
+
+#: core/ui/ui_menus.c
+msgid "Silent pass alerts"
+msgstr "Avvisi passaggio silenziosi"
+
+#: core/ui/ui_menus.c
 msgid "Time zone"
 msgstr "Fuso orario"
 
@@ -3169,6 +3185,30 @@ msgid "Old codeplug"
 msgstr "Codeplug precedente"
 
 #: core/ui/ui_sat.c
+msgid "Six satellites alert already"
+msgstr "Già sei satelliti avvisano"
+
+#: core/ui/ui_sat.c
+msgid "Alerts on:"
+msgstr "Avvisi attivi:"
+
+#: core/ui/ui_sat.c
+msgid "Alerts off:"
+msgstr "Avvisi disattivati:"
+
+#: core/ui/ui_sat.c
+msgid "Every pass alerts:"
+msgstr "Ogni passaggio avvisa:"
+
+#: core/ui/ui_sat.c
+msgid "Alert for this pass:"
+msgstr "Avviso per questo passaggio:"
+
+#: core/ui/ui_sat.c
+msgid "No alert for this pass:"
+msgstr "Nessun avviso per questo passaggio:"
+
+#: core/ui/ui_sat.c
 msgid "Waiting for the time: passes need UTC from a GPS fix"
 msgstr "In attesa dell'ora: i passaggi richiedono l'UTC da un fix GPS"
 
@@ -3225,6 +3265,10 @@ msgid "Delete this satellite? Its elements and profile are removed. Load them ag
 msgstr "Eliminare questo satellite? Vengono rimossi i suoi elementi e il profilo. Caricali di nuovo via cavo o con il suono."
 
 #: core/ui/ui_sat.c
+msgid "{OK passes  Hold OK track  * Alert  # Delete|OK passes  * Alert  # Delete|* Alert  # Delete}"
+msgstr "{OK passaggi  Tieni OK segui  * Avviso  # Elimina|OK passaggi  * Avviso  # Elimina|* Avviso  # Elimina}"
+
+#: core/ui/ui_sat.c
 msgid "{OK passes  Hold OK track  # Delete|OK passes  # Delete|OK passes  Hold OK track}"
 msgstr "{OK passaggi  Tieni OK segui  # Elimina|OK passaggi  # Elimina|OK passaggi  Tieni OK segui}"
 
@@ -3247,6 +3291,10 @@ msgstr "Domani"
 #: core/ui/ui_sat.c
 msgid "Working"
 msgstr "Calcolo"
+
+#: core/ui/ui_sat.c
+msgid "{OK track  * Alert  # Delete  Back|* Alert  # Delete|OK track  Back}"
+msgstr "{OK segui  * Avviso  # Elimina  Indietro|* Avviso  # Elimina|OK segui  Indietro}"
 
 #: core/ui/ui_sat.c
 msgid "{OK track  # Delete  Back|OK track  Back}"
@@ -3299,6 +3347,10 @@ msgstr "Squelch normale"
 #: core/ui/ui_sat.c
 msgid "Dial"
 msgstr "Manopola"
+
+#: core/ui/ui_sat.c
+msgid "This pass has begun"
+msgstr "Questo passaggio è già iniziato"
 
 #: core/ui/ui_sat.c
 msgid "{2 Signal|2 Sig}"
@@ -3363,10 +3415,6 @@ msgstr "Passaggio finito"
 #: core/ui/ui_sat.c
 msgid "Sets in"
 msgstr "Tramonta tra"
-
-#: core/ui/ui_sat.c
-msgid "Rises in"
-msgstr "Sorge tra"
 
 #: core/ui/ui_sat.c
 msgid "Below horizon"
@@ -3935,6 +3983,10 @@ msgstr "{# 1 parla su A  Indietro ferma|# 1 parla su A}"
 #: core/ui/ui_screens.c
 msgid "# options  Back stop"
 msgstr "# opzioni  Indietro ferma"
+
+#: core/ui/ui_screens.c
+msgid "# Track  Back hide"
+msgstr "# Segui  Indietro nascondi"
 
 #: core/ui/ui_screens.c
 msgid "# Open"

@@ -248,6 +248,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `SAT` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_SOUND` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_CHART` | ○ | ○ | ○ | ○ | ○ | ○ |
+| `SAT_ALERT` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● |
@@ -311,6 +312,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | Satellite tracking: SGP4, passes, Doppler, profiles, repeater arming | `SAT` | 26,792 | — | Off by default. Tools > Satellites (the pass lists), stored satellites, the debug link's SAT command; tracking not built yet. DM-1701 figure with LTO and the debug link: 2,848 B of RAM and the `sat` task's 1.5 KB stack (2026-11-03; [satellite](spec/satellite.md) 7). Stored satellites need a satellite area in the board's flash map: DM-32UV, DM-1701 and MD-UV380 (untested on the radio) |
 | Element sets by sound: the AFSK receiver, the store rules and Tools > Satellites > Receive sound | `SAT_SOUND` | — | — | Needs `SAT`, `DMR` and `APRS`. Off by default; on in the DM-32UV and DM-1701 satellite builds. About 3 KB of RAM (the demodulator and the queue); the flash cost is not measured yet. Not tried at a microphone ([sound-transfer](spec/sound-transfer.md)) |
 | The Tracking screen's signal chart (key 2): the receiver's level over the pass | `SAT_CHART` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash and 0.5 KB of RAM. Untried on a real pass ([ui](spec/ui.md)) |
+| Pass alerts: a banner and tone before a marked satellite's or pass's rise, the marks, the alert settings | `SAT_ALERT` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash, 40 bytes in each of six copies of the settings. Untried on a real pass ([satellite](spec/satellite.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB

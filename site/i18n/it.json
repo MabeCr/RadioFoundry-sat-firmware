@@ -320,6 +320,8 @@
  "screen.satellite_track_info": "Tracciamento di un passaggio: informazioni sul passaggio",
  "screen.satellite_track_chart": "Tracciamento di un passaggio: il grafico del segnale",
  "screen.satellite_delete": "Eliminare un satellite: chiede prima",
+ "screen.satellite_alert_mark": "Satelliti: segna un satellite per gli avvisi di passaggio",
+ "screen.satellite_alert_banner": "Un passaggio sta per iniziare: l'avviso",
  "screen.satellite_track_auto": "Tracciamento di un passaggio: segue il Doppler",
  "screen.satellite_frequency": "Tracciamento su una frequenza propria",
  "screen.satellite_sound": "Ricevere satelliti con il suono",
