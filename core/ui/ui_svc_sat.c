@@ -52,6 +52,11 @@ void ui_svc_sat_refresh(void)
 	sat_svc_refresh();
 }
 
+void ui_svc_sat_delete(uint32_t norad)
+{
+	sat_svc_delete(norad);
+}
+
 void ui_svc_sat_open(uint32_t norad)
 {
 	sat_svc_open(norad);

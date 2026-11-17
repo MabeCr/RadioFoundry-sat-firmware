@@ -80,6 +80,10 @@ The line under the title says the lowest pass, the 24 hours and the time zone th
 (arrow and directions, "NW→SE") and how many minutes it is up. Above the list are its frequencies and tones, and the
 title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
+**#** (or Left or Right, on a radio that has them) on a satellite in the list, or on its passes, **deletes** it: the radio
+asks first ("Delete ISS?"), and **Yes, delete** removes its elements and profile from the radio. Load them again over
+the cable or by sound to get it back. The "Receive sound" row has nothing to delete.
+
 **OK** on a pass tracks it (or hold **OK** on a satellite in the list to track its next pass). The screen has a sky plot
 with north up and the pass's whole path, the satellite as a dot (green above the horizon), and beside it: the elevation,
 the azimuth, the time left to the set (**LOS**) or to the rise (**AOS**), the pass's three times (**AOS**, **MAX**, the highest point, and **LOS**) in the zone chosen under Pass times (local or UTC), the signal the receiver hears (a meter and the level in dBm, as on the Home screen, to help aim the antenna; FM only, and only where the screen has room), your grid locator (for the contact that asks

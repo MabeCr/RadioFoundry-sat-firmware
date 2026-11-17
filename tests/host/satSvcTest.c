@@ -247,6 +247,22 @@ int main(void)
 	settle(60);
 	CHECK(!sat_svc_profile(&prof) && sat_svc_passes(passes, SAT_SVC_PASSES, &done) == 0 && done);
 
+	// A delete asked for through the service: done by the next poll, the list follows, the open satellite's passes close
+	sat_svc_open(25544);
+	settle(60);
+	CHECK(sat_svc_profile(&prof) && prof.norad == 25544);
+	uint8_t had = sat_svc_count();
+	sat_svc_delete(25544);
+	settle(60);
+	CHECK(sat_svc_count() == had - 1 && row_of(25544, &row) < 0 && row_of(27607, &row) >= 0);
+	CHECK(!sat_svc_profile(&prof) && sat_svc_passes(passes, SAT_SVC_PASSES, &done) == 0 && done);
+	sat_svc_delete(999999);		// not stored: nothing changes
+	settle(60);
+	CHECK(sat_svc_count() == had - 1);
+	put(0, "ISS");			// back for the rest
+	sat_svc_refresh();
+	settle(60);
+
 	// The observer moves: worked out again
 	in.now = t0;
 	sat_svc_refresh();
