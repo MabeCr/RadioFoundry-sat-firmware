@@ -281,6 +281,28 @@ azimuth, range or frequencies, only "Below horizon".
 The screen asks for a pass with `sat_svc_track(aos, los)` at every draw. Nothing tells the service the screen has gone, so
 it stops, and drops the results, five seconds after the last request. A new observer or pass starts the path over.
 
+### 5.4 Pass alerts
+
+`sat_alert.c` decides when a marked pass is worth telling the user about (`CONFIG_SAT_ALERT`). It has no hardware, clock or
+RTOS: `sat_svc_poll` gives it the time, and it answers `sat_alert_due`.
+
+| Mark | Kept | Alerts |
+|---|---|---|
+| A satellite, for every pass | `settings_t.sat_alert_norad`, six catalog numbers (Left, Right or `*` on its row in the list) | each of its passes listed, once |
+| One pass | `sat_alert_t.marks`, four slots in RAM, forgotten at power off (Left, Right or `*` on a pass, or Left or Right on Tracking before the rise) | that pass, once; its mark is then spent |
+
+- **When:** `Pass alert` minutes before the rise (Settings > Location; 0 off, default 5), for the satellite's next pass
+  (the list row), while it has not risen. A pass is the same pass as one marked or alerted on when its rise is within
+  10 minutes, so a new element set moving it by seconds neither loses the mark nor alerts twice. The last four alerts are
+  remembered.
+- **Who raises it:** the service's poll sets one alert at a time; the UI task's poll (`ui_svc_sat_alert_poll`) takes it and
+  queues `UI_EV_SAT_PASS`. The alert never costs the satellite task a stack frame for the event.
+- **What shows:** a banner that waits to be answered (`UI_BANNER_SAT_PASS`): the name over "Rises in 5 min, 71°", `#`
+  tracks the pass, Back hides it. The tone and the vibration play unless `Silent pass alerts` is on or the radio is
+  receiving or transmitting (not `RS_IDLE`).
+- **Deleting a satellite** takes its marks with it. A satellite is marked when it shows " *" after its name in the list.
+- Needs the time and the observer like every pass: without them nothing alerts. The radio has to be on.
+
 ## 6. Profiles and repeater arming
 
 ### 6.1 Profiles

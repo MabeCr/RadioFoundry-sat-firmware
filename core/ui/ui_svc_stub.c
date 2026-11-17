@@ -74,6 +74,12 @@ WEAK uint8_t ui_svc_gps_state(void) { return 0; }
 WEAK bool ui_svc_sat_status(ui_sat_status_t *out) { (void)out; return false; }
 WEAK bool ui_svc_sat_get(uint8_t i, ui_sat_t *out) { (void)i; (void)out; return false; }
 WEAK void ui_svc_sat_refresh(void) {}
+WEAK bool ui_svc_sat_alert_get(uint32_t norad) { (void)norad; return false; }
+WEAK bool ui_svc_sat_alert_set(uint32_t norad, bool on) { (void)norad; (void)on; return false; }
+WEAK void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos) { (void)norad; (void)aos; }
+WEAK bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos) { (void)norad; (void)aos; return false; }
+WEAK bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
+WEAK void ui_svc_sat_alert_poll(void) { }
 WEAK void ui_svc_sat_delete(uint32_t norad) { (void)norad; }
 WEAK void ui_svc_sat_open(uint32_t norad) { (void)norad; }
 WEAK bool ui_svc_sat_profile(ui_sat_profile_t *out) { (void)out; return false; }
@@ -122,7 +128,7 @@ static int32_t settings[UI_SET_COUNT] = {
 	[UI_SET_BCAST_STEP] = 200,
 	[UI_SET_NOISE_REDUCTION] = 1,
 #if CONFIG_SAT
-	[UI_SET_SAT_MIN_EL] = 10,
+	[UI_SET_SAT_MIN_EL] = 10, [UI_SET_SAT_ALERT_LEAD] = 5,
 #endif
 };
 // (ui_svc_storage.c keeps the ones settings_t has fields for: these are the defaults of the rest, and the UI's

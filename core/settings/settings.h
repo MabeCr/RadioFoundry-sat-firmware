@@ -237,6 +237,10 @@ typedef struct {
 	// next pass: the satellite's catalog number and the frequency in Hz, 0 = none
 	uint32_t sat_alt_norad;
 	uint32_t sat_alt_hz;
+	// Pass alerts (docs/spec/satellite.md 5.4): the satellites marked to alert on every pass (catalog numbers, 0 free), and
+	// how many minutes before a rise the alert comes: 0 = the default (5 minutes), else minutes + 1 (1: off)
+	uint32_t sat_alert_norad[6];
+	uint8_t sat_alert_lead;
 #endif
 } settings_t;
 
@@ -309,6 +313,7 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 // 0, and shows the dark theme
 #define SETTINGS_SMALL_MASK	0x03u
 #define SETTINGS_SAT_UTC	0x01u	// sat_flags: the satellite screens show times in UTC, not local time (Pass times in UTC)
+#define SETTINGS_SAT_QUIET	0x02u	// sat_flags: a pass alert shows its banner without the tone and the vibration
 #define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
 #define SETTINGS_THEME_MAX	7u
 static inline uint8_t settings_theme(const settings_t *s)
@@ -446,6 +451,10 @@ settings_load_t settings_init(void);
 // A consistent copy
 void settings_read(settings_t *out);
 // Change: begin returns the live copy (under a short lock), end releases it and notes the time if anything changed
+// The live settings read in place, for a getter that wants one value and has no stack for a copy (the UI and radio tasks'
+// deepest call chain runs through ui_svc_setting_get): the pointer is valid for good, and a field read on it is as good
+// as a copy's (every field is at most four bytes, aligned); do not write through it
+const settings_t *settings_view(void);
 settings_t *settings_begin(void);
 void settings_end(uint32_t now_ms);
 

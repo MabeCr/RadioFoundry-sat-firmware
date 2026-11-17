@@ -30,6 +30,7 @@ typedef enum {
 	UI_BANNER_RESULT,	// result of something we sent (radio check answered, message delivered, ...)
 	UI_BANNER_INFO,		// anything else ("Hotspot started by host. Back to stop.")
 	UI_BANNER_ZONE_OFFER,	// another radio offers a zone or channel: CONTEXT opens the offer
+	UI_BANNER_SAT_PASS,	// a marked satellite pass is about to rise (CONFIG_SAT_ALERT): CONTEXT tracks it
 } ui_banner_kind_t;
 
 typedef struct {
@@ -275,5 +276,10 @@ uint32_t ui_freq_parse(const char *digits, uint8_t len);
 void ui_bands_text(char *out, size_t len);
 // The board's power level name
 const char *ui_power_name(uint8_t level);
+
+#if CONFIG_SAT_ALERT
+// The Tracking screen for satellite norad's next pass (the banner's #); false when it has none to track
+bool ui_sat_track_pass(uint32_t norad);
+#endif
 
 #endif

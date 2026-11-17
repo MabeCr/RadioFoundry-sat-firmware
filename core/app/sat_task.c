@@ -95,6 +95,8 @@ static void rtc_tick(bool first)
 	}
 }
 
+_Static_assert(sizeof(((settings_t *)0)->sat_alert_norad) / sizeof(uint32_t) == SAT_ALERT_ALWAYS, "the settings' list of alert satellites");
+
 static void inputs(sat_svc_in_t *in)
 {
 	in->time_ok = sat_clock_now(&sat_utc, hal_millis(), &in->now);
@@ -114,6 +116,9 @@ static void inputs(sat_svc_in_t *in)
 	// Read in place: a copy of the settings would cost this task 0.4 KB of stack
 	const settings_t *st = settings_begin();
 	in->min_el = st->sat_min_el == 0 ? SAT_SVC_MIN_EL_DEFAULT : (uint8_t)(st->sat_min_el - 1u);
+	in->alert_lead_s = (st->sat_alert_lead == 0 ? 5u : st->sat_alert_lead - 1u) * 60u;
+	for (unsigned i = 0; i < SAT_ALERT_ALWAYS; i++)
+		in->alert_norad[i] = st->sat_alert_norad[i];
 	settings_end(hal_millis());
 }
 

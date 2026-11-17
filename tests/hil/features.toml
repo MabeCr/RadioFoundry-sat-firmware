@@ -220,6 +220,11 @@ switch = "SAT_SOUND"
 spec = "docs/spec/sound-transfer.md"
 source = ["core/sat/sat_sound.c", "core/sat/sat_sound_apply.c", "core/sat/sat_sound_rcv.c"]
 
+[feature.sat_alert]
+switch = "SAT_ALERT"
+spec = "docs/spec/satellite.md"
+source = ["core/sat/sat_alert.c"]
+
 # ── Host link and USB ──
 
 [feature.usb]

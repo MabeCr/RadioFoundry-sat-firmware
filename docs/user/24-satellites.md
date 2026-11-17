@@ -80,7 +80,16 @@ The line under the title says the lowest pass, the 24 hours and the time zone th
 (arrow and directions, "NW→SE") and how many minutes it is up. Above the list are its frequencies and tones, and the
 title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
-**#** (or Left or Right, on a radio that has them) on a satellite in the list, or on its passes, **deletes** it: the radio
+**Pass alerts.** The radio can tell you before a pass rises. On a satellite in the list, press **Left** or **Right** (or **\***
+on a radio without them) to mark it: a **\*** appears after its name, and every pass of it alerts. On a pass in its
+passes list, the same keys mark just that pass, once (the marks of single passes are forgotten when the radio is turned
+off). On the Tracking screen, **Left** or **Right** marks the pass you are looking at before it rises. A few minutes before
+a marked pass rises the radio beeps and shows a banner on whatever screen you are on ("SO-50: Rises in 5 min, 71°"):
+**#** opens the pass, **Back** hides the banner. It never beeps while you are receiving or transmitting. Set the time
+before the rise with **Pass alert** in Settings > Location (0 turns alerts off; the default is 5 minutes), and
+**Silent pass alerts** keeps the banner but drops the tone. The radio has to be on, with the time and your position set.
+
+**#** on a satellite in the list, or on its passes, **deletes** it: the radio
 asks first ("Delete ISS?"), and **Yes, delete** removes its elements and profile from the radio. Load them again over
 the cable or by sound to get it back. The "Receive sound" row has nothing to delete.
 

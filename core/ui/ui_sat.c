@@ -40,6 +40,77 @@ static uint32_t local(uint32_t utc)
 	return (uint32_t)((int32_t)utc + st.utc_offset_min * 60);
 }
 
+#if CONFIG_SAT_ALERT
+// --- pass alerts (docs/spec/satellite.md 5.4): Left, Right or * marks ---
+
+static char alert_text[40];	// a toast keeps the pointer it is given
+
+static void alert_say(const char *what, const char *name)
+{
+	sbuf_t b;
+	sb_init(&b, alert_text, sizeof alert_text);
+	sb_str(&b, what);
+	sb_chr(&b, ' ');
+	sb_str(&b, name);
+	ui_toast(alert_text);
+}
+
+// Alert on every pass of satellite norad, or stop
+static void alert_toggle_sat(uint32_t norad, const char *name)
+{
+	bool on = !ui_svc_sat_alert_get(norad);
+	if (!ui_svc_sat_alert_set(norad, on)) {
+		ui_toast(TR("Six satellites alert already"));
+		return;
+	}
+	alert_say(on ? TR("Alerts on:") : TR("Alerts off:"), name);
+}
+
+// Alert for the pass of satellite norad rising at aos, or not (a satellite marked for every pass alerts for it anyway)
+static void alert_toggle_pass(uint32_t norad, const char *name, uint32_t aos)
+{
+	if (ui_svc_sat_alert_get(norad)) {
+		alert_say(TR("Every pass alerts:"), name);
+		return;
+	}
+	ui_svc_sat_pass_alert_toggle(norad, aos);
+	alert_say(ui_svc_sat_pass_alert(norad, aos) ? TR("Alert for this pass:") : TR("No alert for this pass:"), name);
+}
+
+// A mark after a row's text
+static void alert_mark(char *label, size_t cap)
+{
+	size_t n = strlen(label);
+	if (n + 3 <= cap) {
+		label[n] = ' ';
+		label[n + 1] = '*';
+		label[n + 2] = '\0';
+	}
+}
+
+bool ui_sat_track_pass(uint32_t norad)
+{
+	ui_sat_t s;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &s); i++) {
+		if (s.norad != norad)
+			continue;
+		if (s.state != UI_SAT_UP && s.state != UI_SAT_NEXT)
+			return false;
+		str_copy(open_name, sizeof open_name, s.name);
+		open_norad = s.norad;
+		ui_svc_sat_open(s.norad);
+		trk_aos = s.aos;
+		trk_los = s.los;
+		trk_tca = s.tca;
+		trk_max_el = s.max_el;
+		trk_dir = s.dir;
+		ui_push(SCR_SAT_TRACK, 0);
+		return true;
+	}
+	return false;
+}
+#endif
+
 // --- the list ---
 
 // With CONFIG_SAT_SOUND the list ends with one more row, "Receive sound"
@@ -104,6 +175,10 @@ static void list_item(uint16_t i, ui_item_t *it)
 	if (!ui_svc_sat_get((uint8_t)i, &s))
 		return;
 	str_copy(it->label, sizeof it->label, s.name[0] ? s.name : "?");
+#if CONFIG_SAT_ALERT
+	if (ui_svc_sat_alert_get(s.norad))
+		alert_mark(it->label, sizeof it->label);
+#endif
 	if (i < 9)
 		item_num_set(it, (uint16_t)(i + 1u));
 	sbuf_t b;
@@ -191,7 +266,7 @@ static void list_select(uint16_t i, bool hold)
 	ui_push(SCR_SAT_PASSES, i);
 }
 
-// --- delete a satellite (Left, Right or # on its row in the list, or on its passes: a keypad radio has no Left or Right) ---
+// --- delete a satellite (# on its row in the list, or on its passes) ---
 
 static char del_name[12];
 static uint32_t del_norad;
@@ -244,16 +319,22 @@ const ui_scr_def_t ui_sat_delete_screen = {
 	.count = del_count, .item = del_item, .select = del_select, .title = del_title, .body = del_body,
 };
 
-// Left, Right or # on a satellite's row: ask whether to delete it (not the "Receive sound" row)
+// # on a satellite's row: ask whether to delete it; Left, Right or *: alert on every pass of it, or not (not on the "Receive sound" row)
 static bool list_key(const input_event_t *ev)
 {
-	if (ev->gesture != GESTURE_PRESS || (ev->action != ACT_NAV_LEFT && ev->action != ACT_NAV_RIGHT && ev->action != ACT_CONTEXT))
+	bool mark = ev->action == ACT_NAV_LEFT || ev->action == ACT_NAV_RIGHT || ev->action == ACT_QUICK;
+	if (ev->gesture != GESTURE_PRESS || (ev->action != ACT_CONTEXT && !(CONFIG_SAT_ALERT && mark)))
 		return false;
 	ui_sat_t s;
 	uint16_t i = ui_frame()->focus;
 	if (i >= st.count || !ui_svc_sat_get((uint8_t)i, &s))
 		return false;
-	del_ask(s.norad, s.name, false);
+	if (ev->action == ACT_CONTEXT)
+		del_ask(s.norad, s.name, false);
+#if CONFIG_SAT_ALERT
+	else
+		alert_toggle_sat(s.norad, s.name);
+#endif
 	return true;
 }
 
@@ -263,8 +344,9 @@ static void list_enter(void)
 }
 
 const ui_scr_def_t ui_sat_screen = {
-	.name = "satellites", .flags = SF_LIST | SF_NUMBERED | SF_FIELD, .prefix = TRN("Satellites"),
-	.hint = TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  # Delete" TEXT_ALT_NEXT "OK passes  # Delete" TEXT_ALT_NEXT "OK passes  Hold OK track" TEXT_ALT_CLOSE),
+	.name = "satellites", .flags = SF_LIST | SF_NUMBERED | SF_FIELD | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = TRN("Satellites"),
+	.hint = CONFIG_SAT_ALERT ? TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  * Alert  # Delete" TEXT_ALT_NEXT "OK passes  * Alert  # Delete" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_CLOSE) :
+		TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  # Delete" TEXT_ALT_NEXT "OK passes  # Delete" TEXT_ALT_NEXT "OK passes  Hold OK track" TEXT_ALT_CLOSE),
 	.empty = TRN("No satellites stored. Load them over the cable: rfoundry_debug.py sat"),
 	.count = list_count, .item = list_item, .select = list_select, .title = list_title, .body = list_body,
 	.enter = list_enter, .key = list_key,
@@ -368,6 +450,10 @@ static void passes_item(uint16_t row, ui_item_t *it)
 	sb_str(&b, "  ");
 	sb_i32(&b, p.max_el);
 	sb_str(&b, GLYPH_DEGREE);
+#if CONFIG_SAT_ALERT
+	if (ui_svc_sat_alert_get(open_norad) || ui_svc_sat_pass_alert(open_norad, p.aos))
+		alert_mark(it->label, sizeof it->label);
+#endif
 	// "↘ NW→SE 13m", narrower "NW→SE 13m", then "13m"
 	char way[16];
 	sbuf_t w;
@@ -414,18 +500,34 @@ static void passes_select(uint16_t row, bool hold)
 	ui_push(SCR_SAT_TRACK, 0);
 }
 
-// Left, Right or #: ask whether to delete the satellite these are the passes of
+// #: ask whether to delete the satellite these are the passes of; Left, Right or *: alert for the pass in focus, or not
 static bool passes_key(const input_event_t *ev)
 {
-	if (ev->gesture != GESTURE_PRESS || (ev->action != ACT_NAV_LEFT && ev->action != ACT_NAV_RIGHT && ev->action != ACT_CONTEXT) || open_norad == 0)
+	if (ev->gesture != GESTURE_PRESS || open_norad == 0)
 		return false;
-	del_ask(open_norad, open_name, true);
-	return true;
+	if (ev->action == ACT_CONTEXT) {
+		del_ask(open_norad, open_name, true);
+		return true;
+	}
+#if CONFIG_SAT_ALERT
+	if (ev->action == ACT_NAV_LEFT || ev->action == ACT_NAV_RIGHT || ev->action == ACT_QUICK) {
+		uint16_t row = ui_frame()->focus;
+		if (divider >= 0 && row == (uint16_t)divider)
+			return true;
+		uint16_t k = (uint16_t)(row - (divider >= 0 && row > (uint16_t)divider));
+		ui_sat_pass_t p;
+		if (k < npass && ui_svc_sat_pass((uint8_t)k, &p))
+			alert_toggle_pass(open_norad, open_name, p.aos);
+		return true;
+	}
+#endif
+	return false;
 }
 
 const ui_scr_def_t ui_sat_passes_screen = {
 	// Not a field-use screen (P4): looking ahead is planning, and four levels from Home (OK 6 0 OK)
-	.name = "passes", .flags = SF_LIST, .prefix = NULL, .hint = TRN(TEXT_ALT_OPEN "OK track  # Delete  Back" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE),
+	.name = "passes", .flags = SF_LIST | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = NULL, .hint = CONFIG_SAT_ALERT ? TRN(TEXT_ALT_OPEN "OK track  * Alert  # Delete  Back" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE) :
+		TRN(TEXT_ALT_OPEN "OK track  # Delete  Back" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE),
 	.empty = TRN("No pass above the lowest in 24 h (Settings > Location)"),
 	.count = passes_count, .item = passes_item, .select = passes_select, .title = passes_title,
 	.body = passes_body, .key = passes_key,
@@ -787,6 +889,16 @@ static void track_alt_swap(void);	// below, with the Frequency screen
 static bool track_key(const input_event_t *ev)
 {
 	bool press = ev->gesture == GESTURE_PRESS, repeat = ev->gesture == GESTURE_REPEAT;
+#if CONFIG_SAT_ALERT
+	if (press && (ev->action == ACT_NAV_LEFT || ev->action == ACT_NAV_RIGHT) && trk_aos != 0) {	// Left, Right: alert for this pass
+		status();
+		if (st.utc != 0 && st.utc >= trk_aos)
+			ui_toast(TR("This pass has begun"));
+		else
+			alert_toggle_pass(open_norad, open_name, trk_aos);
+		return true;
+	}
+#endif
 	if (press && ev->action == ACT_DIGIT_3) {	// 3: the pass's Info view, and back
 		trk_info = !trk_info;
 		return true;

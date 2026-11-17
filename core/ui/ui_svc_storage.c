@@ -123,7 +123,7 @@ static bool dmr_id_post(uint32_t id);	// a job: the codeplug write is the housek
 int32_t ui_svc_setting_get(uint8_t id)
 {
 	radio_settings_t rs;
-	settings_t st;
+	const settings_t *st;
 #if CONFIG_KEY_ASSIGN
 	if (id >= UI_SET_KEY_FIRST && id <= UI_SET_KEY_LAST) {
 		return key_get(id);
@@ -146,17 +146,17 @@ int32_t ui_svc_setting_get(uint8_t id)
 			return rs.backlight_dim_s;
 		return rs.rx_save != 0;
 	case UI_SET_VOLUME:
-		settings_read(&st);
-		return radio_volume_step(st.volume);
+		st = settings_view();
+		return radio_volume_step(st->volume);
 	case UI_SET_BRIGHTNESS:
-		settings_read(&st);
-		return st.brightness >= 10 && st.brightness <= 100 ? st.brightness : 100;
+		st = settings_view();
+		return st->brightness >= 10 && st->brightness <= 100 ? st->brightness : 100;
 	case UI_SET_SQUELCH:
-		settings_read(&st);
-		return st.squelch <= 9 ? st.squelch : ui_svc_ram_get(id);
+		st = settings_view();
+		return st->squelch <= 9 ? st->squelch : ui_svc_ram_get(id);
 	case UI_SET_HOTSPOT_AUTO:
-		settings_read(&st);
-		return st.hotspot_allowed != 0;
+		st = settings_view();
+		return st->hotspot_allowed != 0;
 	case UI_SET_REPLY_S:
 		radio_get_settings(&rs);
 		return ui_svc_reply_shown(&rs);
@@ -181,61 +181,67 @@ int32_t ui_svc_setting_get(uint8_t id)
 		return rs.bcast_step == RADIO_BCAST_STEP_100 ? 100 : 200;
 #endif
 	case UI_SET_MIC_GAIN:
-		settings_read(&st);
-		return st.mic_gain <= 10 ? st.mic_gain : 5;
+		st = settings_view();
+		return st->mic_gain <= 10 ? st->mic_gain : 5;
 	case UI_SET_REF_TRIM:
-		settings_read(&st);
-		return ref_trim_clamp(st.ref_trim_ppb);
+		st = settings_view();
+		return ref_trim_clamp(st->ref_trim_ppb);
 #if CONFIG_SAT
 	case UI_SET_UTC_OFFSET:
-		settings_read(&st);
-		return utc_offset_clamp(st.utc_offset_min);
+		st = settings_view();
+		return utc_offset_clamp(st->utc_offset_min);
 	case UI_SET_SAT_MIN_EL:
-		settings_read(&st);
-		return st.sat_min_el == 0 ? ui_svc_ram_get(id) : clamp16(st.sat_min_el - 1, 0, 90);
+		st = settings_view();
+		return st->sat_min_el == 0 ? ui_svc_ram_get(id) : clamp16(st->sat_min_el - 1, 0, 90);
 	case UI_SET_SAT_UTC:
-		settings_read(&st);
-		return (st.sat_flags & SETTINGS_SAT_UTC) != 0;
+		st = settings_view();
+		return (st->sat_flags & SETTINGS_SAT_UTC) != 0;
+	case UI_SET_SAT_ALERT_LEAD:
+		st = settings_view();
+		return st->sat_alert_lead == 0 ? 5 : st->sat_alert_lead - 1;
+	case UI_SET_SAT_ALERT_QUIET:
+		st = settings_view();
+		return (st->sat_flags & SETTINGS_SAT_QUIET) != 0;
 	case UI_SET_SAT_ALT_NORAD:
-		settings_read(&st);
-		return (int32_t)st.sat_alt_norad;
+		st = settings_view();
+		return (int32_t)st->sat_alt_norad;
 	case UI_SET_SAT_ALT_HZ:
-		settings_read(&st);
-		return (int32_t)st.sat_alt_hz;
+		st = settings_view();
+		return (int32_t)st->sat_alt_hz;
 #endif
 	case UI_SET_VFO_STEP:
-		settings_read(&st);
-		return st.vfo_step_hz >= 1000u && st.vfo_step_hz <= 1000000u ? (int32_t)(st.vfo_step_hz / 10u) : 0;
+		st = settings_view();
+		return st->vfo_step_hz >= 1000u && st->vfo_step_hz <= 1000000u ? (int32_t)(st->vfo_step_hz / 10u) : 0;
 #if CONFIG_DUAL_WATCH
 	case UI_SET_DUAL_B: {
-		settings_read(&st);
-		if (st.dual_b > UI_DUAL_B_VFO2)
+		st = settings_view();
+		if (st->dual_b > UI_DUAL_B_VFO2)
 			return 0;
-		return st.dual_b | ((st.dual_state & SETTINGS_DUAL_ON) ? UI_DUAL_ON : 0) |
-		       ((st.dual_state & SETTINGS_DUAL_B_SEL) ? UI_DUAL_B_SEL : 0);
+		return st->dual_b | ((st->dual_state & SETTINGS_DUAL_ON) ? UI_DUAL_ON : 0) |
+		       ((st->dual_state & SETTINGS_DUAL_B_SEL) ? UI_DUAL_B_SEL : 0);
 	}
 #endif
 	case UI_SET_AUTO_LOCK_S:
-		settings_read(&st);
-		return st.auto_lock_s;
+		st = settings_view();
+		return st->auto_lock_s;
 	case UI_SET_LONG_PRESS_MS:
-		settings_read(&st);
-		return st.long_press_ms != 0 ? st.long_press_ms : ui_svc_ram_get(id);
+		st = settings_view();
+		return st->long_press_ms != 0 ? st->long_press_ms : ui_svc_ram_get(id);
 	case UI_SET_REPEAT_MS:
-		settings_read(&st);
-		return st.repeat_ms != 0 ? st.repeat_ms : ui_svc_ram_get(id);
+		st = settings_view();
+		return st->repeat_ms != 0 ? st->repeat_ms : ui_svc_ram_get(id);
 	case UI_SET_GPS:
-		settings_read(&st);
-		return st.gps != 0;
+		st = settings_view();
+		return st->gps != 0;
 	case UI_SET_POS_FORMAT:
-		settings_read(&st);
-		return st.pos_format <= 2 ? st.pos_format : 0;
+		st = settings_view();
+		return st->pos_format <= 2 ? st->pos_format : 0;
 	case UI_SET_POS_SEND_S:
-		settings_read(&st);
-		return st.pos_send_s;
+		st = settings_view();
+		return st->pos_send_s;
 	case UI_SET_LANGUAGE:
-		settings_read(&st);
-		return (int32_t)((uint8_t)st.lang[0] << 8 | (uint8_t)st.lang[1]);
+		st = settings_view();
+		return (int32_t)((uint8_t)st->lang[0] << 8 | (uint8_t)st->lang[1]);
 	case UI_SET_LARGE_TEXT:
 	case UI_SET_HINTS:
 	case UI_SET_MESSAGE_TONE:
@@ -245,50 +251,50 @@ int32_t ui_svc_setting_get(uint8_t id)
 #if CONFIG_DUAL_WATCH
 	case UI_SET_DUAL_TALK_BACK:
 #endif
-		settings_read(&st);
-		return (st.ui_flags & ui_flag(id)) != 0;
+		st = settings_view();
+		return (st->ui_flags & ui_flag(id)) != 0;
 	case UI_SET_VIBRATE:
-		settings_read(&st);
-		return (st.ui_flags & SETTINGS_UI_NO_VIBRATE) == 0;
+		st = settings_view();
+		return (st->ui_flags & SETTINGS_UI_NO_VIBRATE) == 0;
 	case UI_SET_THEME:
-		settings_read(&st);
-		return settings_theme(&st);
+		st = settings_view();
+		return settings_theme(st);
 	case UI_SET_ACCENT:
-		settings_read(&st);
-		return st.accent & SETTINGS_ACCENT_COLOR;
+		st = settings_view();
+		return st->accent & SETTINGS_ACCENT_COLOR;
 	case UI_SET_STRIP:
-		settings_read(&st);
-		return (st.accent & SETTINGS_ACCENT_PLAIN) == 0;
+		st = settings_view();
+		return (st->accent & SETTINGS_ACCENT_PLAIN) == 0;
 	case UI_SET_UPDOWN_HOME:
-		settings_read(&st);
-		return settings_updown_home(&st);
+		st = settings_view();
+		return settings_updown_home(st);
 	case UI_SET_LOW_BATTERY:
-		settings_read(&st);
-		return st.low_batt_pct;
+		st = settings_view();
+		return st->low_batt_pct;
 	case UI_SET_AUTO_OFF_MIN:
-		settings_read(&st);
-		return st.auto_off_min;
+		st = settings_view();
+		return st->auto_off_min;
 	case UI_SET_TALK_PERMIT:
 		radio_get_settings(&rs);
 		return rs.talk_permit;
 	case UI_SET_TFTP_WRITE:
-		settings_read(&st);
-		return (st.net_flags & SETTINGS_NET_TFTP_NO_WRITE) == 0;
+		st = settings_view();
+		return (st->net_flags & SETTINGS_NET_TFTP_NO_WRITE) == 0;
 #if CONFIG_ZONE_SHARE
 	case UI_SET_ZONE_OFFERS:
-		settings_read(&st);
-		return settings_zs_accept(&st);
+		st = settings_view();
+		return settings_zs_accept(st);
 #endif
 #if CONFIG_DMR
 	case UI_SET_DMR_ID:
 		return (int32_t)codeplug_dmr_id();
 #endif
 	case UI_SET_NOISE_REDUCTION:
-		settings_read(&st);
-		return (st.accent & SETTINGS_AUDIO_NO_NOISE_REDUCTION) == 0;
+		st = settings_view();
+		return (st->accent & SETTINGS_AUDIO_NO_NOISE_REDUCTION) == 0;
 	case UI_SET_MIC_AGC:
-		settings_read(&st);
-		return (st.accent & SETTINGS_AUDIO_AGC) != 0;
+		st = settings_view();
+		return (st->accent & SETTINGS_AUDIO_AGC) != 0;
 #if CONFIG_DMR_ROAMING
 	case UI_SET_ROAM_SURVEY:
 	case UI_SET_ROAM_BEACON_S:
@@ -300,11 +306,11 @@ int32_t ui_svc_setting_get(uint8_t id)
 #endif
 #if CONFIG_DMR_PRIVACY
 	case UI_SET_PRIVACY_TYPE:
-		settings_read(&st);
-		return st.privacy_type[0] < DMR_PRIVACY_NUM_TYPES ? st.privacy_type[0] : DMR_PRIVACY_OFF;
+		st = settings_view();
+		return st->privacy_type[0] < DMR_PRIVACY_NUM_TYPES ? st->privacy_type[0] : DMR_PRIVACY_OFF;
 	case UI_SET_PRIVACY_KEY:
-		settings_read(&st);
-		return (int32_t)(st.privacy_key[0] & 0xFFFFu);
+		st = settings_view();
+		return (int32_t)(st->privacy_key[0] & 0xFFFFu);
 #endif
 #if CONFIG_DMR_DATA_CORE
 	case UI_SET_CHECK_REPLY:
@@ -321,27 +327,65 @@ int32_t ui_svc_setting_get(uint8_t id)
 #endif
 #if CONFIG_CRASH_REPORT
 	case UI_SET_CRASH_MODE:
-		settings_read(&st);
-		return settings_crash_mode(&st) <= UI_CRASH_SEND_AUTO ? settings_crash_mode(&st) : UI_CRASH_SEND_OFF;
+		st = settings_view();
+		return settings_crash_mode(st) <= UI_CRASH_SEND_AUTO ? settings_crash_mode(st) : UI_CRASH_SEND_OFF;
 	case UI_SET_CRASH_CONTACT:
-		settings_read(&st);
-		return settings_crash_contact(&st);
+		st = settings_view();
+		return settings_crash_contact(st);
 #endif
 #if CONFIG_USB_NETWORK && CONFIG_HOSTLINK
 	case UI_SET_USB_BOOT_NET:
-		settings_read(&st);
-		return st.usb_mode == 1;
+		st = settings_view();
+		return st->usb_mode == 1;
 	case UI_SET_PC_ENDPOINT:
-		settings_read(&st);
-		return (st.net_flags & SETTINGS_NET_PASSTHROUGH) != 0;
+		st = settings_view();
+		return (st->net_flags & SETTINGS_NET_PASSTHROUGH) != 0;
 	case UI_SET_USB_FIXED_LINK:
-		settings_read(&st);
-		return (st.net_flags & SETTINGS_NET_FIXED_LINK) != 0;
+		st = settings_view();
+		return (st->net_flags & SETTINGS_NET_FIXED_LINK) != 0;
 #endif
 	default:
 		return ui_svc_ram_get(id);
 	}
 }
+
+#if CONFIG_SAT
+// The satellites marked to alert on every pass (settings_t.sat_alert_norad, six of them)
+bool ui_svc_sat_alert_get(uint32_t norad)
+{
+	settings_t st;
+	settings_read(&st);
+	for (unsigned i = 0; i < 6; i++)
+		if (norad != 0 && st.sat_alert_norad[i] == norad)
+			return true;
+	return false;
+}
+
+bool ui_svc_sat_alert_set(uint32_t norad, bool on)
+{
+	if (norad == 0)
+		return false;
+	settings_t *st = settings_begin();
+	int slot = -1;
+	bool done = false;
+	for (unsigned i = 0; i < 6; i++) {
+		if (st->sat_alert_norad[i] == norad) {
+			if (!on)
+				st->sat_alert_norad[i] = 0;
+			done = true;
+			slot = (int)i;
+		} else if (st->sat_alert_norad[i] == 0 && slot < 0) {
+			slot = (int)i;
+		}
+	}
+	if (on && !done && slot >= 0) {
+		st->sat_alert_norad[slot] = norad;
+		done = true;
+	}
+	settings_end(hal_millis());
+	return on ? done : true;
+}
+#endif
 
 bool ui_svc_setting_set(uint8_t id, int32_t value)
 {
@@ -459,6 +503,16 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 	case UI_SET_SAT_UTC:
 		st = settings_begin();
 		st->sat_flags = (uint8_t)(value != 0 ? st->sat_flags | SETTINGS_SAT_UTC : st->sat_flags & ~SETTINGS_SAT_UTC);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_ALERT_LEAD:
+		st = settings_begin();
+		st->sat_alert_lead = (uint8_t)(clamp16(value, 0, 30) + 1);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_SAT_ALERT_QUIET:
+		st = settings_begin();
+		st->sat_flags = (uint8_t)(value != 0 ? st->sat_flags | SETTINGS_SAT_QUIET : st->sat_flags & ~SETTINGS_SAT_QUIET);
 		settings_end(hal_millis());
 		return true;
 	case UI_SET_SAT_ALT_NORAD:

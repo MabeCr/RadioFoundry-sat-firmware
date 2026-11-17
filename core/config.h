@@ -279,6 +279,10 @@
 #ifndef CONFIG_SAT_SOUND
 #define CONFIG_SAT_SOUND		0
 #endif
+// Pass alerts: the banner and tone, the marks and their settings (core/sat/sat_alert.c). Needs CONFIG_SAT (features.mk checks); on with it
+#ifndef CONFIG_SAT_ALERT
+#define CONFIG_SAT_ALERT		CONFIG_SAT
+#endif
 #ifndef CONFIG_NET_KISS
 #define CONFIG_NET_KISS			(CONFIG_NET_TCP && CONFIG_APRS)
 #endif

@@ -548,7 +548,7 @@ static void banner(uint8_t kind, bool warn, uint32_t id, const char *title, cons
 	b->kind = kind;
 	b->warn = warn;
 	b->id = id;
-	b->hold = kind == UI_BANNER_ZONE_OFFER;	// the offer is the user's to answer, not to miss
+	b->hold = kind == UI_BANNER_ZONE_OFFER || kind == UI_BANNER_SAT_PASS;	// the offer, and a pass about to rise, are not to miss
 	b->until_ms = now + BANNER_MS;
 	strncpy(b->title, title, sizeof b->title - 1);
 	b->title[sizeof b->title - 1] = 0;
@@ -699,6 +699,27 @@ static void handle_event(const ui_event_t *ev)
 			ui_svc_beep(UI_BEEP_MESSAGE);
 		vibrate(UI_VIBE_MESSAGE);
 		break;
+#if CONFIG_SAT_ALERT
+	case UI_EV_SAT_PASS: {
+		// "SO-50" over "Rises in 5 min, 71°": the pass is the user's to follow (#) or to leave (Back)
+		static char text[UI_BANNER_TEXT];
+		sbuf_t t;
+		sb_init(&t, text, sizeof text);
+		sb_str(&t, TR("Rises in"));
+		sb_chr(&t, ' ');
+		sb_u32(&t, (ev->ms + 30u) / 60u, 1);
+		sb_str(&t, " min, ");
+		sb_i32(&t, (int32_t)ev->index);
+		sb_str(&t, GLYPH_DEGREE);
+		sb_str(&b, ev->name[0] ? ev->name : "?");
+		banner(UI_BANNER_SAT_PASS, false, ev->id, title, text);
+		if (ui_svc_setting_get(UI_SET_SAT_ALERT_QUIET) == 0 && view->state == RS_IDLE) {	// not over a transmission or a call
+			ui_svc_beep(UI_BEEP_MESSAGE);
+			vibrate(UI_VIBE_MESSAGE);
+		}
+		break;
+	}
+#endif
 	case UI_EV_ZONE_SENT:
 		sb_str(&b, ev->ok ? TR("Sent to ") : TR("Not sent to "));
 		if (ev->index && !ev->name[0])
@@ -738,6 +759,12 @@ static void banner_open(void)
 	b->kind = UI_BANNER_NONE;
 	if (kind == UI_BANNER_MESSAGE)
 		ui_push(SCR_MESSAGE, msg);
+#if CONFIG_SAT_ALERT
+	else if (kind == UI_BANNER_SAT_PASS) {
+		if (!ui_sat_track_pass(t.id))
+			ui_toast(TR("No pass to track"));
+	}
+#endif
 #if CONFIG_ZONE_SHARE
 	else if (kind == UI_BANNER_ZONE_OFFER)
 		ui_push(SCR_OFFER, 0);

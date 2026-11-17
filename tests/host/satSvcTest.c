@@ -286,6 +286,42 @@ int main(void)
 	CHECK(again <= 1 && sat_svc_state() == SAT_SVC_READY);
 	CHECK(row_of(25544, &row) >= 0 && row.aos == aos_kept && row.state != SAT_ROW_WORKING);
 	CHECK(sat_svc_position(&lat_e7, &lon_e7) && lat_e7 == -339000000 && lon_e7 == 184000000);
+	// Pass alerts: a satellite marked for every pass alerts once, a lead time before its rise; a marked single pass alerts
+	// once and its mark is spent; an unmarked one never does
+	in.now = t0;
+	settle(60);
+	sat_svc_alert_t al;
+	CHECK(row_of(25544, &row) >= 0 && row.state == SAT_ROW_NEXT);
+	uint32_t iss_aos = row.aos;
+	int8_t iss_el = row.max_el;
+	in.alert_lead_s = 300;
+	in.now = (double)iss_aos - 200.0;
+	settle(60);
+	CHECK(!sat_svc_alert_take(&al));		// nothing marked
+	in.alert_norad[0] = 25544;
+	in.now = (double)iss_aos - 600.0;
+	settle(60);
+	CHECK(!sat_svc_alert_take(&al));		// marked, not yet within the lead time
+	in.now = (double)iss_aos - 200.0;
+	settle(60);
+	CHECK(sat_svc_alert_take(&al) && al.norad == 25544 && al.aos == iss_aos && al.max_el == iss_el);
+	CHECK(!sat_svc_alert_take(&al));
+	settle(60);
+	CHECK(!sat_svc_alert_take(&al));		// once
+	in.alert_norad[0] = 0;
+	CHECK(row_of(27607, &row) >= 0 && row.state == SAT_ROW_NEXT);
+	uint32_t so_aos = row.aos;
+	CHECK(!sat_svc_pass_alert_marked(27607, so_aos));
+	sat_svc_pass_alert_toggle(27607, so_aos);
+	CHECK(sat_svc_pass_alert_marked(27607, so_aos));	// asked for counts at once
+	in.now = (double)so_aos - 100.0;
+	settle(60);
+	CHECK(sat_svc_alert_take(&al) && al.norad == 27607 && al.aos == so_aos);
+	CHECK(!sat_svc_pass_alert_marked(27607, so_aos));	// spent
+	in.alert_lead_s = 0;
+	in.now = t0;
+	settle(60);
+
 	// Without time it still stops
 	in.time_ok = false;
 	sat_svc_poll(&in, 1);

@@ -1873,11 +1873,69 @@ bool ui_svc_sat_get(uint8_t i, ui_sat_t *out)
 	return false;
 }
 
+// Pass alerts: the satellites marked for every pass (six) and the single passes marked (four), in RAM
+static uint32_t sim_alert_sat[6];
+static struct { uint32_t norad, aos; } sim_alert_pass[4];
+
+bool ui_svc_sat_alert_get(uint32_t norad)
+{
+	for (unsigned i = 0; i < 6; i++)
+		if (norad != 0 && sim_alert_sat[i] == norad)
+			return true;
+	return false;
+}
+
+bool ui_svc_sat_alert_set(uint32_t norad, bool on)
+{
+	for (unsigned i = 0; i < 6; i++) {
+		if (sim_alert_sat[i] == norad) {
+			if (!on)
+				sim_alert_sat[i] = 0;
+			return true;
+		}
+	}
+	for (unsigned i = 0; on && i < 6; i++) {
+		if (sim_alert_sat[i] == 0) {
+			sim_alert_sat[i] = norad;
+			return true;
+		}
+	}
+	return !on;
+}
+
+void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos)
+{
+	for (unsigned i = 0; i < 4; i++) {
+		if (sim_alert_pass[i].norad == norad && sim_alert_pass[i].aos == aos) {
+			sim_alert_pass[i].norad = 0;
+			return;
+		}
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		if (sim_alert_pass[i].norad == 0) {
+			sim_alert_pass[i].norad = norad;
+			sim_alert_pass[i].aos = aos;
+			return;
+		}
+	}
+}
+
+bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
+{
+	for (unsigned i = 0; i < 4; i++)
+		if (sim_alert_pass[i].norad == norad && sim_alert_pass[i].aos == aos)
+			return true;
+	return false;
+}
+
+bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
+
 void ui_svc_sat_delete(uint32_t norad)
 {
 	for (unsigned k = 0; k < SAT_SIM_ROWS; k++)
 		if (sim_sat_rows[k].norad == norad)
 			sat_sim.gone |= 1u << k;
+	(void)ui_svc_sat_alert_set(norad, false);
 }
 
 void ui_svc_sat_refresh(void) {}
@@ -2213,6 +2271,8 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 #endif
 #if CONFIG_SAT
 	memset(&sat_sim, 0, sizeof sat_sim);
+	memset(sim_alert_sat, 0, sizeof sim_alert_sat);
+	memset(sim_alert_pass, 0, sizeof sim_alert_pass);
 	sat_sim.state = UI_SAT_READY;
 	ui_svc_setting_set(UI_SET_UTC_OFFSET, -360);	// UTC-6, as the mockups
 	ui_svc_setting_set(UI_SET_SAT_MIN_EL, 10);
@@ -2802,6 +2862,18 @@ static bool run_token(char *t, char *err, size_t len)
 	}
 #endif
 #if CONFIG_SAT
+	if (strcmp(t, "satalert") == 0) {	// a marked pass is about to rise: SO-50, 5 minutes, up to 71 degrees (the banner)
+		ui_event_t ev;
+		memset(&ev, 0, sizeof ev);
+		ev.kind = UI_EV_SAT_PASS;
+		ev.id = 27607;
+		ev.index = 71;
+		ev.ms = 300;
+		strncpy(ev.name, "SO-50", sizeof ev.name - 1);
+		ui_notify(&ev);
+		advance(300);
+		return true;
+	}
 	if (strcmp(t, "sat") == 0 && arg != NULL) {	// sat:notime, sat:nopos, sat:empty, sat:working (see sat_sim)
 		if (strcmp(arg, "notime") == 0)
 			sat_sim.state = UI_SAT_NO_TIME;
