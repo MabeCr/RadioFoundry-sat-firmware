@@ -99,6 +99,8 @@ void gfx_icon_battery(int x, int y, int w, int h, uint8_t pct, color_t outline, 
 // Signal bars: count bars of rising height in a w x h box, lit = how many are on
 // A GPS icon d pixels square: a rounded square, solid with a fix and hollow while searching
 void gfx_icon_gps(int x, int y, int d, bool fix, color_t c);
+// A satellite d high and 3 d / 2 wide: a body with a tall solar panel either side
+void gfx_icon_satellite(int x, int y, int d, color_t c);
 void gfx_icon_bars(int x, int y, int w, int h, uint8_t count, uint8_t lit, color_t on, color_t off);
 // A filled pill with text, padded; returns its width
 int gfx_pill(const font_t *f, int x, int y, int h, const char *s, color_t fg, color_t bg);

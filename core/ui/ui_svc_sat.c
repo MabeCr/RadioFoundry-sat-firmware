@@ -91,6 +91,21 @@ void ui_svc_sat_alert_poll(void)
 	(void)ui_notify(&ev);
 }
 
+uint32_t ui_svc_sat_alert_eta(void)
+{
+	static ui_sat_status_t stt;	// static: the strip is drawn on the UI task's small stack
+	static ui_sat_t row;
+	if (ui_svc_setting_get(UI_SET_SAT_ALERT_LEAD) == 0 || !ui_svc_sat_status(&stt) || stt.utc == 0)
+		return UI_SAT_ETA_NONE;
+	uint32_t best = UI_SAT_ETA_NONE, aos;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &row); i++)
+		if (row.state == UI_SAT_NEXT && row.aos > stt.utc && row.aos - stt.utc < best && ui_svc_sat_alert_get(row.norad))
+			best = row.aos - stt.utc;
+	if (sat_svc_alert_next_mark(stt.utc, &aos) && aos - stt.utc < best)
+		best = aos - stt.utc;
+	return best;
+}
+
 bool ui_svc_sat_alert_take(ui_sat_alert_t *out)
 {
 	sat_svc_alert_t a;

@@ -1930,6 +1930,22 @@ bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
 
 bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
 
+uint32_t ui_svc_sat_alert_eta(void)
+{
+	ui_sat_status_t st;
+	if (ui_svc_setting_get(UI_SET_SAT_ALERT_LEAD) == 0 || !ui_svc_sat_status(&st) || st.utc == 0)
+		return UI_SAT_ETA_NONE;
+	uint32_t best = UI_SAT_ETA_NONE;
+	ui_sat_t row;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &row); i++)
+		if (row.state == UI_SAT_NEXT && row.aos > st.utc && row.aos - st.utc < best && ui_svc_sat_alert_get(row.norad))
+			best = row.aos - st.utc;
+	for (unsigned i = 0; i < 4; i++)
+		if (sim_alert_pass[i].norad != 0 && sim_alert_pass[i].aos > st.utc && sim_alert_pass[i].aos - st.utc < best)
+			best = sim_alert_pass[i].aos - st.utc;
+	return best;
+}
+
 void ui_svc_sat_delete(uint32_t norad)
 {
 	for (unsigned k = 0; k < SAT_SIM_ROWS; k++)

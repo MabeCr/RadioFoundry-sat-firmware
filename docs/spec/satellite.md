@@ -302,6 +302,9 @@ RTOS: `sat_svc_poll` gives it the time, and it answers `sat_alert_due`.
 - **What shows:** a banner that waits to be answered (`UI_BANNER_SAT_PASS`): the name over "Rises in 5 min, 71°", `#`
   tracks the pass, Back hides it. The tone and the vibration play unless `Silent pass alerts` is on or the radio is
   receiving or transmitting (not `RS_IDLE`).
+- **The strip's icon:** `ui_svc_sat_alert_eta` gives the seconds to the soonest marked pass (a marked satellite by its next pass,
+  plus `sat_svc_alert_next_mark` for single passes); the status strip shows a satellite while there is one, in the warning color
+  once it is within the lead time.
 - **Deleting a satellite** takes its marks with it. A satellite is marked when it shows " *" after its name in the list.
 - Needs the time and the observer like every pass: without them nothing alerts. The radio has to be on.
 

@@ -729,6 +729,13 @@
     "SAT"
    ]
   },
+  "home_pass_marked": {
+   "group": "home",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
+   ]
+  },
   "satellite_alert_mark": {
    "group": "tools",
    "needs": [

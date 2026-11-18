@@ -493,6 +493,22 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		gfx_icon_gps(rx, ty + f->ascent - gd, gd, gps == 2, gps == 2 ? (filled ? sfg : ui_col.rx) : swarn);
 	}
 
+#if CONFIG_SAT_ALERT
+	// A marked pass is coming: a satellite, in the warning color once the alert is due (within the lead time)
+	{
+		uint32_t eta = ui_svc_sat_alert_eta();
+#if CONFIG_DUAL_WATCH
+		if (s->dual.on)
+			eta = UI_SAT_ETA_NONE;
+#endif
+		if (eta != UI_SAT_ETA_NONE && !merged) {
+			int sd = ih < 5 ? 5 : ih;
+			rx -= sd * 3 / 2 + f->w;
+			gfx_icon_satellite(rx, ty + f->ascent - sd, sd,
+					   eta <= (uint32_t)ui_svc_setting_get(UI_SET_SAT_ALERT_LEAD) * 60u ? swarn : (filled ? sfg : ui_col.rx));
+		}
+	}
+#endif
 	if (merged) {
 		color_t dim = ui_col.dim;
 		if (filled)

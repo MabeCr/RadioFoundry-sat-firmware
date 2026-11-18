@@ -53,6 +53,12 @@ a hollow square with a dot in the warning color while it receives without a fix;
 with a fix (on a filled strip, in the strip's text color). Shape and color both say which (P5). It sits left of the lock
 and the unread count, so it gives way first on a narrow strip.
 
+The strip's satellite mark (`gfx_icon_satellite`, `CONFIG_SAT_ALERT`, state from `ui_svc_sat_alert_eta`): a small satellite
+(a body with a tall panel either side) while a pass alert is coming, that is, a marked satellite's next pass or a marked pass
+lies ahead and `Pass alert` is not 0 ([satellite.md](satellite.md) 5.4), in the receive color (the strip's text color on a
+filled strip), and in the warning color once the alert is due (within the lead time). It sits left of the GPS mark, is not
+drawn on a strip that holds a screen's title or while dual watch is on, and gives way to the mode word when there is no room.
+
 The hint row is groups separated by two spaces (`"OK open  # more  Back"`). The group for the Back key (it starts with
 "Back") is drawn against the right edge, under the key; the other groups run from the left, and those that don't fit
 are left out whole from the right. A toast is one centered line instead. A banner or a two-line toast starts in a gap

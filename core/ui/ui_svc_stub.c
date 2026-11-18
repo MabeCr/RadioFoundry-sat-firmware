@@ -79,6 +79,7 @@ WEAK bool ui_svc_sat_alert_set(uint32_t norad, bool on) { (void)norad; (void)on;
 WEAK void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos) { (void)norad; (void)aos; }
 WEAK bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos) { (void)norad; (void)aos; return false; }
 WEAK bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
+WEAK uint32_t ui_svc_sat_alert_eta(void) { return UI_SAT_ETA_NONE; }
 WEAK void ui_svc_sat_alert_poll(void) { }
 WEAK void ui_svc_sat_delete(uint32_t norad) { (void)norad; }
 WEAK void ui_svc_sat_open(uint32_t norad) { (void)norad; }

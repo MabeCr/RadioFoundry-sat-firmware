@@ -104,6 +104,8 @@ bool sat_svc_alert_take(sat_svc_alert_t *out);
 void sat_svc_pass_alert_toggle(uint32_t norad, uint32_t aos);
 // Is that pass marked (a request not yet done counts)
 bool sat_svc_pass_alert_marked(uint32_t norad, uint32_t aos);
+// The rise of the soonest single pass marked that is still ahead of now (UTC seconds); false when none is
+bool sat_svc_alert_next_mark(uint32_t now, uint32_t *aos);
 // Satellite norad's passes for the passes screen; 0 closes them
 void sat_svc_open(uint32_t norad);
 // One slice of work: about budget runs of the model (a pass search may finish past it). True while work remains, so

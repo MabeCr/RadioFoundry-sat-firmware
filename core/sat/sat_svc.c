@@ -125,6 +125,19 @@ void sat_svc_pass_alert_toggle(uint32_t norad, uint32_t aos)
 	toggle_norad = norad;	// last: the poll acts on a nonzero satellite
 }
 
+bool sat_svc_alert_next_mark(uint32_t now, uint32_t *aos)
+{
+	bool any = false;
+	for (unsigned i = 0; i < SAT_ALERT_PASS_MARKS; i++) {
+		uint32_t a = alert.marks[i].aos;
+		if (alert.marks[i].norad != 0 && a > now && (!any || a < *aos)) {
+			*aos = a;
+			any = true;
+		}
+	}
+	return any;
+}
+
 bool sat_svc_pass_alert_marked(uint32_t norad, uint32_t aos)
 {
 	bool m = sat_alert_marked(&alert, norad, aos);

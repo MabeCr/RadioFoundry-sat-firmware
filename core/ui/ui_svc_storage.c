@@ -353,10 +353,9 @@ int32_t ui_svc_setting_get(uint8_t id)
 // The satellites marked to alert on every pass (settings_t.sat_alert_norad, six of them)
 bool ui_svc_sat_alert_get(uint32_t norad)
 {
-	settings_t st;
-	settings_read(&st);
+	const settings_t *st = settings_view();		// in place: no copy of the settings on the UI task's stack
 	for (unsigned i = 0; i < 6; i++)
-		if (norad != 0 && st.sat_alert_norad[i] == norad)
+		if (norad != 0 && st->sat_alert_norad[i] == norad)
 			return true;
 	return false;
 }
