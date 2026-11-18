@@ -220,6 +220,11 @@ switch = "SAT_SOUND"
 spec = "docs/spec/sound-transfer.md"
 source = ["core/sat/sat_sound.c", "core/sat/sat_sound_apply.c", "core/sat/sat_sound_rcv.c"]
 
+[feature.sat_splash]
+switch = "SAT_SPLASH"
+spec = "docs/spec/ui.md"
+source = ["core/ui/ui_screens.c"]
+
 # ── Host link and USB ──
 
 [feature.usb]
