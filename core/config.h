@@ -276,6 +276,10 @@
 #endif
 // Element sets by sound (core/sat/sat_sound_rx.c, docs/spec/sound-transfer.md): receive satellites played at the
 // microphone. Needs CONFIG_SAT, CONFIG_DMR and CONFIG_APRS (features.mk checks). Off by default
+// The boot splash's mark with a satellite above the radio (core/ui/ui_screens.c). Needs CONFIG_SAT; on with it
+#ifndef CONFIG_SAT_SPLASH
+#define CONFIG_SAT_SPLASH		CONFIG_SAT
+#endif
 #ifndef CONFIG_SAT_SOUND
 #define CONFIG_SAT_SOUND		0
 #endif

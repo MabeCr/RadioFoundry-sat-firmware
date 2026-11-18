@@ -742,6 +742,7 @@ void ui_draw_hint(const char *text, bool toast)
 static const color_t ORANGE = RGB565(242, 96, 31), SKY = RGB565(203, 74, 24), CREAM = RGB565(255, 243, 220),
 	BROWN = RGB565(59, 23, 9), AMBER = RGB565(255, 179, 71), PEACH = RGB565(255, 217, 168);
 
+#if !CONFIG_SAT_SPLASH
 static bool in_rrect(int px, int py, int x, int y, int w, int h, int r)
 {
 	if (px < x || px >= x + w || py < y || py >= y + h)
@@ -793,6 +794,71 @@ static int mark_color(int X, int Y, bool mono, bool small)
 	}
 	return ORANGE;
 }
+
+#endif
+#if CONFIG_SAT_SPLASH
+// The mark of a satellite build: the Tracking screen's sky plot. A round badge with an orange rim, two range rings and a
+// crosshair on dark; the pass as an arc across it, dim where the satellite has flown and bright where it goes, and the
+// satellite on it with a halo. On a 1 bpp panel the badge is solid ink with the lines cut out of it, and a small mark leaves
+// out the inner rings and the satellite's details. Laid out on a 1024 grid like the radio mark, so it scales to every panel
+
+// The satellite, centered cx,cy on the grid and turned 45 degrees: a body with a dish and an antenna, two panels with
+// cell lines on short struts. k/64 is its size. -1: not part of it
+static int sat_icon(int X, int Y, int cx, int cy, int k, bool mono, bool small)
+{
+	int dx = (X - cx) * 64 / k, dy = (Y - cy) * 64 / k;
+	int u = (dx - dy) * 181 / 256, v = (dx + dy) * 181 / 256;	// along the panels, across them
+	int au = u < 0 ? -u : u, av = v < 0 ? -v : v;
+	color_t body = mono ? ui_col.bg : CREAM, det = mono ? ui_col.fg : BROWN, cell = mono ? ui_col.bg : AMBER;
+	if (au < 34 && av < 34) {					// the body, with a dish
+		if (!small && u * u + v * v <= 16 * 16)
+			return mono ? ui_col.fg : AMBER;
+		return body;
+	}
+	if ((v < -30 && v > -86 && au < 5) || (v < -80 && v > -100 && au < 13))	// the antenna and its tip
+		return body;
+	if (au >= 34 && au < 50 && av < 5)				// the struts
+		return body;
+	if (au >= 50 && au < 160 && av < 30) {				// the panels
+		int pu = au - 50;
+		if (!small && (pu % 36 < 5 || (av >= 13 && av < 17)))
+			return det;
+		return cell;
+	}
+	return -1;
+}
+
+// The color at one point of the 1024 grid, or -1 outside the badge
+static int mark_color(int X, int Y, bool mono, bool small)
+{
+	color_t ink = ui_col.fg, paper = ui_col.bg;
+	const int R = 486, SX = 565, SY = 470;		// the badge's radius; the satellite
+	int dx = X - 512, dy = Y - 512, r2 = dx * dx + dy * dy;
+	if (r2 > R * R)
+		return -1;
+	if (r2 >= (R - 30) * (R - 30))				// the rim
+		return mono ? paper : ORANGE;
+	int sx = X - SX, sy = Y - SY, s2 = sx * sx + sy * sy;
+	int c = sat_icon(X, Y, SX, SY, 50, mono, small);
+	if (c >= 0)
+		return c;
+	if (s2 >= 78 * 78 && s2 <= 92 * 92)			// its halo
+		return mono ? paper : PEACH;
+	int ax = X - 20, ay = Y - 1010, a2 = ax * ax + ay * ay;	// the pass: an arc of a circle centered 20,1010
+	if (a2 >= 749 * 749 && a2 <= 771 * 771 && r2 < (R - 44) * (R - 44))
+		return mono ? paper : (X < SX ? SKY : AMBER);
+	for (int ring = 1; ring <= 2; ring++) {			// the rings, a third and two thirds of the way out
+		int rr = ring * ((R - 30) / 3);
+		if (r2 >= (rr - 5) * (rr - 5) && r2 <= (rr + 5) * (rr + 5))
+			return mono ? (small ? ink : paper) : SKY;
+	}
+	if (dx > -5 && dx < 5)					// the crosshair
+		return mono ? ink : SKY;
+	if (dy > -5 && dy < 5)
+		return mono ? ink : SKY;
+	return mono ? ink : BROWN;
+}
+#endif
 
 // r = the hexagon's radius in pixels (the mark is 1.73 r wide and 2 r tall), centered on cx, cy
 static void draw_mark(int cx, int cy, int r)

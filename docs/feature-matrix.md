@@ -249,6 +249,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `SAT_SOUND` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_CHART` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_ALERT` | ○ | ○ | ○ | ○ | ○ | ○ |
+| `SAT_SPLASH` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● |
@@ -313,6 +314,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | Element sets by sound: the AFSK receiver, the store rules and Tools > Satellites > Receive sound | `SAT_SOUND` | — | — | Needs `SAT`, `DMR` and `APRS`. Off by default; on in the DM-32UV and DM-1701 satellite builds. About 3 KB of RAM (the demodulator and the queue); the flash cost is not measured yet. Not tried at a microphone ([sound-transfer](spec/sound-transfer.md)) |
 | The Tracking screen's signal chart (key 2): the receiver's level over the pass | `SAT_CHART` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash and 0.5 KB of RAM. Untried on a real pass ([ui](spec/ui.md)) |
 | Pass alerts: a banner and tone before a marked satellite's or pass's rise, the marks, the alert settings | `SAT_ALERT` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash, 40 bytes in each of six copies of the settings. Untried on a real pass ([satellite](spec/satellite.md)) |
+| The boot splash's mark as the Tracking screen's sky plot | `SAT_SPLASH` | — | — | Needs `SAT`; on with it. Not on a radio yet ([ui](spec/ui.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB

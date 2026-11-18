@@ -228,6 +228,10 @@ source = ["core/sat/sat_sig.c"]
 switch = "SAT_ALERT"
 spec = "docs/spec/satellite.md"
 source = ["core/sat/sat_alert.c"]
+[feature.sat_splash]
+switch = "SAT_SPLASH"
+spec = "docs/spec/ui.md"
+source = ["core/ui/ui_screens.c"]
 
 # ── Host link and USB ──
 
