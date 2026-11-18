@@ -713,7 +713,8 @@ static void handle_event(const ui_event_t *ev)
 		sb_str(&t, GLYPH_DEGREE);
 		sb_str(&b, ev->name[0] ? ev->name : "?");
 		banner(UI_BANNER_SAT_PASS, false, ev->id, title, text);
-		if (ui_svc_setting_get(UI_SET_SAT_ALERT_QUIET) == 0 && view->state == RS_IDLE) {	// not over a transmission or a call
+		// The tone mixes into what is being received, as a message's does; never while transmitting, or into a refused PTT
+		if (ui_svc_setting_get(UI_SET_SAT_ALERT_QUIET) == 0 && view->state != RS_TX && view->state != RS_TX_DENIED) {
 			ui_svc_beep(UI_BEEP_MESSAGE);
 			vibrate(UI_VIBE_MESSAGE);
 		}

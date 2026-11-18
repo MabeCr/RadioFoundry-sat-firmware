@@ -299,7 +299,7 @@ RTOS: `sat_svc_poll` gives it the time, and it answers `sat_alert_due`.
   queues `UI_EV_SAT_PASS`. The alert never costs the satellite task a stack frame for the event.
 - **What shows:** a banner that waits to be answered (`UI_BANNER_SAT_PASS`): the name over "Rises in 5 min, 71°", `#`
   tracks the pass, Back hides it. The tone and the vibration play unless `Silent pass alerts` is on or the radio is
-  receiving or transmitting (not `RS_IDLE`).
+  transmitting; while receiving the tone mixes into the received audio, as a message's does.
 - **The strip's icon:** `ui_svc_sat_alert_eta` gives the seconds to the soonest marked pass (a marked satellite by its next pass,
   plus `sat_svc_alert_next_mark` for single passes); the status strip shows a satellite while there is one, in the warning color
   once it is within the lead time.
