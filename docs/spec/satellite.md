@@ -264,6 +264,14 @@ its place between polls. The UI reads the results without waiting (a sequence co
 | Live (`sat_svc_live`) | the tracked satellite's azimuth, elevation, range and range rate once a second, with the receive and transmit frequencies of its profile corrected for Doppler (4.3) |
 | Path (`sat_svc_path_pt`) | 24 points of azimuth and elevation, evenly from the pass's rise to its set, for the sky plot |
 
+**Pass lists are kept.** Opening a satellite hands the service its catalog number (`sat_svc_open`). The lists of the last
+`CACHE_N` (3) satellites opened are kept, each with how far the search got (`passes_to`): opening one again takes its list
+from there, drops the passes that are over by now and searches on from where it stopped, so a satellite just looked at is
+at once, and a list that lost its first pass finds only the new tail. Any change to the store (a new set, a delete), the
+observer (a move of about a kilometer) or the lowest pass drops them all. A refresh with the store unchanged (the list
+opened again) keeps them. Between the request and the poll that acts on it (up to a second) a different satellite's passes
+read as none and not done ("Working"), never the last one's list.
+
 A reader never waits for a write: the service's task runs below the UI's, so a UI task spinning on a write it had
 preempted would never let it finish (the watchdog caught this once on the radio: UI task, 3 s). It tries 50 times, then
 gives up for that draw and asks again at the next. The slow arithmetic of a result (Doppler, heading) is done before its
