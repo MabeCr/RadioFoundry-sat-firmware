@@ -786,6 +786,7 @@ static int sat_shape(int X, int Y, bool mono, bool small)
 #define SPLASH_STYLE 1
 #endif
 #if SPLASH_STYLE >= 2
+#define big_sat_f big_sat
 static bool in_circle(int X, int Y, int cx, int cy, int r) { return (X - cx) * (X - cx) + (Y - cy) * (Y - cy) <= r * r; }
 
 // A satellite centered cx,cy turned 45 degrees, k/64 of the size of sat_shape's
@@ -859,9 +860,71 @@ static int alt_mark(int X, int Y, bool mono, bool small)
 }
 #endif
 
+#if SPLASH_STYLE >= 4
+// Round badges, drawn from scratch (mockups)
+static int badge_mark(int X, int Y, bool mono, bool small)
+{
+	color_t ink = ui_col.fg, paper = ui_col.bg;
+	int dx = X - 512, dy = Y - 512, r2 = dx * dx + dy * dy;
+	const int R = 486;
+	if (r2 > R * R)
+		return -1;
+#if SPLASH_STYLE == 4
+	// The sky plot of the Tracking screen as the mark: rings, a crosshair, the pass as an arc, the satellite on it
+	if (r2 >= (R - 30) * (R - 30))
+		return mono ? paper : ORANGE;
+	int sx = X - 565, sy = Y - 470;
+	int sc = big_sat_f(X, Y, 565, 470, 50, mono, small);
+	if (sc >= 0)
+		return sc;
+	if (sx * sx + sy * sy <= 92 * 92 && sx * sx + sy * sy >= 78 * 78)
+		return mono ? paper : PEACH;
+	int ax = X - 20, ay = Y - 1010, a2 = ax * ax + ay * ay;
+	if (a2 >= 749 * 749 && a2 <= 771 * 771 && r2 < (R - 44) * (R - 44))
+		return mono ? paper : (X < 565 ? SKY : AMBER);
+	for (int ring = 1; ring <= 2; ring++) {
+		int rr = ring * 150 + 20;
+		if (r2 >= (rr - 5) * (rr - 5) && r2 <= (rr + 5) * (rr + 5))
+			return mono ? (small ? ink : paper) : SKY;
+	}
+	if ((dx > -5 && dx < 5) || (dy > -5 && dy < 5))
+		return mono ? ink : SKY;
+	return mono ? ink : BROWN;
+#else
+	// A retro sunrise: a striped sun on the horizon of a dark badge, an orbit over it with a satellite, stars
+	if (r2 >= (R - 30) * (R - 30))
+		return mono ? paper : ORANGE;
+	int sc = big_sat_f(X, Y, 700, 250, 50, mono, small);
+	if (sc >= 0)
+		return sc;
+	int ox = X - 512, oy = Y - 560, o2 = ox * ox + oy * oy;
+	if (o2 >= 372 * 372 && o2 <= 388 * 388 && Y < 690)
+		return mono ? paper : PEACH;
+	if (Y >= 700)
+		return mono ? ink : ((Y - 700) % 46 < 6 ? SKY : BROWN);
+	if (o2 <= 300 * 300) {
+		int d = Y - 480;
+		if (d > 0 && ((d / 38) % 2 == 0 ? (d % 38 < 12 + d / 12) : false))
+			return mono ? ink : BROWN;
+		return mono ? paper : (Y < 400 ? AMBER : Y < 560 ? ORANGE : SKY);
+	}
+	static const short star[7][2] = { { 250, 230 }, { 840, 330 }, { 330, 120 }, { 130, 470 }, { 900, 540 }, { 520, 130 }, { 760, 150 } };
+	for (int i = 0; i < 7; i++) {
+		int sx = X - star[i][0], sy = Y - star[i][1];
+		if (sx * sx + sy * sy <= (small ? 14 : 10) * (small ? 14 : 10))
+			return mono ? paper : CREAM;
+	}
+	return mono ? ink : BROWN;
+#endif
+}
+#endif
+
 // The color at one point of the 1024 grid, or -1 outside the hexagon
 static int mark_color(int X, int Y, bool mono, bool small)
 {
+#if SPLASH_STYLE >= 4
+	return badge_mark(X, Y, mono, small);
+#endif
 	color_t ink = ui_col.fg, paper = ui_col.bg;
 	int ax = X > 512 ? X - 512 : 512 - X, ay = Y > 512 ? Y - 512 : 512 - Y;
 	if (ay * 1000 + ax * 577 > 482000 || ax > 417)
