@@ -319,6 +319,7 @@
  "screen.satellite_track_wait": "Tracking a pass: waiting for the rise",
  "screen.satellite_track_info": "Tracking a pass: the pass info",
  "screen.satellite_delete": "Delete a satellite: ask first",
+ "screen.home_pass_marked": "Home: a satellite in the status bar while a pass alert is coming",
  "screen.satellite_alert_mark": "Satellites: mark a satellite for pass alerts",
  "screen.satellite_alert_banner": "A pass about to rise: the alert banner",
  "screen.satellite_track_auto": "Tracking a pass: following the Doppler",

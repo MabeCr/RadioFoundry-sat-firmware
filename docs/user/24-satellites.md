@@ -85,7 +85,7 @@ on a radio without them) to mark it: a **\*** appears after its name, and every 
 passes list, the same keys mark just that pass, once (the marks of single passes are forgotten when the radio is turned
 off). On the Tracking screen, **Left** or **Right** marks the pass you are looking at before it rises. A few minutes before
 a marked pass rises the radio beeps and shows a banner on whatever screen you are on ("SO-50: Rises in 5 min, 71°"):
-**#** opens the pass, **Back** hides the banner. It never beeps while you are receiving or transmitting. Set the time
+**#** opens the pass, **Back** hides the banner. While an alert is coming, a small satellite shows in the status bar at the top of the Home screen: in the normal color while the pass is further off than the alert time, and in the warning color once the alert is due. It is gone when no marked pass is ahead, or when **Pass alert** is 0. It never beeps while you are receiving or transmitting. Set the time
 before the rise with **Pass alert** in Settings > Location (0 turns alerts off; the default is 5 minutes), and
 **Silent pass alerts** keeps the banner but drops the tone. The radio has to be on, with the time and your position set.
 

@@ -319,6 +319,7 @@
  "screen.satellite_track_wait": "Seguimiento de un pase: esperando la salida",
  "screen.satellite_track_info": "Seguimiento de un pase: información del pase",
  "screen.satellite_delete": "Borrar un satélite: pregunta antes",
+ "screen.home_pass_marked": "Inicio: un satélite en la barra de estado mientras viene un aviso de pase",
  "screen.satellite_alert_mark": "Satélites: marcar un satélite para avisos de pase",
  "screen.satellite_alert_banner": "Un pase a punto de salir: el aviso",
  "screen.satellite_track_auto": "Seguimiento de un pase: siguiendo el Doppler",

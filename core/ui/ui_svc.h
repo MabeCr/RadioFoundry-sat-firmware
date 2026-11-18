@@ -235,6 +235,10 @@ typedef struct {
 	int8_t max_el;
 } ui_sat_alert_t;
 bool ui_svc_sat_alert_take(ui_sat_alert_t *out);
+// Seconds until the soonest marked pass rises (a satellite marked for every pass counts by its next pass), UI_SAT_ETA_NONE
+// when none is marked, alerts are off or the clock is not set: the status strip shows an icon while there is one
+#define UI_SAT_ETA_NONE	0xFFFFFFFFu
+uint32_t ui_svc_sat_alert_eta(void);
 // Raises UI_EV_SAT_PASS when an alert has come due (run from ui_svc_poll)
 void ui_svc_sat_alert_poll(void);
 void ui_svc_sat_open(uint32_t norad);		// that satellite's passes (0: none)

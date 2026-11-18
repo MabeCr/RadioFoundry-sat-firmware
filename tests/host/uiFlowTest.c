@@ -664,6 +664,7 @@ static const flow_t flows[] = {
 	{ "S alert: a satellite marked for every pass says so when a pass is marked", "ok 6 0 2 back quick ok", "quick", "screen=passes toast=Every_pass_alerts:_SO-50", 1, false },
 	{ "S alert: the banner says when and how high, # tracks", "ok 6 0", "satalert", "shows=SO-50 shows=Rises_in_5_min shows=71 shows=#_Track", 1, false },
 	{ "S alert: # on the banner opens the pass", "ok 6 0 satalert", "ctx", "screen=track shows=Tracking", 1, false },
+	{ "S alert: Home with a marked pass is still Home (the status strip draws its mark)", "ok 6 0 down quick", "back back back", "screen=home", 3, false },
 	{ "S alert: Back hides the banner", "ok 6 0 satalert", "back", "screen=satellites hides=Rises_in", 1, false },
 	{ "S delete: the Receive sound row has nothing to delete", "ok 6 0 7", "ctx", "screen=sat-sound", 1, false },
 	{ "S no orbit data", "ok 6 0", "6", "screen=satellites toast=No_orbit_data", 1, false },

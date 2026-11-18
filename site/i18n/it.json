@@ -319,6 +319,7 @@
  "screen.satellite_track_wait": "Tracciamento di un passaggio: in attesa del sorgere",
  "screen.satellite_track_info": "Tracciamento di un passaggio: informazioni sul passaggio",
  "screen.satellite_delete": "Eliminare un satellite: chiede prima",
+ "screen.home_pass_marked": "Home: un satellite nella barra di stato mentre sta per arrivare un avviso di passaggio",
  "screen.satellite_alert_mark": "Satelliti: segna un satellite per gli avvisi di passaggio",
  "screen.satellite_alert_banner": "Un passaggio sta per iniziare: l'avviso",
  "screen.satellite_track_auto": "Tracciamento di un passaggio: segue il Doppler",

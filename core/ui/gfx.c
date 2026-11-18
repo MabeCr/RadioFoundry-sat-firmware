@@ -636,6 +636,19 @@ void gfx_icon_gps(int x, int y, int d, bool fix, color_t c)
 	gfx_pixel(x + d / 2, y + d / 2, c);	// the dot of a location mark in the middle
 }
 
+void gfx_icon_satellite(int x, int y, int d, color_t c)
+{
+	if (d < 5)
+		d = 5;
+	int w = d * 3 / 2, bw = d / 2 < 2 ? 2 : d / 2;			// the icon is half again as wide as it is high
+	int pw = (w - bw - 2) / 2 < 1 ? 1 : (w - bw - 2) / 2;		// each panel, with a pixel of strut between it and the body
+	int bx = x + (w - bw) / 2, by = y + (d - bw) / 2;
+	gfx_fill(bx, by, bw, bw, c);					// the body
+	gfx_hline(x + pw, y + d / 2, w - 2 * pw, c);			// the struts, through the body
+	gfx_fill(x, y, pw, d, c);					// the panels: tall, a side each
+	gfx_fill(x + w - pw, y, pw, d, c);
+}
+
 void gfx_icon_bars(int x, int y, int w, int h, uint8_t count, uint8_t lit, color_t on, color_t off)
 {
 	if (count == 0)
