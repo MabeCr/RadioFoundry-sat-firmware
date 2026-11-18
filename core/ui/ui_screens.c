@@ -785,6 +785,9 @@ static int sat_shape(int X, int Y, bool mono, bool small)
 #ifndef SPLASH_STYLE
 #define SPLASH_STYLE 1
 #endif
+#ifndef SPLASH_VAR
+#define SPLASH_VAR 1
+#endif
 #if SPLASH_STYLE >= 2
 #define big_sat_f big_sat
 static bool in_circle(int X, int Y, int cx, int cy, int r) { return (X - cx) * (X - cx) + (Y - cy) * (Y - cy) <= r * r; }
@@ -870,20 +873,74 @@ static int badge_mark(int X, int Y, bool mono, bool small)
 	if (r2 > R * R)
 		return -1;
 #if SPLASH_STYLE == 4
-	// The sky plot of the Tracking screen as the mark: rings, a crosshair, the pass as an arc, the satellite on it
-	if (r2 >= (R - 30) * (R - 30))
+	// The sky plot of the Tracking screen as the mark, in four variants (SPLASH_VAR)
+	static const short cs[12][2] = { { 1000, 0 }, { 866, 500 }, { 500, 866 }, { 0, 1000 }, { -500, 866 }, { -866, 500 },
+					 { -1000, 0 }, { -866, -500 }, { -500, -866 }, { 0, -1000 }, { 500, -866 }, { 866, -500 } };
+#if SPLASH_VAR == 3
+	// Inside a hexagon, the brand's shape: a hexagonal rim around the plot
+	int hax = dx < 0 ? -dx : dx, hay = dy < 0 ? -dy : dy, hm = hay * 1000 + hax * 577;
+	if (r2 > R * R || hm > 482000 || hax > 417)
+		return -1;
+	if (hm >= 440000)
 		return mono ? paper : ORANGE;
-	int sx = X - 565, sy = Y - 470;
-	int sc = big_sat_f(X, Y, 565, 470, 50, mono, small);
+	int rim = 400;
+#else
+	int rim = R - 30;
+	if (r2 >= rim * rim)
+		return mono ? paper : ORANGE;
+#endif
+	int px = 565, py = 470;		// the satellite
+#if SPLASH_VAR == 2
+	px = 650, py = 360;
+#endif
+	int sx = X - px, sy = Y - py, s2 = sx * sx + sy * sy;
+#if SPLASH_VAR == 2
+	// A radar sweep: a wedge behind the line from the center toward the blip, fading back; the blip with a ping ring
+	int rx = px - 512, ry = py - 512;
+	int cr = dx * ry - dy * rx, dt = dx * rx + dy * ry;	// the line from the center through the blip
+	if (s2 <= (small ? 40 : 30) * (small ? 40 : 30))
+		return mono ? paper : CREAM;
+	if (s2 >= 52 * 52 && s2 <= 62 * 62)
+		return mono ? paper : PEACH;
+	if (dt > 0 && cr <= 0 && cr > -(rx * rx + ry * ry) * 5 / 10 * 1) {	// the wedge, up to about 30 degrees behind the line
+		int depth = -cr * 100 / ((rx * rx + ry * ry) / 2);		// 0 at the line, 100 at the wedge's far edge
+		if (!mono)
+			return depth < 12 ? PEACH : depth < 40 ? AMBER : depth < 70 ? ORANGE : SKY;
+		return depth < 60 ? paper : ink;
+	}
+#else
+#if SPLASH_VAR == 4
+	// The ticks of a compass rim every 30 degrees, longer at the four cardinal points
+	for (int k = 0; k < 12; k++) {
+		int pr = (dx * cs[k][0] + dy * cs[k][1]) / 1000, q = (-dx * cs[k][1] + dy * cs[k][0]) / 1000;
+		int len = k % 3 == 0 ? 56 : 28;
+		if (pr >= rim - 10 - len && pr <= rim - 10 && q > -7 && q < 7)
+			return mono ? paper : (k == 9 ? CREAM : PEACH);
+	}
+#endif
+	int sc = big_sat_f(X, Y, px, py, 50, mono, small);
 	if (sc >= 0)
 		return sc;
-	if (sx * sx + sy * sy <= 92 * 92 && sx * sx + sy * sy >= 78 * 78)
+	if (s2 <= 92 * 92 && s2 >= 78 * 78)
 		return mono ? paper : PEACH;
+#endif
 	int ax = X - 20, ay = Y - 1010, a2 = ax * ax + ay * ay;
-	if (a2 >= 749 * 749 && a2 <= 771 * 771 && r2 < (R - 44) * (R - 44))
-		return mono ? paper : (X < 565 ? SKY : AMBER);
+#if SPLASH_VAR == 2
+	// The pass as a dotted trail behind the blip
+	if (a2 >= 746 * 746 && a2 <= 774 * 774 && r2 < (rim - 14) * (rim - 14) && X < px - 70 && ((X / 40) % 2 == 0))
+		return mono ? paper : AMBER;
+#else
+	if (a2 >= 749 * 749 && a2 <= 771 * 771 && r2 < (rim - 14) * (rim - 14))
+		return mono ? paper : (X < px ? SKY : AMBER);
+#if SPLASH_VAR == 4
+	// A second pass, still to come, thinner and dim, crossing the first
+	int bx = X - 1010, by = Y - 140, b2 = bx * bx + by * by;
+	if (b2 >= 712 * 712 && b2 <= 724 * 724 && r2 < (rim - 14) * (rim - 14))
+		return mono ? paper : SKY;
+#endif
+#endif
 	for (int ring = 1; ring <= 2; ring++) {
-		int rr = ring * 150 + 20;
+		int rr = ring * (rim / 3);
 		if (r2 >= (rr - 5) * (rr - 5) && r2 <= (rr + 5) * (rr + 5))
 			return mono ? (small ? ink : paper) : SKY;
 	}
