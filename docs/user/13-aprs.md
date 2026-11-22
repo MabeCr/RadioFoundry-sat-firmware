@@ -32,7 +32,7 @@ frequency, your position and its source, and when the next beacon goes out. If t
 |---|---|
 | Send position now | One position at once |
 | Automatic beacons | On: positions go out by themselves (see Triggers) |
-| Frequency | Your region: N America 144.390, Europe 144.800, Australia 145.175, New Zealand 144.575, Japan 144.660, China 144.640 MHz, or Custom (`tools/rfoundry_debug.py aprs set region custom`, then `aprs set freq_hz 144390000`) |
+| Frequency | Your region: N America 144.390, Europe 144.800, Australia 145.175, New Zealand 144.575, Japan 144.660, China 144.640 MHz, or Custom (`tools/rfoundry_debug.py aprs set region custom`, then `aprs set freq_hz 144390000`). ISS VHF (145.825 MHz) and ISS UHF (437.550 MHz) are the International Space Station's packet digipeater: pair them with the ARISS path (Path, below) |
 | Power | As channel: APRS transmits at the radio's current power level. Or pick a level of its own, for example a low one for a nearby digipeater. Dimmed on radios that can't send APRS over the air |
 | Path | How far digipeaters pass your packets on: None, WIDE1-1, WIDE1-1,WIDE2-1 (the default), WIDE2-1, WIDE2-2 or ARISS. See Path below. Dimmed on radios that can't send APRS over the air |
 | Interval | How often: Off, 1, 2, 5, 10 or 30 minutes |
@@ -81,9 +81,10 @@ More hops mean more copies on a busy frequency. Use the fewest that reach an iGa
 positions sent over DMR.
 
 **ARISS** is for reaching the ISS packet digipeater, which listens on 145.825 MHz (FM, 1200 baud, worldwide) and
-answers to the alias ARISS. Set the path to ARISS, set **Frequency** to Custom with 145.825 MHz (see Frequency above),
-tune in FM and send during a pass. Packets go out on the ground too, so use it only for the pass, and switch back to
-a terrestrial path afterwards. The station moves fast: its signal shifts by a few kHz during a pass.
+answers to the alias ARISS. Set the path to ARISS and **Frequency** to ISS VHF (145.825 MHz), tune in FM and send
+during a pass. The station also uses 70 cm at times (437.550 MHz, ISS UHF there); its signal shifts by about 10 kHz
+during a pass on UHF, so a packet may need a retune to get through. Packets go out on the ground too, so use it only for the pass, and switch back to
+a terrestrial path afterwards. The station moves fast: on VHF its signal shifts by a few kHz during a pass.
 
 The path is also in the codeplug's first APRS configuration, which qdmr edits. A change on the radio is written
 there too, and a codeplug written with a different path changes the radio's. Whichever changed last is used.

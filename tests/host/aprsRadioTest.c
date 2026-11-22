@@ -477,6 +477,9 @@ static void test_defaults(void)
 	aprs_cfg_t c;
 	aprs_get_cfg(&c);
 	CHECK(!c.tx_on && c.region == APRS_REGION_NA && aprs_cfg_freq(&c) == APRS_HZ && c.ssid == 7);
+	// The ISS digipeater's frequencies sit after Custom, whose stored value stays 6
+	CHECK(APRS_REGION_CUSTOM == 6 && aprs_region_hz(APRS_REGION_ISS_VHF) == 145825000u &&
+	      aprs_region_hz(APRS_REGION_ISS_UHF) == 437550000u && strcmp(aprs_region_name(APRS_REGION_ISS_UHF), "ISS UHF") == 0);
 	// Callsign and a position, but transmit off: nothing in an hour
 	strcpy(cp_name, "Q1TST");
 	fixed_position(490583333, -720291667);

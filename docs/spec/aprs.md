@@ -376,7 +376,7 @@ in the radio's own APRS-IS client (`CONFIG_NET_APRSIS`, `tcp-services.md` 7), wh
 Tools > APRS (`ui_aprs.c`): the body shows the callsign and frequency, why nothing can be sent (no callsign, no
 frequency, not amateur, no AFSK), the position and its source, the next beacon and the count sent. Rows: Send
 position now, Automatic beacons, Frequency (region: N America 144.390, Europe 144.800, Australia 145.175, New Zealand
-144.575, Japan 144.660, China 144.640, Custom), Power (As channel, then each of the board's levels), Path (the
+144.575, Japan 144.660, China 144.640, Custom, ISS VHF 145.825, ISS UHF 437.550), Power (As channel, then each of the board's levels), Path (the
 digipeater path of RF packets: None, WIDE1-1, WIDE1-1,WIDE2-1, WIDE2-1, WIDE2-2, ARISS; OK steps to the next and ARISS
 wraps to None), Interval (Off, 1, 2, 5, 10, 30 min), SmartBeaconing, Send via (AFSK, DMR, Both), KISS on USB, Stations
 heard (RX builds: the list, most recent first, dimmed when heard through a digipeater; a station with a position shows
