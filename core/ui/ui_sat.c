@@ -191,6 +191,75 @@ static void list_select(uint16_t i, bool hold)
 	ui_push(SCR_SAT_PASSES, i);
 }
 
+// --- delete a satellite (Left, Right or # on its row in the list, or on its passes: a keypad radio has no Left or Right) ---
+
+static char del_name[12];
+static uint32_t del_norad;
+static bool del_from_passes;	// asked from the passes of the satellite: they go with it
+
+static void del_ask(uint32_t norad, const char *name, bool from_passes)
+{
+	del_norad = norad;
+	str_copy(del_name, sizeof del_name, name[0] ? name : "?");
+	del_from_passes = from_passes;
+	ui_push(SCR_SAT_DELETE, 0);
+}
+
+static uint16_t del_count(void) { return 2; }
+
+static void del_item(uint16_t i, ui_item_t *it)
+{
+	str_copy(it->label, sizeof it->label, i == 0 ? TR("No, keep it") : TR("Yes, delete"));
+	if (i == 1)
+		it->flags |= UI_ITEM_WARN;
+}
+
+static void del_select(uint16_t i, bool hold)
+{
+	(void)hold;
+	ui_pop();
+	if (i == 0)
+		return;
+	if (!ui_svc_sat_delete(del_norad)) {
+		ui_toast(TR("Busy saving: try again"));	// another flash job is running: nothing was deleted
+		return;
+	}
+	if (del_from_passes)
+		ui_pop();	// its passes are of nothing now
+	static char t[28];
+	sbuf_t b;
+	sb_init(&b, t, sizeof t);
+	sb_str(&b, TR("Deleted"));
+	sb_chr(&b, ' ');
+	sb_str(&b, del_name);
+	ui_toast(t);
+}
+
+static const char *del_title(void) { return del_name; }
+
+static const char *del_body(void)
+{
+	return TR("Delete this satellite? Its elements and profile are removed. Load them again over the cable or by sound.");
+}
+
+const ui_scr_def_t ui_sat_delete_screen = {
+	.name = "sat-delete", .flags = SF_LIST, .prefix = TRN("Delete"), .hint = TRN("OK choose  Back cancel"),
+	.count = del_count, .item = del_item, .select = del_select, .title = del_title, .body = del_body,
+};
+
+// Left, Right or # on a satellite's row: ask whether to delete it (not the "Receive sound" row)
+static bool list_key(const input_event_t *ev)
+{
+	if (ev->gesture != GESTURE_PRESS || (ev->action != ACT_NAV_LEFT && ev->action != ACT_NAV_RIGHT && ev->action != ACT_CONTEXT))
+		return false;
+	ui_sat_t s;
+	uint16_t i = ui_frame()->focus;
+	if (i >= st.count || !ui_svc_sat_get((uint8_t)i, &s))
+		return false;
+	del_ask(s.norad, s.name, false);
+	return true;
+}
+
 static void list_enter(void)
 {
 	ui_svc_sat_refresh();	// from the store again: what was loaded since, ages, the setting
@@ -198,10 +267,10 @@ static void list_enter(void)
 
 const ui_scr_def_t ui_sat_screen = {
 	.name = "satellites", .flags = SF_LIST | SF_NUMBERED | SF_FIELD, .prefix = TRN("Satellites"),
-	.hint = TRN("OK passes  Hold OK track"),
+	.hint = TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  # Delete" TEXT_ALT_NEXT "OK passes  # Delete" TEXT_ALT_NEXT "OK passes  Hold OK track" TEXT_ALT_CLOSE),
 	.empty = TRN("No satellites stored. Load them over the cable: rfoundry_debug.py sat"),
 	.count = list_count, .item = list_item, .select = list_select, .title = list_title, .body = list_body,
-	.enter = list_enter,
+	.enter = list_enter, .key = list_key,
 };
 
 // --- one satellite's passes ---
@@ -348,12 +417,21 @@ static void passes_select(uint16_t row, bool hold)
 	ui_push(SCR_SAT_TRACK, 0);
 }
 
+// Left, Right or #: ask whether to delete the satellite these are the passes of
+static bool passes_key(const input_event_t *ev)
+{
+	if (ev->gesture != GESTURE_PRESS || (ev->action != ACT_NAV_LEFT && ev->action != ACT_NAV_RIGHT && ev->action != ACT_CONTEXT) || open_norad == 0)
+		return false;
+	del_ask(open_norad, open_name, true);
+	return true;
+}
+
 const ui_scr_def_t ui_sat_passes_screen = {
 	// Not a field-use screen (P4): looking ahead is planning, and four levels from Home (OK 6 0 OK)
-	.name = "passes", .flags = SF_LIST, .prefix = NULL, .hint = TRN("OK track  Back"),
+	.name = "passes", .flags = SF_LIST, .prefix = NULL, .hint = TRN(TEXT_ALT_OPEN "OK track  # Delete  Back" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE),
 	.empty = TRN("No pass above the lowest in 24 h (Settings > Location)"),
 	.count = passes_count, .item = passes_item, .select = passes_select, .title = passes_title,
-	.body = passes_body,
+	.body = passes_body, .key = passes_key,
 };
 // --- tracking one pass ---
 

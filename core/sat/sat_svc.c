@@ -94,6 +94,15 @@ void sat_svc_refresh(void)
 	refresh_asked = true;
 }
 
+void sat_svc_delete(uint32_t norad)
+{
+	sat_store_delete(norad);	// the store's generation changes with it: the next poll lists again
+	if (open_asked == norad) {	// its passes are open: close them
+		open_asked = 0;
+		open_changed = true;
+	}
+}
+
 void sat_svc_open(uint32_t norad)
 {
 	open_asked = norad;

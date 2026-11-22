@@ -1820,7 +1820,7 @@ uint8_t ui_svc_gps_state(void) { return gps_sim; }
 // Satellites (ui_svc.h): the list and SO-50's passes as the mockups have them, at 14:05 UTC (08:05 at UTC-6, the
 // time zone sim_reset sets)
 #define SAT_SIM_UTC	1793196300u	// 2026-10-28 14:05:00
-static struct { uint8_t state; bool empty, working; uint32_t open, set_utc, set_ms; } sat_sim;
+static struct { uint8_t state; bool empty, working; uint32_t open, set_utc, set_ms; uint32_t gone; } sat_sim;	// gone: bit i, row i deleted
 static const ui_sat_t sim_sat_rows[] = {
 	{ "ISS", 25544, UI_SAT_UP, 61, 23, 2, 60, SAT_SIM_UTC - 181u, SAT_SIM_UTC + 419u, SAT_SIM_UTC + 119u },
 	{ "SO-50", 27607, UI_SAT_NEXT, 71, 0, 2, 135, SAT_SIM_UTC + 27u * 60u + 14u, SAT_SIM_UTC + 40u * 60u + 51u, SAT_SIM_UTC + 33u * 60u + 29u },
@@ -1845,7 +1845,7 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 {
 	memset(out, 0, sizeof *out);
 	out->state = sat_sim.state;
-	out->count = sat_sim.empty ? 0 : SAT_SIM_ROWS;
+	out->count = sat_sim.empty ? 0 : (uint8_t)(SAT_SIM_ROWS - (unsigned)__builtin_popcount(sat_sim.gone));
 	out->store = true;
 	out->utc = sat_sim.set_utc != 0 ? sat_sim.set_utc + (uint32_t)((hal_millis() - sat_sim.set_ms) / 1000u) :
 		sat_sim.state == UI_SAT_NO_TIME ? 0 : SAT_SIM_UTC + (uint32_t)(hal_millis() / 1000u % 60u);
@@ -1859,9 +1859,25 @@ bool ui_svc_sat_status(ui_sat_status_t *out)
 
 bool ui_svc_sat_get(uint8_t i, ui_sat_t *out)
 {
-	if (sat_sim.empty || i >= SAT_SIM_ROWS)
+	if (sat_sim.empty)
 		return false;
-	*out = sim_sat_rows[i];
+	// The i-th row of those not deleted
+	for (unsigned k = 0; k < SAT_SIM_ROWS; k++) {
+		if ((sat_sim.gone >> k & 1u) != 0)
+			continue;
+		if (i-- == 0) {
+			*out = sim_sat_rows[k];
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ui_svc_sat_delete(uint32_t norad)
+{
+	for (unsigned k = 0; k < SAT_SIM_ROWS; k++)
+		if (sim_sat_rows[k].norad == norad)
+			sat_sim.gone |= 1u << k;
 	return true;
 }
 
