@@ -40,9 +40,26 @@ static struct {
 static volatile bool refresh_asked = true;
 static volatile uint32_t open_asked;
 static volatile bool open_changed;
+static volatile bool open_pending;	// a satellite was asked for and the poll has not switched to it: what is held is the last one's
 static volatile uint32_t track_aos, track_los;	// the tracked pass, 0 none
 static volatile bool track_changed;
 static volatile bool track_alive;	// asked again since the poll last looked: the screen is still there
+
+// The pass lists of the satellites opened lately, kept so that opening one again doesn't search it all again. A list is
+// valid while the store, the observer and the lowest pass are as they were (any change clears them all); the passes that
+// are over by the time it is opened again are dropped and the search goes on from where it stopped
+#define CACHE_N		3
+static struct {
+	uint32_t norad;			// 0: free
+	uint32_t used;			// when it was last used (cache_tick), the oldest goes first
+	double to;			// searched up to here
+	uint8_t n;
+	sat_pass_row_t p[SAT_SVC_PASSES];
+} cache[CACHE_N];
+static uint32_t cache_tick;
+static bool cache_skip;			// the open list is out of date: open_start must not keep it
+static double passes_to;		// the open satellite's pass search has covered the sky up to here
+static double last_now;			// the time of the poll under way
 
 // The work, the service task's own
 static struct {
@@ -74,8 +91,12 @@ void sat_svc_init(void)
 	memset(&r, 0, sizeof r);
 	memset(&w, 0, sizeof w);
 	w.kind = -1;
+	memset(cache, 0, sizeof cache);
+	cache_skip = false;
+	passes_to = 0.0;
 	refresh_asked = true;
 	open_asked = 0;
+	open_pending = false;
 	open_changed = false;
 	track_aos = track_los = 0;
 	track_changed = false;
@@ -97,15 +118,14 @@ void sat_svc_refresh(void)
 void sat_svc_delete(uint32_t norad)
 {
 	sat_store_delete(norad);	// the store's generation changes with it: the next poll lists again
-	if (open_asked == norad) {	// its passes are open: close them
-		open_asked = 0;
-		open_changed = true;
-	}
+	if (open_asked == norad)	// its passes are open: close them
+		sat_svc_open(0);
 }
 
 void sat_svc_open(uint32_t norad)
 {
 	open_asked = norad;
+	open_pending = norad != r.open_norad;	// the same one again: what is held is still its list
 	open_changed = true;
 }
 
@@ -152,7 +172,7 @@ bool sat_svc_profile(sat_profile_t *out)
 	bool ok;
 	do {
 		s = r.seq;
-		ok = r.open_norad != 0 && r.open_found;
+		ok = r.open_norad != 0 && r.open_found && !open_pending;
 		if (ok)
 			*out = r.open_profile;
 	} while (SEQ_BUSY(s, tries));
@@ -166,9 +186,9 @@ uint8_t sat_svc_passes(sat_pass_row_t *out, uint8_t max, bool *done)
 	uint8_t n;
 	do {
 		s = r.seq;
-		n = r.npasses < max ? r.npasses : max;
+		n = open_pending ? 0 : r.npasses < max ? r.npasses : max;
 		memcpy(out, r.passes, n * sizeof *out);
-		*done = r.passes_done;
+		*done = r.passes_done && !open_pending;
 	} while (SEQ_BUSY(s, tries));
 	if (tries >= SEQ_TRIES) {
 		*done = false;	// busy: nothing yet, the next draw asks again
@@ -184,8 +204,8 @@ uint8_t sat_svc_pass_count(bool *done)
 	uint8_t n;
 	do {
 		s = r.seq;
-		n = r.npasses;
-		*done = r.passes_done;
+		n = open_pending ? 0 : r.npasses;
+		*done = r.passes_done && !open_pending;
 	} while (SEQ_BUSY(s, tries));
 	if (tries >= SEQ_TRIES) {
 		*done = false;	// busy: nothing yet, the next draw asks again
@@ -201,7 +221,7 @@ bool sat_svc_pass(uint8_t i, sat_pass_row_t *out)
 	bool ok;
 	do {
 		s = r.seq;
-		ok = i < r.npasses;
+		ok = i < r.npasses && !open_pending;
 		if (ok)
 			*out = r.passes[i];
 	} while (SEQ_BUSY(s, tries));
@@ -356,10 +376,37 @@ static void set_row(uint8_t i, uint8_t state, const sat_pass_t *p)
 }
 
 // The open satellite's pass list: start it over
+static void cache_clear(void)
+{
+	memset(cache, 0, sizeof cache);
+}
+
+// Keep the passes found so far for norad (the one being left): in its slot, else the least recently used one
+static void cache_put(uint32_t norad)
+{
+	unsigned at = 0;
+	for (unsigned i = 0; i < CACHE_N; i++) {
+		if (cache[i].norad == norad) {
+			at = i;
+			break;
+		}
+		if (cache[i].used < cache[at].used)
+			at = i;
+	}
+	cache[at].norad = norad;
+	cache[at].used = ++cache_tick;
+	cache[at].to = passes_to;
+	cache[at].n = r.npasses;
+	memcpy(cache[at].p, r.passes, sizeof cache[at].p);
+}
+
 static void open_start(void)
 {
 	uint32_t norad = open_asked;
 	open_changed = false;
+	if (!cache_skip && r.open_norad != 0 && r.npasses > 0)
+		cache_put(r.open_norad);
+	cache_skip = false;
 	sat_record_t rec;
 	int at = norad != 0 ? sat_store_find(norad) : -1;
 	bool found = at >= 0 && sat_store_read((uint16_t)at, &rec);
@@ -371,8 +418,27 @@ static void open_start(void)
 	r.npasses = 0;
 	r.passes_done = !found || !rec.has_elements;
 	end_write();
+	passes_to = last_now;
+	if (found && rec.has_elements) {
+		for (unsigned i = 0; i < CACHE_N; i++) {
+			if (cache[i].norad != norad)
+				continue;
+			// The passes not over yet; a list that lost some, or was not full, is searched on from where it stopped
+			begin_write();
+			for (unsigned k = 0; k < cache[i].n; k++)
+				if ((double)cache[i].p[k].los > last_now)
+					r.passes[r.npasses++] = cache[i].p[k];
+			r.passes_done = r.npasses >= SAT_SVC_PASSES;
+			end_write();
+			if (cache[i].to > passes_to)
+				passes_to = cache[i].to;
+			cache[i].used = ++cache_tick;
+			break;
+		}
+	}
 	if (w.kind == 1)
 		w.kind = -1;
+	open_pending = norad != open_asked;	// asked for another one meanwhile
 }
 
 // The tracked pass changed: its path and position again
@@ -458,6 +524,7 @@ static bool step(const sat_svc_in_t *in, unsigned *used)
 	} else {
 		w.from += span;
 	}
+	passes_to = w.from;
 	if (w.from >= w.end || r.passes_done) {
 		begin_write();
 		r.passes_done = true;
@@ -482,10 +549,15 @@ static bool next_piece(const sat_svc_in_t *in)
 			end_write();
 			return false;
 		}
-		w.kind = 1;
-		w.from = r.npasses ? r.passes[r.npasses - 1].los + 60.0 : in->now;
+		w.from = passes_to > in->now ? passes_to : in->now;
 		w.end = in->now + SAT_SVC_SPAN_S;
-		return true;
+		if (w.from < w.end) {
+			w.kind = 1;
+			return true;
+		}
+		begin_write();		// a kept list searched as far as there is to search
+		r.passes_done = true;
+		end_write();
 	}
 	for (uint8_t i = 0; i < r.count; i++) {
 		if (r.rows[i].state != SAT_ROW_WORKING)
@@ -600,6 +672,7 @@ static void keep_track(const sat_svc_in_t *in, unsigned *used)
 
 bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 {
+	last_now = in->now;
 	// A position seen once is kept: after the fix is lost the passes go on for the last one (the observer is set from
 	// it below only while a position is current). Time is not kept: without it nothing is worked out
 	bool pos = in->pos_ok || w.have_obs;
@@ -610,11 +683,16 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		end_write();
 		refresh_asked = true;	// the ages were worked out without the time
 	}
-	bool fresh = refresh_asked || sat_store_generation() != w.generation;
+	bool store_changed = sat_store_generation() != w.generation;
+	bool fresh = refresh_asked || store_changed;
 	if (fresh) {
 		refresh_asked = false;
 		w.generation = sat_store_generation();
 		read_list(in->now);
+		if (store_changed) {	// what was worked out from the store may not hold; a list opened again (refresh_asked alone) does
+			cache_clear();
+			cache_skip = true;
+		}
 		open_changed = true;	// the open satellite's record may have changed too
 	}
 	if (open_changed)
@@ -640,6 +718,8 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 			end_write();
 		}
 		rows_again();
+		cache_clear();		// another observer or lowest pass: every list is out of date
+		cache_skip = true;
 		open_start();
 		track_start();
 	}
