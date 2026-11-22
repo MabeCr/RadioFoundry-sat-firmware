@@ -73,6 +73,7 @@ Some settings are on the menu before the feature behind them exists, or don't ap
 | Dual watch talk back | On, Off | Off | Off: a call on the other channel never moves **PTT**. On: when a call ends on the other channel, that channel becomes the selected one for 10 s (restarting with each reply and call there), so **PTT** answers there ([Dual watch](12-scan.md#talk-back)) | Works |
 | Dual watch delay | 0.5 s, 1 s, 1.5 s, 2 s, 3 s, 5 s | 1 s | How long dual watch stays on a channel after a call ends, for the reply. It looks at the other channel meanwhile and shows **Busy** there ([Dual watch](12-scan.md#the-wait-after-a-call)) | Works |
 | SFR receive | Repeater, First copy, Dual-path RX | Repeater | Experimental. What a single frequency repeater user plays ([Standalone SFR](14-hotspot.md#standalone-sfr)). Repeater: only the repeater's copy. First copy: the talker's or the repeater's copy, whichever arrives first. Dual-path RX: both copies, with each damaged voice frame taken from the other copy. Dual-path RX is missing from builds without it | Works (Repeater). First copy and Dual-path RX depend on the radio: some hear only one copy at a time ([Radio reference](23-radios.md)) |
+| Scan dwell | 50 to 1000 ms, steps of 10 | 150 ms | How long a scan listens on each channel with nothing heard ([Scan](12-scan.md#how-the-scan-moves)). Lower is faster but can miss a short call, mostly on DMR channels, which need about a frame (60 ms) to be heard. Higher is slower but surer. Missing from builds without scan | Needs a check on the radio |
 | SFR CW ID | Off, 5, 10, 15, 30 min | Off | Experimental. How often a single frequency repeater channel sends its callsign in Morse ([Standalone SFR](14-hotspot.md#standalone-sfr)). The callsign is the radio name's first word (before a space, `-` or `/`), and only if it looks like one: 4 to 7 letters and digits, at least one of each. Otherwise nothing is sent. The ID goes out in FM on the channel once the repeater has carried traffic and has been quiet for 2 s, at most once per interval. Missing from builds without it | Works |
 
 ### Privacy (key 4)
@@ -197,7 +198,7 @@ that it arrived.
 A few settings exist in the radio but not yet on the menu:
 
 - busy channel lockout and the roger beep;
-- the scan's resume mode and timing;
+- the scan's resume mode and the time it waits after a call (the time on each channel is **Scan dwell**);
 - VOX sensitivity;
 - the ARS server and the emergency settings;
 - the IP data settings (header compression, confirmed data) and the SNMP communities;

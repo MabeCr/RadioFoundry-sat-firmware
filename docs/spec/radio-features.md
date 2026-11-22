@@ -31,7 +31,7 @@ quick changes therefore never reads back a value from before its own last change
 | `scan_resume` | carrier | time (move on after `scan_hold_s` on a signal, or when it ends), carrier (move on `scan_delay_ms` after it ends), stop (the scan ends on the first signal) |
 | `scan_hold_s` | 5 | time mode's hold |
 | `scan_delay_ms` | 2000 | wait after a signal ends before moving on (a pause between overs) |
-| `scan_dwell_ms` | 150 | listen time per channel with nothing heard (at least 50) |
+| `scan_dwell_ms` | 150 | listen time per channel with nothing heard, 50 to 1000 (`RADIO_SCAN_DWELL_*`; clamped, 0 in storage = the default). Settings > Talk & listen > Scan dwell |
 | `scan_priority` | off | zone scan: the start channel again after every 2 others |
 | `scan_beep` | off | a short beep when the scan stops on a signal |
 | `dual_delay_ms` | 1000 | dual watch on one receiver: its wait after a signal ends, in place of `scan_delay_ms` (0-10000; section 2.1) |

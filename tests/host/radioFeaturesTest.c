@@ -1847,6 +1847,36 @@ static void test_dual_wait(void)
 	CHECK(sm.set.dual_delay_ms == RADIO_DUAL_DELAY_MS);
 }
 
+// The scan dwell setting: the range holds (clamped at both ends), it is stored in ms, and a store that never set it
+// (0) keeps the default
+static void set_dwell_20(radio_settings_t *s) { s->scan_dwell_ms = 20; }
+static void set_dwell_400(radio_settings_t *s) { s->scan_dwell_ms = 400; }
+static void set_dwell_5000(radio_settings_t *s) { s->scan_dwell_ms = 5000; }
+
+static void test_scan_dwell_setting(void)
+{
+	start();
+	CHECK(sm.set.scan_dwell_ms == RADIO_SCAN_DWELL_MS);
+	settings(set_dwell_400);
+	CHECK(sm.set.scan_dwell_ms == 400);
+	settings(set_dwell_20);
+	CHECK(sm.set.scan_dwell_ms == RADIO_SCAN_DWELL_MIN_MS);
+	settings(set_dwell_5000);
+	CHECK(sm.set.scan_dwell_ms == RADIO_SCAN_DWELL_MAX_MS);
+	settings(set_dwell_400);
+	settings_t st;
+	settings_read(&st);
+	CHECK(st.rs_scan_dwell_ms == 400);
+	radio_sm_init(&sm, now);
+	CHECK(sm.set.scan_dwell_ms == 400);
+	// Never set: 0 in the store is the default, not the least
+	settings_t *w = settings_begin();
+	w->rs_scan_dwell_ms = 0;
+	settings_end(now);
+	radio_sm_init(&sm, now);
+	CHECK(sm.set.scan_dwell_ms == RADIO_SCAN_DWELL_MS);
+}
+
 // What the debug link sends during the watch (radio-features.md 2.1): a position, a zone or a frequency acts on the
 // selected channel; a scan stop ends the watch and says so (view.dual_stops), so the UI doesn't start it again
 static void test_dual_requests(void)
@@ -2923,6 +2953,7 @@ int main(void)
 	test_dual_watch();
 #if CONFIG_DUAL_WATCH
 	test_dual_wait();
+	test_scan_dwell_setting();
 	test_dual_requests();
 	test_dual_rx2();
 #endif

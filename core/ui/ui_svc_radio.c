@@ -439,6 +439,11 @@ void ui_svc_apply(uint8_t id, int32_t value)
 		rs.bcast_step = value == 100 ? RADIO_BCAST_STEP_100 : RADIO_BCAST_STEP_200_ODD;
 		break;
 #endif
+#if CONFIG_SCAN
+	case UI_SET_SCAN_DWELL_MS:	// the radio core clamps
+		rs.scan_dwell_ms = v16;
+		break;
+#endif
 #if CONFIG_DUAL_WATCH
 	case UI_SET_DUAL_DELAY_MS:	// the radio core clamps
 		rs.dual_delay_ms = v16;

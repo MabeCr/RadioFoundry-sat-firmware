@@ -62,7 +62,6 @@
 #define RADIO_RSSI_HOLD_POLLS	((RADIO_RSSI_HOLD_MS + RADIO_POLL_MS - 1) / RADIO_POLL_MS)
 
 // Scan defaults and per-stop timing (docs/spec/radio-features.md 2)
-#define RADIO_SCAN_DWELL_MS	150	// listen per channel (from the retune) with nothing heard
 #define RADIO_SCAN_FM_PROBE_MS	350	// FM: a carrier without the RX tone yet (CTCSS detection takes 100-250 ms)
 #define RADIO_SCAN_DMR_PROBE_MS	700	// DMR: a carrier, waiting for bursts with the channel's color code (they come
 					// within a superframe of the modem's lock)

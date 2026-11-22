@@ -2809,6 +2809,10 @@ msgid "SFR CW ID"
 msgstr "ID CW SFR"
 
 #: core/ui/ui_menus.c
+msgid "Scan dwell"
+msgstr "Tiempo de escucha del escaneo"
+
+#: core/ui/ui_menus.c
 msgid "Key type"
 msgstr "Tipo clave"
 
