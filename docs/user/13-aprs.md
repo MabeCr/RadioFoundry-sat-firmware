@@ -34,7 +34,7 @@ frequency, your position and its source, and when the next beacon goes out. If t
 | Automatic beacons | On: positions go out by themselves (see Triggers) |
 | Frequency | Your region: N America 144.390, Europe 144.800, Australia 145.175, New Zealand 144.575, Japan 144.660, China 144.640 MHz, or Custom (`tools/rfoundry_debug.py aprs set region custom`, then `aprs set freq_hz 144390000`) |
 | Power | As channel: APRS transmits at the radio's current power level. Or pick a level of its own, for example a low one for a nearby digipeater. Dimmed on radios that can't send APRS over the air |
-| Path | How far digipeaters pass your packets on: None, WIDE1-1, WIDE1-1,WIDE2-1 (the default), WIDE2-1 or WIDE2-2. See Path below. Dimmed on radios that can't send APRS over the air |
+| Path | How far digipeaters pass your packets on: None, WIDE1-1, WIDE1-1,WIDE2-1 (the default), WIDE2-1, WIDE2-2 or ARISS. See Path below. Dimmed on radios that can't send APRS over the air |
 | Interval | How often: Off, 1, 2, 5, 10 or 30 minutes |
 | SmartBeaconing | More often when you move fast, at once after a turn, rarely when you stand still |
 | Send via | AFSK (on FM), DMR, or both |
@@ -75,9 +75,16 @@ The path says how many digipeater hops a packet may take on FM. Each **WIDEn-N**
 | WIDE1-1,WIDE2-1 | 2 | Mobile and handheld use in most of North America and Europe (the default) |
 | WIDE2-1 | 1 | Fixed stations that reach a wide digipeater directly |
 | WIDE2-2 | 2 | Sparse areas; skips fill-in digipeaters |
+| ARISS | 1 | The International Space Station's APRS digipeater, for a pass overhead (below) |
 
 More hops mean more copies on a busy frequency. Use the fewest that reach an iGate. The path doesn't apply to
 positions sent over DMR.
+
+**ARISS** is for reaching the ISS packet digipeater, which listens on 145.825 MHz (FM, 1200 baud, worldwide) and
+answers to the alias ARISS. Set the path to ARISS, set **Frequency** to Custom with 145.825 MHz (see Frequency above),
+tune in FM and send during a pass. Packets go out on the ground too, so use it only for the pass, and switch back to
+a terrestrial path afterwards. The station moves fast: its signal shifts by a few kHz during a pass. The satellite
+screens ([Satellites](18-satellite.md)) show when it is overhead on builds that have them.
 
 The path is also in the codeplug's first APRS configuration, which qdmr edits. A change on the radio is written
 there too, and a codeplug written with a different path changes the radio's. Whichever changed last is used.

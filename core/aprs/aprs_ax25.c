@@ -40,7 +40,9 @@ static const uint32_t region_hz[APRS_REGION_COUNT] = {
 };
 static const char *const region_names[APRS_REGION_COUNT] = { "N America", "Europe", "Australia", "New Zealand",
 							      "Japan", "China", "Custom" };
-static const char *const path_texts[APRS_PATH_COUNT] = { "", "WIDE1-1", "WIDE1-1,WIDE2-1", "WIDE2-1", "WIDE2-2" };
+// ARISS: the International Space Station's packet digipeater (145.825 MHz), an alias of its own rather than a WIDEn-N hop
+static const char *const path_texts[APRS_PATH_COUNT] = { "", "WIDE1-1", "WIDE1-1,WIDE2-1", "WIDE2-1", "WIDE2-2",
+							 "ARISS" };
 
 uint32_t aprs_region_hz(uint8_t region)
 {

@@ -130,7 +130,8 @@ with the DMR backend alone.
   up to two for the SSID). Received APRS messages appear in Messages; replies use APRS. DMR replies use DMR, and
   Settings > Connections > Message format selects only a DMR encoding. A new outgoing APRS message replaces one still
   awaiting acknowledgment. `aprs_send_message` refuses a message when the RF path is blocked.
-- Path: none, WIDE1-1, WIDE1-1,WIDE2-1 (the default), WIDE2-1, WIDE2-2. Set on the APRS page (section 10), over the
+- Path: none, WIDE1-1, WIDE1-1,WIDE2-1 (the default), WIDE2-1, WIDE2-2, ARISS (the ISS digipeater
+  alias, 145.825 MHz: the path's one entry is the alias itself). Set on the APRS page (section 10), over the
   debug link, or in the codeplug's APRS record (section 11).
 
 ### 4.1.1 Arithmetic
@@ -376,7 +377,7 @@ Tools > APRS (`ui_aprs.c`): the body shows the callsign and frequency, why nothi
 frequency, not amateur, no AFSK), the position and its source, the next beacon and the count sent. Rows: Send
 position now, Automatic beacons, Frequency (region: N America 144.390, Europe 144.800, Australia 145.175, New Zealand
 144.575, Japan 144.660, China 144.640, Custom), Power (As channel, then each of the board's levels), Path (the
-digipeater path of RF packets: None, WIDE1-1, WIDE1-1,WIDE2-1, WIDE2-1, WIDE2-2; OK steps to the next and WIDE2-2
+digipeater path of RF packets: None, WIDE1-1, WIDE1-1,WIDE2-1, WIDE2-1, WIDE2-2, ARISS; OK steps to the next and ARISS
 wraps to None), Interval (Off, 1, 2, 5, 10, 30 min), SmartBeaconing, Send via (AFSK, DMR, Both), KISS on USB, Stations
 heard (RX builds: the list, most recent first, dimmed when heard through a digipeater; a station with a position shows
 its distance and compass point from ours, `position_now` as DMR GPS Info uses it, "14.5 km NE" by `sb_range`,
