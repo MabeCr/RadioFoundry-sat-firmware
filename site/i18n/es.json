@@ -318,6 +318,7 @@
  "screen.satellite_track": "Seguimiento de un pase",
  "screen.satellite_track_wait": "Seguimiento de un pase: esperando la salida",
  "screen.satellite_track_info": "Seguimiento de un pase: información del pase",
+ "screen.satellite_track_chart": "Seguimiento de un pase: el gráfico de señal",
  "screen.satellite_delete": "Borrar un satélite: pregunta antes",
  "screen.satellite_track_auto": "Seguimiento de un pase: siguiendo el Doppler",
  "screen.satellite_frequency": "Seguimiento en una frecuencia propia",

@@ -2814,6 +2814,21 @@ static bool run_token(char *t, char *err, size_t len)
 		sat_sim.working = strcmp(arg, "working") == 0;
 		return true;
 	}
+	if (strcmp(t, "sigdemo") == 0) {	// the tracked pass's readings so far: the clock runs from just before the rise to the
+		// time a screenshot is taken at, a reading every two seconds, with the receiver off the air for a while (the user
+		// was on another screen)
+		uint32_t from = sat_trk_aos != 0 ? sat_trk_aos - 10u : SAT_SIM_UTC - 191u;
+		uint32_t plen = sat_trk_los > sat_trk_aos ? sat_trk_los - sat_trk_aos : 600u;
+		ui_svc_sat_clock_set(from);
+		for (uint32_t i = 0; i < 125u; i++) {
+			unsigned f = i * 2u * 100u / plen;	// per cent through the pass
+			bool gap = i >= 55u && i < 70u;
+			view.rssi_dbm = gap || f > 100u ? 0 : (int16_t)(-118 + (int)(50u * 4u * f * (100u - f) / 10000u) + (int)(i * 7u % 9u) - 4);
+			changed();
+			advance(2000);
+		}
+		return true;
+	}
 #endif
 	if (strcmp(t, "crash") == 0 && arg != NULL) {	// crash:on, crash:ask, crash:auto (see crash_sim)
 		crash_sim.have = true;
