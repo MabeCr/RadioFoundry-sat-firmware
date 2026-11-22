@@ -88,6 +88,10 @@ void sat_svc_init(void);
 void sat_svc_no_memory(void);
 // Work out the list again from the store (a screen opened); the next poll starts over
 void sat_svc_refresh(void);
+// Delete satellite norad from the store (its element set and profile) and close its passes; the next poll lists again.
+// A flash write: from a task that may block (the housekeeping task, through storage_job_post), not the satellite task,
+// whose stack is small
+void sat_svc_delete(uint32_t norad);
 // Satellite norad's passes for the passes screen; 0 closes them
 void sat_svc_open(uint32_t norad);
 // One slice of work: about budget runs of the model (a pass search may finish past it). True while work remains, so

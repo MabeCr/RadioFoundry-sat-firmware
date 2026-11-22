@@ -650,6 +650,12 @@ static const flow_t flows[] = {
 	{ "S sound: Back leaves and stops the radio listening", "ok 6 0 7", "back", "screen=satellites sound=0", 1, false },
 #endif
 	{ "S passes back to the list", "ok 6 0 2", "back", "screen=satellites", 1, false },
+	{ "S delete: # on a satellite asks first", "ok 6 0", "ctx", "screen=sat-delete shows=ISS shows=No,_keep_it shows=Yes,_delete", 1, false },
+	{ "S delete: keeping it changes nothing", "ok 6 0 ctx", "ok", "screen=satellites shows=ISS hides=Deleted", 1, false },
+	{ "S delete: Back cancels", "ok 6 0 ctx", "back", "screen=satellites shows=ISS hides=Deleted", 1, false },
+	{ "S delete: yes removes it from the list", "ok 6 0 ctx down", "ok", "screen=satellites toast=Deleted_ISS shows=SO-50", 1, false },
+		{ "S delete: from the passes, then back to the list", "ok 6 0 2 ctx down", "ok", "screen=satellites toast=Deleted_SO-50 shows=AO-91", 1, false },
+	{ "S delete: the Receive sound row has nothing to delete", "ok 6 0 7", "ctx", "screen=sat-sound", 1, false },
 	{ "S no orbit data", "ok 6 0", "6", "screen=satellites toast=No_orbit_data", 1, false },
 	{ "S passes still being worked out", "sat:working ok 6 0", "2", "shows=Working", 1, false },
 	{ "S before the time", "sat:notime", "ok 6 0", "shows=Waiting_for_the_time", 3, false },
