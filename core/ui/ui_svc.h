@@ -223,7 +223,7 @@ typedef struct {
 bool ui_svc_sat_status(ui_sat_status_t *out);	// false: not in this build
 bool ui_svc_sat_get(uint8_t i, ui_sat_t *out);	// false past the last
 void ui_svc_sat_refresh(void);			// the list opened: work its passes out again from the store
-void ui_svc_sat_delete(uint32_t norad);		// remove it from the store (done by the satellite task; the list follows)
+bool ui_svc_sat_delete(uint32_t norad);		// remove it from the store (a job for the housekeeping task; the list follows). False: busy with another job
 void ui_svc_sat_open(uint32_t norad);		// that satellite's passes (0: none)
 bool ui_svc_sat_profile(ui_sat_profile_t *out);	// the opened satellite's frequencies and tones
 // The opened satellite's passes so far: how many, *done once the 24 hours are searched; one of them

@@ -247,7 +247,7 @@ int main(void)
 	settle(60);
 	CHECK(!sat_svc_profile(&prof) && sat_svc_passes(passes, SAT_SVC_PASSES, &done) == 0 && done);
 
-	// A delete asked for through the service: done by the next poll, the list follows, the open satellite's passes close
+	// A delete (the housekeeping task calls it): the list follows at the next poll, the open satellite's passes close
 	sat_svc_open(25544);
 	settle(60);
 	CHECK(sat_svc_profile(&prof) && prof.norad == 25544);
