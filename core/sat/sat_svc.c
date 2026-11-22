@@ -39,7 +39,6 @@ static struct {
 // Requests from the screens
 static volatile bool refresh_asked = true;
 static volatile uint32_t open_asked;
-static volatile uint32_t delete_asked;	// a satellite the user asked to delete: the poll does it (a flash write)
 static volatile bool open_changed;
 static volatile uint32_t track_aos, track_los;	// the tracked pass, 0 none
 static volatile bool track_changed;
@@ -77,7 +76,6 @@ void sat_svc_init(void)
 	w.kind = -1;
 	refresh_asked = true;
 	open_asked = 0;
-	delete_asked = 0;
 	open_changed = false;
 	track_aos = track_los = 0;
 	track_changed = false;
@@ -98,7 +96,11 @@ void sat_svc_refresh(void)
 
 void sat_svc_delete(uint32_t norad)
 {
-	delete_asked = norad;
+	sat_store_delete(norad);	// the store's generation changes with it: the next poll lists again
+	if (open_asked == norad) {	// its passes are open: close them
+		open_asked = 0;
+		open_changed = true;
+	}
 }
 
 void sat_svc_open(uint32_t norad)
@@ -607,15 +609,6 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		r.state = state;
 		end_write();
 		refresh_asked = true;	// the ages were worked out without the time
-	}
-	if (delete_asked != 0) {	// the store's generation changes with it, so the list is read again below
-		uint32_t n = delete_asked;
-		delete_asked = 0;
-		sat_store_delete(n);
-		if (open_asked == n) {	// its passes are open: close them
-			open_asked = 0;
-			open_changed = true;
-		}
 	}
 	bool fresh = refresh_asked || sat_store_generation() != w.generation;
 	if (fresh) {

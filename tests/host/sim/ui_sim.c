@@ -1873,11 +1873,12 @@ bool ui_svc_sat_get(uint8_t i, ui_sat_t *out)
 	return false;
 }
 
-void ui_svc_sat_delete(uint32_t norad)
+bool ui_svc_sat_delete(uint32_t norad)
 {
 	for (unsigned k = 0; k < SAT_SIM_ROWS; k++)
 		if (sim_sat_rows[k].norad == norad)
 			sat_sim.gone |= 1u << k;
+	return true;
 }
 
 void ui_svc_sat_refresh(void) {}
