@@ -12,7 +12,7 @@ simulator. The newest options (the frequency you type and **OK** to swap to it, 
 the phone) are less tested on a radio than the rest. A quick start is in the [README](../../README.md#satellite-tracking).
 
 <img src="../ux/screens/240x320i10x5/satellites.png" width="200" alt="The satellite list">
-<img src="../ux/screens/240x320i10x5/satellite_passes.png" width="200" alt="One satellite's passes">
+<img src="../ux/screens/240x320i10x5/sat_passes.png" width="200" alt="One satellite's passes">
 
 ## What the radio needs
 

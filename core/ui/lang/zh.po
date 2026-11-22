@@ -242,7 +242,8 @@ msgstr "⤓ 区域来自 "
 #: core/ui/ui_app.c core/ui/ui_sat.c
 msgctxt "RISES_IN"
 msgid "Rises in"
-msgstr ""
+msgstr "升起于"
+
 
 #: core/ui/ui_app.c
 msgctxt "SHARE_BANNER_NOT_SENT_TO"
@@ -287,7 +288,8 @@ msgstr "区域未导入"
 #: core/ui/ui_app.c
 msgctxt "NO_PASS_TO_TRACK"
 msgid "No pass to track"
-msgstr ""
+msgstr "没有可跟踪的过境"
+
 
 #: core/ui/ui_app.c
 msgctxt "FREQ_TOAST_BANDS"
@@ -3552,7 +3554,8 @@ msgstr "诊断"
 #: core/ui/ui_menus.c core/ui/ui_sat.c
 msgctxt "SATELLITES"
 msgid "Satellites"
-msgstr ""
+msgstr "卫星"
+
 
 #: core/ui/ui_menus.c
 msgctxt "TOOLS_ROW_SHARES_RECEIVED"
@@ -3577,7 +3580,8 @@ msgstr "串口"
 #: core/ui/ui_menus.c
 msgctxt "UP"
 msgid "up"
-msgstr ""
+msgstr "上"
+
 
 #: core/ui/ui_menus.c
 msgctxt "SET_VALUE_BACKLIGHT_10S_DIM"
@@ -3627,7 +3631,8 @@ msgstr "晚间（红色）"
 #: core/ui/ui_menus.c
 msgctxt "TERMINAL"
 msgid "Terminal"
-msgstr ""
+msgstr "终端"
+
 
 #: core/ui/ui_menus.c
 msgctxt "SET_VALUE_ACCENT_ORANGE"
@@ -3637,12 +3642,14 @@ msgstr "橙"
 #: core/ui/ui_menus.c
 msgctxt "TERMINAL_INVERSE"
 msgid "Terminal Inverse"
-msgstr ""
+msgstr "终端反色"
+
 
 #: core/ui/ui_menus.c
 msgctxt "ORANGE_INVERSE"
 msgid "Orange Inverse"
-msgstr ""
+msgstr "橙色反色"
+
 
 #: core/ui/ui_menus.c
 msgctxt "VALUE_DEFAULT"
@@ -4092,32 +4099,38 @@ msgstr "保存 GPS 位置"
 #: core/ui/ui_menus.c
 msgctxt "PASS_ALERT"
 msgid "Pass alert"
-msgstr ""
+msgstr "过境提醒"
+
 
 #: core/ui/ui_menus.c
 msgctxt "SILENT_PASS_ALERTS"
 msgid "Silent pass alerts"
-msgstr ""
+msgstr "静音过境提醒"
+
 
 #: core/ui/ui_menus.c
 msgctxt "TIME_ZONE"
 msgid "Time zone"
-msgstr ""
+msgstr "时区"
+
 
 #: core/ui/ui_menus.c
 msgctxt "PASS_TIMES_IN_UTC"
 msgid "Pass times in UTC"
-msgstr ""
+msgstr "过境时间用UTC"
+
 
 #: core/ui/ui_menus.c
 msgctxt "LOWEST_PASS"
 msgid "Lowest pass"
-msgstr ""
+msgstr "最低过境"
+
 
 #: core/ui/ui_menus.c core/ui/ui_sat.c
 msgctxt "SET_TIME"
 msgid "Set time"
-msgstr ""
+msgstr "设置时间"
+
 
 #: core/ui/ui_menus.c
 msgctxt "SET_LABEL_HOTSPOT_ALLOWED"
@@ -4397,7 +4410,8 @@ msgstr "晚间主题：仅红色"
 #: core/ui/ui_menus.c
 msgctxt "THIS_THEME_USES_ITS_OWN"
 msgid "This theme uses its own colors"
-msgstr ""
+msgstr "此主题使用自己的颜色"
+
 
 #: core/ui/ui_menus.c
 msgctxt "WHY_MIC_GAIN_NOT_IN_BUILD"
@@ -4637,117 +4651,140 @@ msgstr "北南 90，东西 180"
 #: core/ui/ui_sat.c
 msgctxt "SIX_SATELLITES_ALERT_ALREADY"
 msgid "Six satellites alert already"
-msgstr ""
+msgstr "已有六颗卫星提醒"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ALERTS_ON"
 msgid "Alerts on:"
-msgstr ""
+msgstr "提醒已开："
+
 
 #: core/ui/ui_sat.c
 msgctxt "ALERTS_OFF"
 msgid "Alerts off:"
-msgstr ""
+msgstr "提醒已关："
+
 
 #: core/ui/ui_sat.c
 msgctxt "EVERY_PASS_ALERTS"
 msgid "Every pass alerts:"
-msgstr ""
+msgstr "每次过境都提醒："
+
 
 #: core/ui/ui_sat.c
 msgctxt "ALERT_FOR_THIS_PASS"
 msgid "Alert for this pass:"
-msgstr ""
+msgstr "提醒本次过境："
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ALERT_FOR_THIS_PASS"
 msgid "No alert for this pass:"
-msgstr ""
+msgstr "不提醒本次过境："
+
 
 #: core/ui/ui_sat.c
 msgctxt "WAITING_FOR_THE_TIME_PASSES"
 msgid "Waiting for the time: passes need UTC from a GPS fix"
-msgstr ""
+msgstr "等待时间：过境需要GPS定位的UTC"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_ENOUGH_MEMORY_TO_WORK"
 msgid "Not enough memory to work out passes"
-msgstr ""
+msgstr "内存不足，无法计算过境"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_POSITION_A_GPS_FIX_OR_A"
 msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
-msgstr ""
+msgstr "无位置：需GPS定位，或在工具>APRS设固定位置"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_SATELLITES_STORED_LOAD"
 msgid "No satellites stored: load them over the cable, or by sound"
-msgstr ""
+msgstr "没有存储的卫星：用线缆或声音载入"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ABOVE"
 msgid "Above"
-msgstr ""
+msgstr "高于"
+
 
 #: core/ui/ui_sat.c
 msgctxt "RECEIVE_SOUND_2"
 msgid "Receive sound"
-msgstr ""
+msgstr "接收声音"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ORBIT"
 msgid "no orbit"
-msgstr ""
+msgstr "无轨道"
+
 
 #: core/ui/ui_sat.c
 msgctxt "BAD_ORBIT"
 msgid "bad orbit"
-msgstr ""
+msgstr "轨道无效"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PASS"
 msgid "no pass"
-msgstr ""
+msgstr "无过境"
+
 
 #: core/ui/ui_sat.c
 msgctxt "UP_NOW"
 msgid "up now"
-msgstr ""
+msgstr "正在过境"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ORBIT_DATA_LOAD_ITS_TLE"
 msgid "No orbit data: load its TLE over the cable"
-msgstr ""
+msgstr "无轨道数据：用线缆载入其TLE"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_TLE_CANT_BE_PREDICTED"
 msgid "This TLE can't be predicted"
-msgstr ""
+msgstr "此TLE无法预测"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DELETED"
 msgid "Deleted"
-msgstr ""
+msgstr "已删除"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DELETE_THIS_SATELLITE_ITS"
 msgid "Delete this satellite? Its elements and profile are removed. Load them again over the cable or by sound."
-msgstr ""
+msgstr "删除此卫星？其轨道根数和配置将被移除。可用线缆或声音重新载入。"
+
 
 #: core/ui/ui_sat.c
 msgctxt "OK_PASSES_HOLD_OK_TRACK"
 msgid "{OK passes  Hold OK track  * Alert  # Delete|OK passes  * Alert  # Delete|* Alert  # Delete}"
-msgstr ""
+msgstr "{OK过境 长按OK跟踪 *提醒 #删除|OK过境 *提醒 #删除|*提醒 #删除}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "OK_PASSES_HOLD_OK_TRACK_2"
 msgid "{OK passes  Hold OK track  # Delete|OK passes  # Delete|OK passes  Hold OK track}"
-msgstr ""
+msgstr "{OK过境 长按OK跟踪 #删除|OK过境 #删除|OK过境 长按OK跟踪}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_SATELLITES_STORED_LOAD_2"
 msgid "No satellites stored. Load them over the cable: rfoundry_debug.py sat"
-msgstr ""
+msgstr "没有存储的卫星。用线缆载入：rfoundry_debug.py sat"
+
 
 #: core/ui/ui_sat.c core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TONE"
@@ -4757,72 +4794,86 @@ msgstr "亚音"
 #: core/ui/ui_sat.c
 msgctxt "ARM"
 msgid "arm"
-msgstr ""
+msgstr "唤醒"
+
 
 #: core/ui/ui_sat.c
 msgctxt "TOMORROW"
 msgid "Tomorrow"
-msgstr ""
+msgstr "明天"
+
 
 #: core/ui/ui_sat.c
 msgctxt "WORKING_2"
 msgid "Working"
-msgstr ""
+msgstr "计算中"
+
 
 #: core/ui/ui_sat.c
 msgctxt "OK_TRACK_ALERT_DELETE_BACK"
 msgid "{OK track  * Alert  # Delete  Back|* Alert  # Delete|OK track  Back}"
-msgstr ""
+msgstr "{OK跟踪 *提醒 #删除 返回|*提醒 #删除|OK跟踪 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "OK_TRACK_DELETE_BACK"
 msgid "{OK track  # Delete  Back|OK track  Back}"
-msgstr ""
+msgstr "{OK跟踪 #删除 返回|OK跟踪 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PASS_ABOVE_THE_LOWEST_IN"
 msgid "No pass above the lowest in 24 h (Settings > Location)"
-msgstr ""
+msgstr "24小时内没有高于最低值的过境（设置>位置）"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_DOWNLINK_SET_FOR_THIS"
 msgid "No downlink set for this satellite"
-msgstr ""
+msgstr "此卫星未设置下行频率"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_WHILE_TRANSMITTING"
 msgid "Not while transmitting"
-msgstr ""
+msgstr "发射时不可用"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DIAL_CLEARED"
 msgid "Dial cleared"
-msgstr ""
+msgstr "旋钮已清零"
+
 
 #: core/ui/ui_sat.c
 msgctxt "RETUNED"
 msgid "Retuned"
-msgstr ""
+msgstr "已重新调谐"
+
 
 #: core/ui/ui_sat.c
 msgctxt "TUNED_TO_THE_DOWNLINK"
 msgid "Tuned to the downlink"
-msgstr ""
+msgstr "已调到下行频率"
+
 
 #: core/ui/ui_sat.c
 msgctxt "AUTO_OFF_2"
 msgid "Auto off"
-msgstr ""
+msgstr "自动已关"
+
 
 #: core/ui/ui_sat.c
 msgctxt "AUTO_ON_FOLLOWING_THE"
 msgid "Auto on: following the Doppler"
-msgstr ""
+msgstr "自动已开：跟随多普勒"
+
 
 #: core/ui/ui_sat.c
 msgctxt "SQUELCH_FM_ONLY"
 msgid "Squelch: FM only"
-msgstr ""
+msgstr "静噪：仅限FM"
+
 
 #: core/ui/ui_sat.c core/ui/ui_screens.c
 msgctxt "ACTIVITY_STATE_SQUELCH_OPEN"
@@ -4832,77 +4883,92 @@ msgstr "静噪打开"
 #: core/ui/ui_sat.c
 msgctxt "SQUELCH_NORMAL"
 msgid "Squelch normal"
-msgstr ""
+msgstr "静噪正常"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DIAL"
 msgid "Dial"
-msgstr ""
+msgstr "旋钮"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_PASS_HAS_BEGUN"
 msgid "This pass has begun"
-msgstr ""
+msgstr "此次过境已开始"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N2_SIGNAL"
 msgid "{2 Signal|2 Sig}"
-msgstr ""
+msgstr "{2 信号|2 信号}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N3_INFO"
 msgid "3 Info"
-msgstr ""
+msgstr "3 信息"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH"
 msgid "{0 Squelch|0 Sql}"
-msgstr ""
+msgstr "{0 静噪|0 静噪}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "PASS_INFO"
 msgid "Pass info"
-msgstr ""
+msgstr "过境信息"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LENGTH"
 msgid "Length"
-msgstr ""
+msgstr "时长"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DOWN"
 msgid "Down"
-msgstr ""
+msgstr "下行"
+
 
 #: core/ui/ui_sat.c
 msgctxt "UP_2"
 msgid "Up"
-msgstr ""
+msgstr "上行"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ELEMENTS"
 msgid "Elements"
-msgstr ""
+msgstr "轨道根数"
+
 
 #: core/ui/ui_sat.c
 msgctxt "BACK_CLOSE_3"
 msgid "Back close"
-msgstr ""
+msgstr "返回 关闭"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_READINGS_YET"
 msgid "No readings yet"
-msgstr ""
+msgstr "还没有读数"
+
 
 #: core/ui/ui_sat.c
 msgctxt "BEST"
 msgid "Best"
-msgstr ""
+msgstr "最佳"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LOWEST"
 msgid "Lowest"
-msgstr ""
+msgstr "最低"
+
 
 #: core/ui/ui_sat.c core/ui/ui_satellite.c
 msgctxt "NOW"
@@ -4917,12 +4983,14 @@ msgstr "跟踪中"
 #: core/ui/ui_sat.c
 msgctxt "PASS_OVER"
 msgid "Pass over"
-msgstr ""
+msgstr "过境结束"
+
 
 #: core/ui/ui_sat.c
 msgctxt "SETS_IN"
 msgid "Sets in"
-msgstr ""
+msgstr "落下于"
+
 
 #: core/ui/ui_sat.c core/ui/ui_satellite.c
 msgctxt "BELOW_HORIZON_2"
@@ -4932,257 +5000,308 @@ msgstr "地平线下"
 #: core/ui/ui_sat.c
 msgctxt "TUNE"
 msgid "Tune"
-msgstr ""
+msgstr "调谐"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ON"
 msgid "on"
-msgstr ""
+msgstr "开"
+
 
 #: core/ui/ui_sat.c
 msgctxt "RNG"
 msgid "Rng"
-msgstr ""
+msgstr "距离"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_RETUNE_STOP_OK"
 msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
-msgstr ""
+msgstr "{0静噪 #重调 *停止 OK频率 返回|0静噪 #调谐 *停止 OK频率 返回|0静噪 #调谐 *停止 返回|#调谐 *停止 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_RETUNE_AUTO_OK"
 msgid "{0 Squelch  # Retune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr ""
+msgstr "{0静噪 #重调 *自动 OK频率 返回|0静噪 #调谐 *自动 OK频率 返回|0静噪 #调谐 *自动 返回|#调谐 *自动 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_TUNE_AUTO_OK_FREQ"
 msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr ""
+msgstr "{0静噪 #调谐 *自动 OK频率 返回|0静噪 #调谐 *自动 OK频率 返回|0静噪 #调谐 *自动 返回|#调谐 *自动 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_TUNE"
 msgid "Next tune"
-msgstr ""
+msgstr "下次调谐"
+
 
 #: core/ui/ui_sat.c
 msgctxt "PRESS"
 msgid ": press #"
-msgstr ""
+msgstr "：按#"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_TUNE_ITS_OWN_PRESS"
 msgid "Next tune: its own, press #"
-msgstr ""
+msgstr "下次调谐：用它自己的，按#"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LISTENING_ON"
 msgid "Listening on"
-msgstr ""
+msgstr "正在收听"
+
 
 #: core/ui/ui_sat.c
 msgctxt "RX_ONLY"
 msgid ": RX only"
-msgstr ""
+msgstr "：仅接收"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THE_SATELLITES_OWN_FREQUENCY"
 msgid "The satellite's own frequency"
-msgstr ""
+msgstr "卫星自己的频率"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ITS_OWN"
 msgid "Its own"
-msgstr ""
+msgstr "它自己的"
+
 
 #: core/ui/ui_sat.c
 msgctxt "YOURS"
 msgid "Yours"
-msgstr ""
+msgstr "你的"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DOWNLINK_TO_LISTEN_ON"
 msgid "Downlink to listen on,"
-msgstr ""
+msgstr "要收听的下行频率，"
+
 
 #: core/ui/ui_sat.c
 msgctxt "BEFORE_THE_DOPPLER_SHIFT"
 msgid "before the Doppler shift"
-msgstr ""
+msgstr "多普勒频移之前"
+
 
 #: core/ui/ui_sat.c
 msgctxt "RECEIVE_ONLY"
 msgid "Receive only"
-msgstr ""
+msgstr "仅接收"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_9_TYPE_OK_CLOSE_BACK"
 msgid "{0-9 type  OK close  Back|0-9 type  Back}"
-msgstr ""
+msgstr "{0-9输入 OK关闭 返回|0-9输入 返回}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "N0_9_TYPE_OK_SET_BACK_DELETE"
 msgid "{0-9 type  OK set  Back: delete|0-9  OK set  Back del}"
-msgstr ""
+msgstr "{0-9输入 OK设定 返回：删除|0-9 OK设定 返回删}"
+
 
 #: core/ui/ui_sat.c
 msgctxt "STARTING"
 msgid "Starting"
-msgstr ""
+msgstr "启动中"
+
 
 #: core/ui/ui_sat.c
 msgctxt "SWITCH_TO_A_DMR_CHANNEL"
 msgid "Switch to a DMR channel,"
-msgstr ""
+msgstr "请切换到DMR信道，"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THEN_OPEN_THIS_AGAIN"
 msgid "then open this again"
-msgstr ""
+msgstr "然后再打开此项"
+
 
 #: core/ui/ui_sat.c
 msgctxt "TRANSMITTING_OR_STILL"
 msgid "Transmitting, or still"
-msgstr ""
+msgstr "正在发射，或仍在"
+
 
 #: core/ui/ui_sat.c
 msgctxt "STORING_THE_LAST_TRANSFER"
 msgid "storing the last transfer"
-msgstr ""
+msgstr "存储上次传输"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PLACE_TO_KEEP"
 msgid "No place to keep"
-msgstr ""
+msgstr "没有位置保存"
+
 
 #: core/ui/ui_sat.c
 msgctxt "SATELLITES_ON_THIS_RADIO"
 msgid "satellites on this radio"
-msgstr ""
+msgstr "这台电台上的卫星"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_RADIO_CANT"
 msgid "This radio can't"
-msgstr ""
+msgstr "这台电台无法"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LISTEN_FOR_SOUND"
 msgid "listen for sound"
-msgstr ""
+msgstr "监听声音"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ANOTHER_FIRMWARES_DATA"
 msgid "Another firmware's data"
-msgstr ""
+msgstr "其他固件的数据"
+
 
 #: core/ui/ui_sat.c
 msgctxt "IS_WHERE_SATELLITES_GO"
 msgid "is where satellites go"
-msgstr ""
+msgstr "位于卫星存放处"
+
 
 #: core/ui/ui_sat.c
 msgctxt "THE_WEB_INSTALLER_CLEARS"
 msgid "The web installer clears"
-msgstr ""
+msgstr "网页安装器会清除"
+
 
 #: core/ui/ui_sat.c
 msgctxt "IT_AFTER_A_FULL_BACKUP"
 msgid "it after a full backup"
-msgstr ""
+msgstr "它，在完整备份之后"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LVL"
 msgid "Lvl"
-msgstr ""
+msgstr "电平"
+
 
 #: core/ui/ui_sat.c
 msgctxt "FR"
 msgid "Fr"
-msgstr ""
+msgstr "帧"
+
 
 #: core/ui/ui_sat.c
 msgctxt "ERR"
 msgid "Err"
-msgstr ""
+msgstr "错误"
+
 
 #: core/ui/ui_sat.c
 msgctxt "WAITING_FOR_THE_SOUND"
 msgid "Waiting for the sound"
-msgstr ""
+msgstr "等待声音"
+
 
 #: core/ui/ui_sat.c
 msgctxt "HOLD_THE_PHONES_SPEAKER"
 msgid "Hold the phone's speaker"
-msgstr ""
+msgstr "把手机扬声器"
+
 
 #: core/ui/ui_sat.c
 msgctxt "AT_THE_MICROPHONE"
 msgid "at the microphone"
-msgstr ""
+msgstr "对准麦克风"
+
 
 #: core/ui/ui_sat.c
 msgctxt "SATS_HEARD"
 msgid "Sats heard"
-msgstr ""
+msgstr "收到卫星"
+
 
 #: core/ui/ui_sat.c
 msgctxt "OF"
 msgid "of"
-msgstr ""
+msgstr "共"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NEW"
 msgid "New"
-msgstr ""
+msgstr "新增"
+
 
 #: core/ui/ui_sat.c
 msgctxt "UPDATED"
 msgid "Updated"
-msgstr ""
+msgstr "已更新"
+
 
 #: core/ui/ui_sat.c
 msgctxt "KEPT"
 msgid "Kept"
-msgstr ""
+msgstr "保留"
+
 
 #: core/ui/ui_sat.c
 msgctxt "PROBLEMS"
 msgid "Problems"
-msgstr ""
+msgstr "问题"
+
 
 #: core/ui/ui_sat.c
 msgctxt "DONE_ALL_HEARD"
 msgid "Done: all heard"
-msgstr ""
+msgstr "完成：全部收到"
+
 
 #: core/ui/ui_sat.c
 msgctxt "BACK_STOP"
 msgid "Back stop"
-msgstr ""
+msgstr "返回 停止"
+
 
 #: core/ui/ui_sat.c
 msgctxt "LOCAL"
 msgid "Local"
-msgstr ""
+msgstr "本地"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_FIELD_OK_SET"
 msgid "# next field  OK set"
-msgstr ""
+msgstr "# 下一项  OK设定"
+
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_A_DATE"
 msgid "Not a date"
-msgstr ""
+msgstr "不是有效日期"
+
 
 #: core/ui/ui_sat.c
 msgctxt "CLOCK_SET"
 msgid "Clock set"
-msgstr ""
+msgstr "时间已设置"
+
 
 #: core/ui/ui_sat.c
 msgctxt "COULDNT_SET_THE_CLOCK"
 msgid "Couldn't set the clock"
-msgstr ""
+msgstr "无法设置时间"
+
 
 #: core/ui/ui_satellite.c
 msgctxt "SATELLITE_TLE_STALE"
@@ -6007,7 +6126,8 @@ msgstr "# 选项  返回 停止"
 #: core/ui/ui_screens.c
 msgctxt "BANNER_HINT_SAT_PASS"
 msgid "# Track  Back hide"
-msgstr ""
+msgstr "# 跟踪  返回隐藏"
+
 
 #: core/ui/ui_screens.c
 msgctxt "BANNER_HINT_OPEN"

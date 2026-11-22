@@ -110,18 +110,6 @@
    "group": "home",
    "needs": []
   },
-  "home_gps_search": {
-   "group": "home",
-   "needs": [
-    "GPS"
-   ]
-  },
-  "home_gps_fix": {
-   "group": "home",
-   "needs": [
-    "GPS"
-   ]
-  },
   "home_usb_ip": {
    "group": "home",
    "needs": [
@@ -807,7 +795,7 @@
     "SAT"
    ]
   },
-  "satellite_passes": {
+  "sat_passes": {
    "group": "tools",
    "needs": [
     "SAT"

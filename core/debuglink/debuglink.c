@@ -254,6 +254,11 @@ static size_t cmd_version(uint8_t *out, size_t cap)
 	if (CONFIG_FM_TX_TONES) {
 		dl_text(&t, "tone_burst_max_ms=%u\n", INPUT_INJECT_MAX_MS);	// the burst ends by itself (TONE_BURST, op 23)
 	}
+#if CONFIG_SAT
+	// Where our satellite tracking is on the link (a host from before these keys uses command 0x20 and view 28, which
+	// are CHIP_REG and another view now: it must not send them to a build that says so)
+	dl_text(&t, "satcmd=%u\nsatview=%u\n", (unsigned)DL_CMD_SAT, (unsigned)DL_VIEW_SAT);
+#endif
 	// last: a long list that doesn't fit drops only itself (a host then treats the build as unknown). dl_text, not
 	// dl_text_kv_str: that cuts a value at 39 characters, and a cut off= list would read as complete
 	dl_text(&t, "start=%s\n", build_start_now());

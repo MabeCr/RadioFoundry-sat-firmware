@@ -157,8 +157,6 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "satellite_tle_text", "ok 6 9 ok ctx" },
 #endif
 	{ "home_gps_off", "gps:off" },		// the status strip's GPS dish: off (hollow)
-	{ "home_gps_search", "gps:search" },	// on, no fix (solid)
-	{ "home_gps_fix", "gps:fix" },		// with a fix (waves)
 	{ "position", "ok 6 2" },
 	{ "gps_sky", "ok 6 2 2" },
 	{ "gps_signal", "ok 6 2 3" },
@@ -166,7 +164,7 @@ static const struct { const char *name, *script; } gallery[] = {
 #if CONFIG_SAT
 	// Tools > Satellites (ui_sat.c): the list, one satellite's passes, before the clock is set
 	{ "satellites", "ok 6 0" },
-	{ "satellite_passes", "ok 6 0 2" },
+	{ "sat_passes", "ok 6 0 2" },
 	{ "satellite_track", "ok 6 0 1 ok" },
 	{ "satellite_track_wait", "ok 6 0 2 ok" },
 	{ "satellite_track_info", "ok 6 0 1 ok 3" },

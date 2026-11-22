@@ -20,8 +20,7 @@
 #include "sat/sat_store.h"
 #include "sat/sat_track.h"
 #if CONFIG_APRS
-#include "aprs/aprs.h"
-#include "aprs/aprs_fmt.h"
+#include "position/position.h"
 #endif
 
 #define BENCH_MAX_RUNS	1000u
@@ -175,11 +174,11 @@ static size_t op_observer(const uint8_t *req, uint16_t len, uint8_t *out)
 
 static size_t op_observer_gps(uint8_t *out)
 {
-#if CONFIG_APRS
-	aprs_gps_t g;
-	if (!aprs_gps(&g, hal_millis()) || !g.fix)
+#if CONFIG_GPS
+	position_gps_t g;
+	if (!position_gps(&g, hal_millis()) || !g.fix)
 		return status(out, DL_ST_UNAVAILABLE);
-	sat_track_observer(&trk, g.lat / 1e7, g.lon / 1e7, g.alt_m == APRS_ALT_NONE ? 0.0 : (double)g.alt_m);
+	sat_track_observer(&trk, g.lat / 1e7, g.lon / 1e7, g.alt_m == POSITION_ALT_NONE ? 0.0 : (double)g.alt_m);
 	return status(out, DL_ST_OK);
 #else
 	return status(out, DL_ST_UNAVAILABLE);

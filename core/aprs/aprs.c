@@ -146,10 +146,9 @@ static void apply_cfg(void)
 
 static void reload_cfg(void)
 {
-	settings_t st;
+	const settings_t *st = settings_view();		// in place: this runs on the start-up task's small stack
 	aprs_cfg_t c;
-	settings_read(&st);
-	cfg_from_settings(&st, &c);
+	cfg_from_settings(st, &c);
 	LOCK();
 	aprs_s.cfg = c;
 	apply_cfg();

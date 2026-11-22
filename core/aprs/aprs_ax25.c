@@ -208,15 +208,14 @@ bool aprs_to_codeplug(void)
 void aprs_ax25_identity(void)
 {
 	char name[CODEPLUG_NAME_LEN + 1];
-	settings_t st;
+	const settings_t *st = settings_view();		// in place: this runs on the start-up task's small stack
 	codeplug_aprs_t cp;
-	settings_read(&st);
 	bool have_cp = codeplug_aprs(1, &cp);
 	LOCK();
 	memcpy(name, aprs_s.test_call, sizeof(aprs_s.test_call));
 	UNLOCK();
 	if (name[0] == '\0') {
-		memcpy(name, st.radio_name, SETTINGS_NAME_LEN);
+		memcpy(name, st->radio_name, SETTINGS_NAME_LEN);
 		name[SETTINGS_NAME_LEN] = '\0';
 	}
 	if (name[0] == '\0') {
@@ -251,7 +250,7 @@ void aprs_ax25_identity(void)
 	aprs_s.cp_serial = codeplug_serial();
 	aprs_s.ident_ms = aprs_s.now;
 	if (have_cp) {
-		take_codeplug(&st, &cp);
+		take_codeplug(st, &cp);
 	}
 }
 

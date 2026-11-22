@@ -17,8 +17,9 @@ MAXIMAL_VARS := LTO=1
 # default, so that the maximal build keeps satellite tracking and still fits the app region
 MAXIMAL_SKIP := NET_PPP APRS_IGATE LANG_FR
 # The satellite build to flash (tools/satellite.sh, the cloud image): the radio's own defaults plus satellite tracking and
-# element sets by sound. Nothing is cut: the image links with about 9 KB of RAM free
-SATELLITE_VARS := CONFIG_SAT=y CONFIG_SAT_SOUND=y
+# element sets by sound, without P25 and NXDN (about 6.6 KB of RAM and 43 KB of flash each, which this radio's RAM can't
+# spare beside them)
+SATELLITE_VARS := CONFIG_SAT=y CONFIG_SAT_SOUND=y CONFIG_P25=n CONFIG_NXDN=n
 # What the radio's hardware can't do, one switch per line with the reason (tools/boards.py checks there is one;
 # docs/build-config.md, "Unsupported, not written, unconfirmed"): ci's maximal configuration leaves these off
 BOARD_UNSUPPORTED += FONT_XL	# the 160x120 panel is too small for the large font (it is for 240 px and wider)

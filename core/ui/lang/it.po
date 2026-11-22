@@ -240,7 +240,7 @@ msgstr "⤓ Zona da "
 #: core/ui/ui_app.c core/ui/ui_sat.c
 msgctxt "RISES_IN"
 msgid "Rises in"
-msgstr ""
+msgstr "Sorge tra"
 
 #: core/ui/ui_app.c
 msgctxt "SHARE_BANNER_NOT_SENT_TO"
@@ -285,7 +285,7 @@ msgstr "Zona non importata"
 #: core/ui/ui_app.c
 msgctxt "NO_PASS_TO_TRACK"
 msgid "No pass to track"
-msgstr ""
+msgstr "Nessun passaggio da seguire"
 
 #: core/ui/ui_app.c
 msgctxt "FREQ_TOAST_BANDS"
@@ -3550,7 +3550,7 @@ msgstr "Diagnostica"
 #: core/ui/ui_menus.c core/ui/ui_sat.c
 msgctxt "SATELLITES"
 msgid "Satellites"
-msgstr ""
+msgstr "Satelliti"
 
 #: core/ui/ui_menus.c
 msgctxt "TOOLS_ROW_SHARES_RECEIVED"
@@ -3575,7 +3575,7 @@ msgstr "Seriale"
 #: core/ui/ui_menus.c
 msgctxt "UP"
 msgid "up"
-msgstr ""
+msgstr "su"
 
 #: core/ui/ui_menus.c
 msgctxt "SET_VALUE_BACKLIGHT_10S_DIM"
@@ -3625,7 +3625,7 @@ msgstr "Notte (rosso)"
 #: core/ui/ui_menus.c
 msgctxt "TERMINAL"
 msgid "Terminal"
-msgstr ""
+msgstr "Terminale"
 
 #: core/ui/ui_menus.c
 msgctxt "SET_VALUE_ACCENT_ORANGE"
@@ -3635,12 +3635,12 @@ msgstr "Arancio"
 #: core/ui/ui_menus.c
 msgctxt "TERMINAL_INVERSE"
 msgid "Terminal Inverse"
-msgstr ""
+msgstr "Terminale invertito"
 
 #: core/ui/ui_menus.c
 msgctxt "ORANGE_INVERSE"
 msgid "Orange Inverse"
-msgstr ""
+msgstr "Arancio invertito"
 
 #: core/ui/ui_menus.c
 msgctxt "VALUE_DEFAULT"
@@ -4090,32 +4090,32 @@ msgstr "Salva posizione GPS"
 #: core/ui/ui_menus.c
 msgctxt "PASS_ALERT"
 msgid "Pass alert"
-msgstr ""
+msgstr "Avviso passaggio"
 
 #: core/ui/ui_menus.c
 msgctxt "SILENT_PASS_ALERTS"
 msgid "Silent pass alerts"
-msgstr ""
+msgstr "Avvisi passaggio silenziosi"
 
 #: core/ui/ui_menus.c
 msgctxt "TIME_ZONE"
 msgid "Time zone"
-msgstr ""
+msgstr "Fuso orario"
 
 #: core/ui/ui_menus.c
 msgctxt "PASS_TIMES_IN_UTC"
 msgid "Pass times in UTC"
-msgstr ""
+msgstr "Orari dei passaggi in UTC"
 
 #: core/ui/ui_menus.c
 msgctxt "LOWEST_PASS"
 msgid "Lowest pass"
-msgstr ""
+msgstr "Passaggio min."
 
 #: core/ui/ui_menus.c core/ui/ui_sat.c
 msgctxt "SET_TIME"
 msgid "Set time"
-msgstr ""
+msgstr "Imposta ora"
 
 #: core/ui/ui_menus.c
 msgctxt "SET_LABEL_HOTSPOT_ALLOWED"
@@ -4395,7 +4395,7 @@ msgstr "Tema notte: solo rosso"
 #: core/ui/ui_menus.c
 msgctxt "THIS_THEME_USES_ITS_OWN"
 msgid "This theme uses its own colors"
-msgstr ""
+msgstr "Questo tema usa i propri colori"
 
 #: core/ui/ui_menus.c
 msgctxt "WHY_MIC_GAIN_NOT_IN_BUILD"
@@ -4635,117 +4635,117 @@ msgstr "Fino a 90 N/S, 180 E/O"
 #: core/ui/ui_sat.c
 msgctxt "SIX_SATELLITES_ALERT_ALREADY"
 msgid "Six satellites alert already"
-msgstr ""
+msgstr "Già sei satelliti avvisano"
 
 #: core/ui/ui_sat.c
 msgctxt "ALERTS_ON"
 msgid "Alerts on:"
-msgstr ""
+msgstr "Avvisi attivi:"
 
 #: core/ui/ui_sat.c
 msgctxt "ALERTS_OFF"
 msgid "Alerts off:"
-msgstr ""
+msgstr "Avvisi disattivati:"
 
 #: core/ui/ui_sat.c
 msgctxt "EVERY_PASS_ALERTS"
 msgid "Every pass alerts:"
-msgstr ""
+msgstr "Ogni passaggio avvisa:"
 
 #: core/ui/ui_sat.c
 msgctxt "ALERT_FOR_THIS_PASS"
 msgid "Alert for this pass:"
-msgstr ""
+msgstr "Avviso per questo passaggio:"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ALERT_FOR_THIS_PASS"
 msgid "No alert for this pass:"
-msgstr ""
+msgstr "Nessun avviso per questo passaggio:"
 
 #: core/ui/ui_sat.c
 msgctxt "WAITING_FOR_THE_TIME_PASSES"
 msgid "Waiting for the time: passes need UTC from a GPS fix"
-msgstr ""
+msgstr "In attesa dell'ora: i passaggi richiedono l'UTC da un fix GPS"
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_ENOUGH_MEMORY_TO_WORK"
 msgid "Not enough memory to work out passes"
-msgstr ""
+msgstr "Memoria insufficiente per calcolare i passaggi"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_POSITION_A_GPS_FIX_OR_A"
 msgid "No position: a GPS fix, or a fixed one in Tools > APRS"
-msgstr ""
+msgstr "Nessuna posizione: un fix GPS, o una fissa in Strumenti > APRS"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_SATELLITES_STORED_LOAD"
 msgid "No satellites stored: load them over the cable, or by sound"
-msgstr ""
+msgstr "Nessun satellite: caricali con il cavo o con il suono"
 
 #: core/ui/ui_sat.c
 msgctxt "ABOVE"
 msgid "Above"
-msgstr ""
+msgstr "Sopra"
 
 #: core/ui/ui_sat.c
 msgctxt "RECEIVE_SOUND_2"
 msgid "Receive sound"
-msgstr ""
+msgstr "Ricevi suono"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ORBIT"
 msgid "no orbit"
-msgstr ""
+msgstr "senza orbita"
 
 #: core/ui/ui_sat.c
 msgctxt "BAD_ORBIT"
 msgid "bad orbit"
-msgstr ""
+msgstr "orbita errata"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PASS"
 msgid "no pass"
-msgstr ""
+msgstr "nessuno"
 
 #: core/ui/ui_sat.c
 msgctxt "UP_NOW"
 msgid "up now"
-msgstr ""
+msgstr "su ora"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_ORBIT_DATA_LOAD_ITS_TLE"
 msgid "No orbit data: load its TLE over the cable"
-msgstr ""
+msgstr "Nessun dato d'orbita: carica il suo TLE dal cavo"
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_TLE_CANT_BE_PREDICTED"
 msgid "This TLE can't be predicted"
-msgstr ""
+msgstr "Questo TLE non è prevedibile"
 
 #: core/ui/ui_sat.c
 msgctxt "DELETED"
 msgid "Deleted"
-msgstr ""
+msgstr "Eliminato"
 
 #: core/ui/ui_sat.c
 msgctxt "DELETE_THIS_SATELLITE_ITS"
 msgid "Delete this satellite? Its elements and profile are removed. Load them again over the cable or by sound."
-msgstr ""
+msgstr "Eliminare questo satellite? Vengono rimossi i suoi elementi e il profilo. Caricali di nuovo via cavo o con il suono."
 
 #: core/ui/ui_sat.c
 msgctxt "OK_PASSES_HOLD_OK_TRACK"
 msgid "{OK passes  Hold OK track  * Alert  # Delete|OK passes  * Alert  # Delete|* Alert  # Delete}"
-msgstr ""
+msgstr "{OK passaggi  Tieni OK segui  * Avviso  # Elimina|OK passaggi  * Avviso  # Elimina|* Avviso  # Elimina}"
 
 #: core/ui/ui_sat.c
 msgctxt "OK_PASSES_HOLD_OK_TRACK_2"
 msgid "{OK passes  Hold OK track  # Delete|OK passes  # Delete|OK passes  Hold OK track}"
-msgstr ""
+msgstr "{OK passaggi  Tieni OK segui  # Elimina|OK passaggi  # Elimina|OK passaggi  Tieni OK segui}"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_SATELLITES_STORED_LOAD_2"
 msgid "No satellites stored. Load them over the cable: rfoundry_debug.py sat"
-msgstr ""
+msgstr "Nessun satellite salvato. Caricali dal cavo: rfoundry_debug.py sat"
 
 #: core/ui/ui_sat.c core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TONE"
@@ -4755,72 +4755,72 @@ msgstr "Tono"
 #: core/ui/ui_sat.c
 msgctxt "ARM"
 msgid "arm"
-msgstr ""
+msgstr "arma"
 
 #: core/ui/ui_sat.c
 msgctxt "TOMORROW"
 msgid "Tomorrow"
-msgstr ""
+msgstr "Domani"
 
 #: core/ui/ui_sat.c
 msgctxt "WORKING_2"
 msgid "Working"
-msgstr ""
+msgstr "Calcolo"
 
 #: core/ui/ui_sat.c
 msgctxt "OK_TRACK_ALERT_DELETE_BACK"
 msgid "{OK track  * Alert  # Delete  Back|* Alert  # Delete|OK track  Back}"
-msgstr ""
+msgstr "{OK segui  * Avviso  # Elimina  Indietro|* Avviso  # Elimina|OK segui  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "OK_TRACK_DELETE_BACK"
 msgid "{OK track  # Delete  Back|OK track  Back}"
-msgstr ""
+msgstr "{OK segui  # Elimina  Indietro|OK segui  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PASS_ABOVE_THE_LOWEST_IN"
 msgid "No pass above the lowest in 24 h (Settings > Location)"
-msgstr ""
+msgstr "Nessun passaggio sopra il minimo in 24 h (Impostazioni > Posizione)"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_DOWNLINK_SET_FOR_THIS"
 msgid "No downlink set for this satellite"
-msgstr ""
+msgstr "Nessun downlink per questo satellite"
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_WHILE_TRANSMITTING"
 msgid "Not while transmitting"
-msgstr ""
+msgstr "Non durante la trasmissione"
 
 #: core/ui/ui_sat.c
 msgctxt "DIAL_CLEARED"
 msgid "Dial cleared"
-msgstr ""
+msgstr "Manopola azzerata"
 
 #: core/ui/ui_sat.c
 msgctxt "RETUNED"
 msgid "Retuned"
-msgstr ""
+msgstr "Risintonizzato"
 
 #: core/ui/ui_sat.c
 msgctxt "TUNED_TO_THE_DOWNLINK"
 msgid "Tuned to the downlink"
-msgstr ""
+msgstr "Sintonizzato sul downlink"
 
 #: core/ui/ui_sat.c
 msgctxt "AUTO_OFF_2"
 msgid "Auto off"
-msgstr ""
+msgstr "Auto disattivato"
 
 #: core/ui/ui_sat.c
 msgctxt "AUTO_ON_FOLLOWING_THE"
 msgid "Auto on: following the Doppler"
-msgstr ""
+msgstr "Auto attivo: segue il Doppler"
 
 #: core/ui/ui_sat.c
 msgctxt "SQUELCH_FM_ONLY"
 msgid "Squelch: FM only"
-msgstr ""
+msgstr "Squelch: solo FM"
 
 #: core/ui/ui_sat.c core/ui/ui_screens.c
 msgctxt "ACTIVITY_STATE_SQUELCH_OPEN"
@@ -4830,77 +4830,77 @@ msgstr "Squelch aperto"
 #: core/ui/ui_sat.c
 msgctxt "SQUELCH_NORMAL"
 msgid "Squelch normal"
-msgstr ""
+msgstr "Squelch normale"
 
 #: core/ui/ui_sat.c
 msgctxt "DIAL"
 msgid "Dial"
-msgstr ""
+msgstr "Manopola"
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_PASS_HAS_BEGUN"
 msgid "This pass has begun"
-msgstr ""
+msgstr "Questo passaggio è già iniziato"
 
 #: core/ui/ui_sat.c
 msgctxt "N2_SIGNAL"
 msgid "{2 Signal|2 Sig}"
-msgstr ""
+msgstr "{2 Segnale|2 Seg}"
 
 #: core/ui/ui_sat.c
 msgctxt "N3_INFO"
 msgid "3 Info"
-msgstr ""
+msgstr "3 Info"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH"
 msgid "{0 Squelch|0 Sql}"
-msgstr ""
+msgstr "{0 Squelch|0 Sql}"
 
 #: core/ui/ui_sat.c
 msgctxt "PASS_INFO"
 msgid "Pass info"
-msgstr ""
+msgstr "Info passaggio"
 
 #: core/ui/ui_sat.c
 msgctxt "LENGTH"
 msgid "Length"
-msgstr ""
+msgstr "Durata"
 
 #: core/ui/ui_sat.c
 msgctxt "DOWN"
 msgid "Down"
-msgstr ""
+msgstr "Discesa"
 
 #: core/ui/ui_sat.c
 msgctxt "UP_2"
 msgid "Up"
-msgstr ""
+msgstr "Salita"
 
 #: core/ui/ui_sat.c
 msgctxt "ELEMENTS"
 msgid "Elements"
-msgstr ""
+msgstr "Elementi"
 
 #: core/ui/ui_sat.c
 msgctxt "BACK_CLOSE_3"
 msgid "Back close"
-msgstr ""
+msgstr "Indietro chiude"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_READINGS_YET"
 msgid "No readings yet"
-msgstr ""
+msgstr "Ancora nessuna lettura"
 
 #: core/ui/ui_sat.c
 msgctxt "BEST"
 msgid "Best"
-msgstr ""
+msgstr "Migliore"
 
 #: core/ui/ui_sat.c
 msgctxt "LOWEST"
 msgid "Lowest"
-msgstr ""
+msgstr "Più bassa"
 
 #: core/ui/ui_sat.c core/ui/ui_satellite.c
 msgctxt "NOW"
@@ -4915,12 +4915,12 @@ msgstr "Tracciamento"
 #: core/ui/ui_sat.c
 msgctxt "PASS_OVER"
 msgid "Pass over"
-msgstr ""
+msgstr "Passaggio finito"
 
 #: core/ui/ui_sat.c
 msgctxt "SETS_IN"
 msgid "Sets in"
-msgstr ""
+msgstr "Tramonta tra"
 
 #: core/ui/ui_sat.c core/ui/ui_satellite.c
 msgctxt "BELOW_HORIZON_2"
@@ -4930,257 +4930,257 @@ msgstr "Sotto l'orizzonte"
 #: core/ui/ui_sat.c
 msgctxt "TUNE"
 msgid "Tune"
-msgstr ""
+msgstr "Sintonia"
 
 #: core/ui/ui_sat.c
 msgctxt "ON"
 msgid "on"
-msgstr ""
+msgstr "attivo"
 
 #: core/ui/ui_sat.c
 msgctxt "RNG"
 msgid "Rng"
-msgstr ""
+msgstr "Dist"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_RETUNE_STOP_OK"
 msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
-msgstr ""
+msgstr "{0 Squelch  # Risintonizza  * Ferma  OK Freq  Indietro|0 Sql  # Sint  * Ferma  OK Freq  Indietro|0 Sql  # Sint  * Ferma  Indietro|# Sint  * Ferma  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_RETUNE_AUTO_OK"
 msgid "{0 Squelch  # Retune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr ""
+msgstr "{0 Squelch  # Risintonizza  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  Indietro|# Sint  * Auto  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_SQUELCH_TUNE_AUTO_OK_FREQ"
 msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
-msgstr ""
+msgstr "{0 Squelch  # Sintonizza  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  OK Freq  Indietro|0 Sql  # Sint  * Auto  Indietro|# Sint  * Auto  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_TUNE"
 msgid "Next tune"
-msgstr ""
+msgstr "Prossima sintonia"
 
 #: core/ui/ui_sat.c
 msgctxt "PRESS"
 msgid ": press #"
-msgstr ""
+msgstr ": premi #"
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_TUNE_ITS_OWN_PRESS"
 msgid "Next tune: its own, press #"
-msgstr ""
+msgstr "Prossima sintonia: la propria, premi #"
 
 #: core/ui/ui_sat.c
 msgctxt "LISTENING_ON"
 msgid "Listening on"
-msgstr ""
+msgstr "In ascolto su"
 
 #: core/ui/ui_sat.c
 msgctxt "RX_ONLY"
 msgid ": RX only"
-msgstr ""
+msgstr ": solo RX"
 
 #: core/ui/ui_sat.c
 msgctxt "THE_SATELLITES_OWN_FREQUENCY"
 msgid "The satellite's own frequency"
-msgstr ""
+msgstr "La frequenza del satellite"
 
 #: core/ui/ui_sat.c
 msgctxt "ITS_OWN"
 msgid "Its own"
-msgstr ""
+msgstr "Propria"
 
 #: core/ui/ui_sat.c
 msgctxt "YOURS"
 msgid "Yours"
-msgstr ""
+msgstr "La tua"
 
 #: core/ui/ui_sat.c
 msgctxt "DOWNLINK_TO_LISTEN_ON"
 msgid "Downlink to listen on,"
-msgstr ""
+msgstr "Downlink su cui ascoltare,"
 
 #: core/ui/ui_sat.c
 msgctxt "BEFORE_THE_DOPPLER_SHIFT"
 msgid "before the Doppler shift"
-msgstr ""
+msgstr "prima dello spostamento Doppler"
 
 #: core/ui/ui_sat.c
 msgctxt "RECEIVE_ONLY"
 msgid "Receive only"
-msgstr ""
+msgstr "Solo ricezione"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_9_TYPE_OK_CLOSE_BACK"
 msgid "{0-9 type  OK close  Back|0-9 type  Back}"
-msgstr ""
+msgstr "{0-9 digita  OK chiudi  Indietro|0-9 digita  Indietro}"
 
 #: core/ui/ui_sat.c
 msgctxt "N0_9_TYPE_OK_SET_BACK_DELETE"
 msgid "{0-9 type  OK set  Back: delete|0-9  OK set  Back del}"
-msgstr ""
+msgstr "{0-9 digita  OK imposta  Indietro: cancella|0-9  OK imposta  Indietro canc}"
 
 #: core/ui/ui_sat.c
 msgctxt "STARTING"
 msgid "Starting"
-msgstr ""
+msgstr "Avvio"
 
 #: core/ui/ui_sat.c
 msgctxt "SWITCH_TO_A_DMR_CHANNEL"
 msgid "Switch to a DMR channel,"
-msgstr ""
+msgstr "Passa a un canale DMR,"
 
 #: core/ui/ui_sat.c
 msgctxt "THEN_OPEN_THIS_AGAIN"
 msgid "then open this again"
-msgstr ""
+msgstr "poi riapri questa"
 
 #: core/ui/ui_sat.c
 msgctxt "TRANSMITTING_OR_STILL"
 msgid "Transmitting, or still"
-msgstr ""
+msgstr "In trasmissione, o ancora"
 
 #: core/ui/ui_sat.c
 msgctxt "STORING_THE_LAST_TRANSFER"
 msgid "storing the last transfer"
-msgstr ""
+msgstr "salvo l'ultimo invio"
 
 #: core/ui/ui_sat.c
 msgctxt "NO_PLACE_TO_KEEP"
 msgid "No place to keep"
-msgstr ""
+msgstr "Nessuno spazio per"
 
 #: core/ui/ui_sat.c
 msgctxt "SATELLITES_ON_THIS_RADIO"
 msgid "satellites on this radio"
-msgstr ""
+msgstr "i satelliti su questa radio"
 
 #: core/ui/ui_sat.c
 msgctxt "THIS_RADIO_CANT"
 msgid "This radio can't"
-msgstr ""
+msgstr "Questa radio non può"
 
 #: core/ui/ui_sat.c
 msgctxt "LISTEN_FOR_SOUND"
 msgid "listen for sound"
-msgstr ""
+msgstr "ascoltare il suono"
 
 #: core/ui/ui_sat.c
 msgctxt "ANOTHER_FIRMWARES_DATA"
 msgid "Another firmware's data"
-msgstr ""
+msgstr "Dati di altro firmware"
 
 #: core/ui/ui_sat.c
 msgctxt "IS_WHERE_SATELLITES_GO"
 msgid "is where satellites go"
-msgstr ""
+msgstr "dove vanno i satelliti"
 
 #: core/ui/ui_sat.c
 msgctxt "THE_WEB_INSTALLER_CLEARS"
 msgid "The web installer clears"
-msgstr ""
+msgstr "L'installer web li"
 
 #: core/ui/ui_sat.c
 msgctxt "IT_AFTER_A_FULL_BACKUP"
 msgid "it after a full backup"
-msgstr ""
+msgstr "cancella dopo il backup"
 
 #: core/ui/ui_sat.c
 msgctxt "LVL"
 msgid "Lvl"
-msgstr ""
+msgstr "Liv"
 
 #: core/ui/ui_sat.c
 msgctxt "FR"
 msgid "Fr"
-msgstr ""
+msgstr "Fr"
 
 #: core/ui/ui_sat.c
 msgctxt "ERR"
 msgid "Err"
-msgstr ""
+msgstr "Err"
 
 #: core/ui/ui_sat.c
 msgctxt "WAITING_FOR_THE_SOUND"
 msgid "Waiting for the sound"
-msgstr ""
+msgstr "In attesa del suono"
 
 #: core/ui/ui_sat.c
 msgctxt "HOLD_THE_PHONES_SPEAKER"
 msgid "Hold the phone's speaker"
-msgstr ""
+msgstr "Tieni l'altoparlante del telefono"
 
 #: core/ui/ui_sat.c
 msgctxt "AT_THE_MICROPHONE"
 msgid "at the microphone"
-msgstr ""
+msgstr "vicino al microfono"
 
 #: core/ui/ui_sat.c
 msgctxt "SATS_HEARD"
 msgid "Sats heard"
-msgstr ""
+msgstr "Sat sentiti"
 
 #: core/ui/ui_sat.c
 msgctxt "OF"
 msgid "of"
-msgstr ""
+msgstr "di"
 
 #: core/ui/ui_sat.c
 msgctxt "NEW"
 msgid "New"
-msgstr ""
+msgstr "Nuovi"
 
 #: core/ui/ui_sat.c
 msgctxt "UPDATED"
 msgid "Updated"
-msgstr ""
+msgstr "Aggiorn."
 
 #: core/ui/ui_sat.c
 msgctxt "KEPT"
 msgid "Kept"
-msgstr ""
+msgstr "Invariati"
 
 #: core/ui/ui_sat.c
 msgctxt "PROBLEMS"
 msgid "Problems"
-msgstr ""
+msgstr "Problemi"
 
 #: core/ui/ui_sat.c
 msgctxt "DONE_ALL_HEARD"
 msgid "Done: all heard"
-msgstr ""
+msgstr "Fatto: tutti sentiti"
 
 #: core/ui/ui_sat.c
 msgctxt "BACK_STOP"
 msgid "Back stop"
-msgstr ""
+msgstr "Indietro ferma"
 
 #: core/ui/ui_sat.c
 msgctxt "LOCAL"
 msgid "Local"
-msgstr ""
+msgstr "Locale"
 
 #: core/ui/ui_sat.c
 msgctxt "NEXT_FIELD_OK_SET"
 msgid "# next field  OK set"
-msgstr ""
+msgstr "# campo  OK imposta"
 
 #: core/ui/ui_sat.c
 msgctxt "NOT_A_DATE"
 msgid "Not a date"
-msgstr ""
+msgstr "Data non valida"
 
 #: core/ui/ui_sat.c
 msgctxt "CLOCK_SET"
 msgid "Clock set"
-msgstr ""
+msgstr "Orologio impostato"
 
 #: core/ui/ui_sat.c
 msgctxt "COULDNT_SET_THE_CLOCK"
 msgid "Couldn't set the clock"
-msgstr ""
+msgstr "Impossibile impostare l'orologio"
 
 #: core/ui/ui_satellite.c
 msgctxt "SATELLITE_TLE_STALE"
@@ -6005,7 +6005,7 @@ msgstr "# opzioni  Indietro ferma"
 #: core/ui/ui_screens.c
 msgctxt "BANNER_HINT_SAT_PASS"
 msgid "# Track  Back hide"
-msgstr ""
+msgstr "# Segui  Indietro nascondi"
 
 #: core/ui/ui_screens.c
 msgctxt "BANNER_HINT_OPEN"
