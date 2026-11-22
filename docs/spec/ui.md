@@ -447,6 +447,25 @@ shown as it is. The tables are built by `tools/i18n.py` from the marks and `core
 | Lengths | A translation may be longer than its English. Text goes into fixed buffers through `str_copy` or `sb_str`, which cut it; a row too long for the screen is shortened as any row is (`gfx_text_fit`, text alternates) |
 | Not translated | Search words of the settings (Find matches the English words and the shown name), debug link names and values, protocol text sent off the radio (APRS, the debug link). The canned text messages are the exception: sent in the language in use |
 
+### 2.7 Scan lists
+
+With `CONFIG_SCAN_LIST` and a usable scan list area ([scan-list.md](scan-list.md) 2), Tools > Scan (`scan-lists`,
+`ui_scanlist.c`; Tools 1) opens the lists; without them it starts the zone scan at once. A list is named and holds up to
+80 channels from any zone; it is scanned without changing zone ([scan-list.md](scan-list.md) 6).
+
+| Screen | Shows |
+|---|---|
+| Scan (`scan-lists`) | Row 0 "Scan zone" ("Scan band" in the VFO) with On or Off: the zone scan as before. Then each stored list with its channel count ("12 ch"), then "New scan list" while there is room. OK on a list scans it (Home, with "Scanning" and its name); "Leave the VFO first" in the VFO, "Add two channels first" under two. `#` (long OK without a CONTEXT key) opens the list's options. "New scan list" opens text entry; the new list appears focused with "Added" and its name |
+| Scan list (`scan-list`) | The options, numbered: 1 Edit channels, 2 Rename (text entry with the name), 3 Delete |
+| Delete (`scan-list-delete`) | "No, keep it" / "Yes, delete" and a line that the channels stay in their zones |
+| Channels (`scan-list-edit`) | "Add channel", then the list's channels as "1 Name" with frequency and talk target; OK removes one ("Removed"). A channel the codeplug no longer has reads "Missing", dim, and OK removes it. A list of 80 says "The list is full" |
+| Add to (`scan-list-add`) | The zone row (OK picks another zone), then that zone's channels. OK adds a channel or takes it out again ("In list" marks them) and stays, so a list takes channels from several zones in a row. Digits filter by name |
+| Zone (`scan-list-zone`) | Every zone; OK returns to the picker on it |
+
+Changes are saved by a job for the housekeeping task, one at a time: a second change before it finishes says "Busy saving:
+try again" and is not made. The stack is 9 deep (`UI_STACK_MAX`): Home, hub, Tools, Scan, the options, Channels, Add to,
+Zone. Only Scan is a field-use screen.
+
 ## 3. Key meanings
 
 The same on every screen (information-architecture.md, key maps 7.1 to 7.5):
