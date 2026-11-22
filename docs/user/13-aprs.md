@@ -83,8 +83,7 @@ positions sent over DMR.
 **ARISS** is for reaching the ISS packet digipeater, which listens on 145.825 MHz (FM, 1200 baud, worldwide) and
 answers to the alias ARISS. Set the path to ARISS, set **Frequency** to Custom with 145.825 MHz (see Frequency above),
 tune in FM and send during a pass. Packets go out on the ground too, so use it only for the pass, and switch back to
-a terrestrial path afterwards. The station moves fast: its signal shifts by a few kHz during a pass. The satellite
-screens ([Satellites](18-satellite.md)) show when it is overhead on builds that have them.
+a terrestrial path afterwards. The station moves fast: its signal shifts by a few kHz during a pass.
 
 The path is also in the codeplug's first APRS configuration, which qdmr edits. A change on the radio is written
 there too, and a codeplug written with a different path changes the radio's. Whichever changed last is used.
