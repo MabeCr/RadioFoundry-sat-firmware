@@ -55,6 +55,18 @@ typedef struct {
 	// Optional (NULL: none): interrupts the platform's fallback handler took for a source with no handler (it masks the
 	// source so it can't storm), and the last such source. A count above 0 means some interrupt went quiet for good
 	void (*irq_unhandled)(uint32_t *count, uint32_t *last_source);
+	// Optional (NULL: the handlers share the task stacks): bytes of the interrupt handlers' own stack (on a Cortex-M the
+	// main stack, theirs alone once the scheduler runs) never written since start. The platform checks that stack's end
+	// itself (a stack overflow crash, task "irq")
+	uint32_t (*irq_stack_free)(void);
+	// Optional (NULL: none): one 32-bit SoC register for the debug link's CHIP_REG (docs/spec/debuglink.md 3.24), only
+	// an aligned word inside the platform's register windows. Writes *val when write, then reads the register back into
+	// *val; the read has the register's side effects (a read-to-clear EOI acknowledges). False outside the windows
+	bool (*reg)(uint32_t addr, uint32_t *val, bool write);
+	// Optional (NULL: none): where the firmware image lies in program flash, as the release file has it (the
+	// application's base, a first stage included, to the end of the data's load copy). read() reads it: the support
+	// info's image hash (docs/spec/support-info.md 3)
+	void (*image)(uint32_t *addr, uint32_t *len);
 #if defined(CONFIG_STUB_ENTRY) && CONFIG_STUB_ENTRY
 	uint32_t stub_run_addr;		// last, so a file built without config.h sees the same layout before it
 	// Optional (NULL: any image): the loaded image may run here. The STM32 refuses one that doesn't feed the IWDG

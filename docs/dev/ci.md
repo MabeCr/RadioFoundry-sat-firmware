@@ -17,6 +17,7 @@ so one set serves the self-hosted Gitea runner and GitHub.
 | `hil.yml` | `rfoundry-hil` (the bench Mac) | by hand; nightly only when `RFOUNDRY_HIL_SCHEDULE=true` | `tests/hil` against the radio and the SDR bench |
 | `ui-gallery.yml` | `ubuntu-24.04` | a pull request that changes the UI (`core/ui/`, the simulator, `uiSim`) | renders the screen gallery at the base and at the pull request, and makes the side-by-side artifact |
 | `ui-gallery-comment.yml` | `ubuntu-24.04` | when `ui-gallery.yml` finishes on a pull request | posts the pull request's gallery comment with the changed screens attached |
+| `beep-reel.yml` | `ubuntu-24.04` | a pull request that changes the beeps (`core/radio/beep.c`, `beep.h`, the reel) | makes the beep reel with the base's beeps and with the pull request's, and uploads both videos and the changed beeps |
 | `manual.yml` | `ubuntu-24.04` | docs changes pushed to `main`, `v*` tags | the user manual PDF ([manual-pdf.md](manual-pdf.md)) |
 | `satellite-image.yml` | `ubuntu-24.04` | a push to `main` or a `claude/**` branch that changes firmware sources; by hand (board input) | this fork only: the satellite build ([satellite.sh](building.md): its defaults plus tracking, with the cuts a radio with little RAM needs) of every board that lists `SATELLITE_VARS`, or of the board given, each a job of its own (one board's failure doesn't stop another's) with its platform's pinned compiler, stack-checked, and published as its own pre-release `satellite-<board>-<commit>`, titled with the radio's name, whose codec-less image downloads on a phone ([the testing index](../testing/README.md)); the newest five of each board are kept. It fails if a codec could be in the output |
 | `release.yml` | `ubuntu-24.04`, and for rfoundry the hosted macOS / Windows runners | `v*` tags; pull requests that change rfoundry or this workflow (no release gate; `pr-tests.yml` runs the firmware packaging) | release images and rfoundry ([release.md](release.md)) |
@@ -40,7 +41,7 @@ push runs only the manual workflow. A newer push cancels the run in progress (`c
 
 | Job | Command |
 |---|---|
-| `unit tests` | `SANITIZE=1 tools/coverage.sh` (the host tests with the tshark pcap checks, built once with `--coverage` and ASan / UBSan, and gcovr's report), then the UI screen gallery (`uiSim --gallery`) |
+| `unit tests` | `SANITIZE=1 tools/coverage.sh` (the host tests with the tshark pcap checks, built once with `--coverage` and ASan / UBSan, and gcovr's report), then the bench tools (`tools/ci.sh --steps bench`) and the UI screen gallery (`uiSim --gallery`) |
 | `checks` | `tools/ci.sh --steps registry,python,licenses` (doc links and the strict web site build among the Python checks; the job installs `site/requirements.txt` for the site) |
 | `firmware (Arm)` | `tools/ci.sh --quick --steps firmware --toolchain arm`: every board built with the Arm toolchain, default and maximal (with the stack check), in one job |
 | `firmware (C-SKY)` | `tools/ci.sh --quick --steps firmware --toolchain csky`, in the csky-elf image (`tools/docker/csky-toolchain/run.sh`) unless the runner has csky-elf GCC; skipped where the image isn't available |
@@ -128,8 +129,8 @@ before and after, side by side. It's advisory: no required check waits on it.
 
    The gallery's color pages are drawn once more in each highlight color the workflow's `UI_GALLERY_COLORS` names
    (`env` at the top of `ui-gallery.yml`: one line, in double quotes, any of `red orange yellow teal light_blue purple
-   pink`; three for now). Theme pages are also drawn in the light, high-contrast and night themes (`<screen>__light`,
-   `<screen>__high_contrast`, `<screen>__night`). When a color page or any of its color or theme shots changed, the comparison shows the
+   pink`; three for now). Theme pages are also drawn in the light, high-contrast and night themes
+   (`<screen>__light`, `<screen>__high_contrast`, `<screen>__night`). When a color page or any of its color or theme shots changed, the comparison shows the
    whole set as one row of the composite: a column per shot, the page first, then its colors in the list's order and
    its themes, before above after, the unchanged ones marked so. Such a row counts as two of the eight.
    `make -C tests/host ui-gallery` reads the same line, so the committed gallery shows the same colors. Changing the
@@ -139,7 +140,8 @@ before and after, side by side. It's advisory: no required check waits on it.
    composite to the `ui-previews` branch (made on first use, one `pr-N/` folder per pull request holding its newest commit) and
    linked with `blob/...?raw=true` URLs, which render for signed-in viewers of a private repository (`gh --attach` needs a
    user session, not the job's token). The branch never grows: every run rebuilds it as one parentless commit and force-pushes it (it holds only
-   pictures that can be regenerated), keeping the open pull requests, the newest 5 closed without a merge and the newest
+   pictures that can be regenerated), leased on the commit it fetched: a run that loses the race to another pull request's
+   fetches again and rebuilds. It keeps the open pull requests, the newest 5 closed without a merge and the newest
    20 merged, among those that have pictures; older folders are dropped, and GitHub collects their objects. A pull
    request's folder holds only its newest commit: the pictures of its earlier commits are removed. It then edits the
    pull request's comment in place, so it stays where it was near the top of the conversation; only if the edit fails
@@ -155,6 +157,24 @@ Nothing else is needed: no branch, no host. Attachments on a private repository 
 see the pull request; the first run on a UI pull request confirms that and that `gh` accepts the attachments with the
 job's token. `workflow_run` runs only from the default branch's copy of the workflow, and Gitea Actions may not
 support it, so check the first run on the Gitea runner before relying on the comment there.
+
+## Beep reel: `beep-reel.yml`
+
+A pull request that touches `core/radio/beep.c`, `core/radio/beep.h`, `hal/hal_audio.h`, the simulator or the reel
+(`tests/host/beepReel.c`, `tools/beep_reel.py`) gets the beep reel before and after as the `beep-reel` artifact. It's
+advisory: no required check waits on it, and nothing is posted to the pull request.
+
+Both reels are made with the pull request's tool, simulator and scenes. Only `beep.c` and `beep.h` differ: the base
+commit's for the first (`--beep-dir base/core/radio --lenient`: the scenes may name a beep the base doesn't have),
+the pull request's for the second. GitHub serves the artifact as a zip:
+
+| File | What |
+|---|---|
+| `before.mp4` | the reel with the base commit's beeps |
+| `after.mp4` | the reel with the pull request's |
+| `beeps/<name>.before.wav`, `beeps/<name>.after.wav` | only for a beep whose sound changed: that beep alone, as `beep.c` made it (one side only for a beep new or gone) |
+
+The job summary lists the changed beeps. A video is about 240 KB; a beep's WAV 2 to 17 KB.
 
 ## Nightly: `nightly.yml`
 
@@ -215,12 +235,13 @@ tools/docker/csky-toolchain/run.sh tools/ci.sh --quick --steps firmware --board 
 |---|---|
 | `registry` | Every `board.toml` and `platform.toml` is well formed and agrees with `board.mk`, the linker scripts and `board_t`; `tools/rfoundry/rfoundry/registry.json` is current; the loader's self-test (`tools/boards.py`) |
 | `host` | `make -C tests/host`, with each board's own tests (`boards/<b>/tests/host.mk`) |
+| `bench` | Each bench tool with a Makefile under `tools/bench/*/` (built from the `core/` sources, such as the P25 and NXDN tools), with zero warnings |
 | `python` | Every Python file parses, the HIL test collection, rfoundry's tests, every tool's `--self-test` (found by searching `tools/` and `stub/`, so a new tool needs no ci.sh change), doc links, the glossary, the web site build and the flasher's tests |
 | `firmware` | Every board whose compiler is installed: the default build, each build option value (`board.toml` `[[build_options]]`, such as a band), each `[ci] extra` configuration, the feature matrix, and the flash stubs of each built platform (`platform.toml` `stubs`) |
 | `licenses` | `tools/license_grep.sh` and `reuse lint` |
 | `similarity` | `tools/similarity_scan.py`, only with `RFOUNDRY_SIMILARITY_REFS` set |
 
-Every step but `host` needs Python 3.11 or later for the registry's TOML. `tools/rfoundry_python.sh` finds it:
+Every step but `host` and `bench` needs Python 3.11 or later for the registry's TOML. `tools/rfoundry_python.sh` finds it:
 `$RFOUNDRY_PYTHON`, else the newest `python3.N` on `PATH`. A board whose compiler is missing is skipped with the command
 that installs it (its platform's `toolchain.build`). `--quick` builds each board's default and maximal configurations,
 `--matrix` the feature matrix.
@@ -254,7 +275,7 @@ workflow types a version. Platforms that share a toolchain id must pin the same 
 
 | Toolchain | Set-up |
 |---|---|
-| `arm` | `tools/install-arm-toolchain.sh` downloads the pinned, checksummed release into `~/opt`, every time (no cache); a runner that has it already skips the download |
+| `arm` | `tools/install-arm-toolchain.sh` copies the pinned toolchain into `~/opt` out of `[toolchain] image` (public on ghcr.io, pinned by digest, made by `tools/docker/toolchains/build-arm-ci.sh`), or downloads Arm's checksummed release when that fails; every time (no cache). A runner that has it already skips both. The build runs on the runner |
 | `csky` | csky-elf GCC on `PATH` when the runner has it; otherwise the csky-elf image (`[toolchain] image`, public on ghcr.io, or `RFOUNDRY_CSKY_IMAGE`): logged in to only when a workflow passes a registry (`RFOUNDRY_CSKY_REGISTRY`, for a private copy), pulled, then the job runs its build through `tools/docker/csky-toolchain/run.sh` (the action's `run` output) |
 
 No workflow builds csky-elf GCC from source. The image is built by `tools/docker/csky-toolchain/build.sh`

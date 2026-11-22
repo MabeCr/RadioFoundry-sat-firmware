@@ -13,6 +13,7 @@ void hrc_attach(hrc_t *dev, const hrc_bus_t *bus, const hrc_chip_t *chip)
 {
 	dev->bus = bus;
 	dev->chip = chip;
+	dev->rx_iq_straight = false;
 }
 
 static uint8_t page_of(const hrc_t *dev, uint8_t page)
@@ -87,4 +88,29 @@ bool hrc_flush_vocoder(hrc_t *dev)
 		fill[i] = 0x7F;
 	}
 	return hrc_write_burst(dev, HRC_PAGE_VOCODER, 0x00, fill, sizeof(fill));
+}
+
+bool hrc_prompt_on(hrc_t *dev, bool on)
+{
+	uint8_t v;
+	if (!hrc_read(dev, HRC_PAGE_SYS, 0x06, &v)) {
+		return false;
+	}
+	return hrc_write(dev, HRC_PAGE_SYS, 0x06, on ? (uint8_t)(v | 0x02u) : (uint8_t)(v & ~0x02u));
+}
+
+bool hrc_prompt_room(hrc_t *dev)
+{
+	uint8_t v;
+	return hrc_read(dev, HRC_PAGE_SYS, 0x88, &v) && (v & 0x01u) == 0;
+}
+
+bool hrc_prompt_write(hrc_t *dev, const int16_t *s)
+{
+	uint8_t b[2 * HRC_PROMPT_CHUNK];
+	for (int i = 0; i < HRC_PROMPT_CHUNK; i++) {
+		b[2 * i] = (uint8_t)((uint16_t)s[i] >> 8);
+		b[2 * i + 1] = (uint8_t)s[i];
+	}
+	return hrc_write_burst(dev, HRC_PAGE_VOCODER, 0x00, b, sizeof b);
 }

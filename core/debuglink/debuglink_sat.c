@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 The RadioFoundry Authors
-// Satellite tracking on the debug link (CONFIG_SAT, docs/spec/debuglink.md 3.24, docs/spec/satellite.md): DL_CMD_SAT
+// Satellite tracking on the debug link (CONFIG_SAT, docs/spec/debuglink.md 3.31, docs/spec/satellite.md): DL_CMD_SAT
 // loads an element set (in pieces: a request holds 64 bytes, a TLE 138), sets the observer and the clock, works out a
 // look or a pass at a given time and times the model; the sat view section shows the satellite now. The bench for the
 // model's speed on a radio without an FPU, and what the HIL test compares with the reference values. Every request

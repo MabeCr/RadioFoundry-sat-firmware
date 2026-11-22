@@ -11,6 +11,7 @@
 #include "ui/fmt.h"
 #include "ui/ui_screens.h"
 #include "ui/ui_svc.h"
+#include "ui/cjk_font.h"
 
 static int fails;
 #define CHECK(c) do { if (!(c)) { printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #c); fails++; } } while (0)
@@ -138,12 +139,12 @@ static void render_set(const char *cls)
 	strcpy(v.ch.name, "COUNTY DMR");
 	v.channel_number = 3;
 	v.ch.mode = RADIO_MODE_DMR;
-	v.ch.rx_hz = 467375000; v.ch.tx_hz = 467375000;
+	v.ch.rx_hz = 453625000; v.ch.tx_hz = 453625000;
 	v.ch.color_code = 2; v.ch.timeslot = 1;
 	v.ch.tx_tone.type = TONE_NONE;
-	v.dmr.active = true; v.dmr.codec = true; v.dmr.cc = 2; v.dmr.ts = 1; v.dmr.own_id = 3101276;
+	v.dmr.active = true; v.dmr.codec = true; v.dmr.cc = v.dmr.rx_cc = 2; v.dmr.ts = 1; v.dmr.own_id = 9996543;
 	v.dmr.target_id = 201; strcpy(v.dmr.target_name, "Main Ops");
-	v.dmr.last.src = 3101234; strcpy(v.dmr.last.src_name, "Joe"); v.dmr.last.dst = 91; v.dmr.last.group = true;
+	v.dmr.last.src = 9991234; strcpy(v.dmr.last.src_name, "Joe"); v.dmr.last.dst = 91; v.dmr.last.group = true;
 	v.dmr.last_ms = s.now_ms - 120000;
 	ui_draw_home(&v, &s);
 	snprintf(name, sizeof name, "%s_dmr_home", cls); save(name);
@@ -155,7 +156,7 @@ static void render_set(const char *cls)
 	ui_draw_home(&v, &s);
 	snprintf(name, sizeof name, "%s_dmr_nocodec", cls); save(name);
 	v.state = RS_RX; v.dmr.state = RDMR_RX; v.dmr.rssi_dbm = -71;
-	v.dmr.call.src = 3101234; strcpy(v.dmr.call.src_name, "JOE SMITH"); v.dmr.call.dst = 201; v.dmr.call.group = true;
+	v.dmr.call.src = 9991234; strcpy(v.dmr.call.src_name, "JOE SMITH"); v.dmr.call.dst = 201; v.dmr.call.group = true;
 	strcpy(v.dmr.call.dst_name, "Main Ops");
 	strcpy(v.dmr.alias, "Joe - Boston, MA");
 	ui_draw_home(&v, &s);
@@ -173,6 +174,9 @@ static void render_set(const char *cls)
 	v.dmr.state = RDMR_TX_WAIT; v.dmr.rmo = true;
 	ui_draw_home(&v, &s);
 	snprintf(name, sizeof name, "%s_dmr_tx_wake", cls); save(name);
+	v.dmr.state = RDMR_TX_PERMIT;	// admitted: the talk permit before keying
+	ui_draw_home(&v, &s);
+	snprintf(name, sizeof name, "%s_dmr_tx_admitted", cls); save(name);
 	v.dmr.rmo = false;
 	v.state = RS_TX_DENIED; v.tx_deny = TXDENY_NO_CODEC;
 	ui_draw_home(&v, &s);
@@ -184,7 +188,7 @@ static void render_set(const char *cls)
 	// Hotspot screen
 	hotspot_view_t h;
 	memset(&h, 0, sizeof h);
-	h.running = true; h.rx_hz = h.tx_hz = 438800000; h.cc = 1; h.src = 3101276; h.dst = 91; h.group = true;
+	h.running = true; h.rx_hz = h.tx_hz = 438800000; h.cc = 1; h.src = 9996543; h.dst = 91; h.group = true;
 	h.from_net = true; h.transmitting = true;
 	base_view(&v);
 	v.hotspot = true;
@@ -348,6 +352,56 @@ static void test_hc_strip_white(void)
 	CHECK(ui_col.strip_bg == RGB565(216, 216, 216));
 }
 
+// Night: every color red only, whatever the highlight color or strip; the highlight is its brightest red with black
+// text; what must be read sits brightest on black or black on brightest; the darkest red is never text
+static void test_night_palette(void)
+{
+	hal_display_t d = disp;
+	d.width = 160; d.height = 120; d.bpp = 16;
+	d.inset_top = d.inset_bottom = d.inset_left = d.inset_right = 0;
+	CHECK(gfx_init(&d));
+	ui_layout_init();
+	for (uint8_t a = 0; a < UI_ACCENT_COUNT; a++) {
+		for (int strip = 0; strip < 2; strip++) {
+			ui_accent_set(a);
+			ui_strip_set(strip != 0);
+			ui_theme_set(UI_THEME_NIGHT);
+			const color_t *c = (const color_t *)&ui_col;
+			bool red = true;
+			for (size_t i = 0; i < sizeof ui_col / sizeof(color_t); i++)
+				red = red && (c[i] & 0x07FFu) == 0;
+			CHECK(red);
+			CHECK(ui_col.focus == RGB565(255, 0, 0) && ui_col.strip_bg == ui_col.focus);
+			CHECK(ui_col.focus_fg == 0 && ui_col.strip_warn == 0 && ui_col.chnum == ui_col.fg);
+		}
+	}
+	CHECK(ui_theme_get() == UI_THEME_NIGHT);
+	CHECK(ui_col.bg == 0 && ui_col.fg == RGB565(255, 0, 0) && ui_col.tx == ui_col.fg && ui_col.pill_fg == 0);
+	CHECK(ui_col.idle_fg == ui_col.fg && ui_col.idle != ui_col.fg && ui_col.rx != ui_col.tx);
+	CHECK(ui_col.line != ui_col.idle && ui_col.hint_bg == ui_col.idle);	// the darkest: backgrounds only
+	// The idle pill's word in the bright red on its dark one (TX's black word would vanish there)
+	radio_view_t v;
+	ui_state_t st;
+	memset(&st, 0, sizeof st);
+	st.battery_pct = 84;
+	base_view(&v);
+	ui_strip_set(false);
+	gfx_clear(ui_col.bg);
+	ui_draw_top(&v, &st, NULL, NULL);
+	int bright = 0;
+	for (int y = 0; y < ui_layout.small->h; y++)
+		for (int x = 2; x < 4 * ui_layout.small->w; x++)
+			bright += gfx_get_pixel(x, y) == ui_col.idle_fg;
+	CHECK(gfx_get_pixel(1, 1) == ui_col.idle && bright > 10);
+	// Out of range: dark
+	ui_theme_set(UI_THEME_COUNT);
+	CHECK(ui_theme_get() == UI_THEME_DARK && ui_col.idle_fg == RGB565(255, 255, 255));
+	ui_accent_set(UI_ACCENT_DEFAULT);
+	ui_strip_set(true);
+	ui_theme_set(UI_THEME_DARK);
+	gfx_init(&disp);
+}
+
 static void test_big_text(void)
 {
 	hal_display_t d = disp;
@@ -444,6 +498,44 @@ static void test_pass_wait(void)
 	CHECK(!gfx_held(5));
 }
 
+#if CONFIG_LANG_ZH
+// A CJK catalog's text (CONFIG_LANG_ZH): UTF-8 decoded one character at a time, 16 px a character, widths in pixels, and
+// a cut that keeps whole characters (docs/spec/ui.md 2.5, core/ui/cjk_font.h)
+static void test_cjk_text(void)
+{
+	const font_t *f = &font_6x12;
+	char buf[24];
+	// 信 is E4 BF A1, 道 is E9 81 93
+	CHECK(gfx_text_width(f, "A") == f->w);
+	CHECK(gfx_text_width(f, "\xE4\xBF\xA1\xE9\x81\x93") == 2 * CJK_FONT_W);
+	CHECK(gfx_text_width(f, "A\xE4\xBF\xA1") == f->w + CJK_FONT_W);
+	// Room for one character and the ellipsis: the second character goes, whole
+	gfx_text_fit(f, "\xE4\xBF\xA1\xE9\x81\x93", CJK_FONT_W + f->w, buf, sizeof buf);
+	CHECK(strcmp(buf, "\xE4\xBF\xA1" GLYPH_ELLIPSIS) == 0);
+	// A buffer that cannot hold two characters keeps the first whole: never half of one
+	char small[4];
+	gfx_text_fit(f, "\xE4\xBF\xA1\xE9\x81\x93", 100, small, sizeof small);
+	CHECK(strcmp(small, "\xE4\xBF\xA1") == 0);
+	// Latin-1 text stays one byte a character (Señal): a name, a message or the Spanish catalog in a build with the CJK
+	// face must not turn into boxes
+	CHECK(gfx_text_width(f, "Se\xF1" "al") == 5 * f->w);
+	CHECK(gfx_text_width(f, "A\xF1\xE4\xBF\xA1") == 2 * f->w + CJK_FONT_W);
+	CHECK(gfx_text_width(f, "\xE4") == f->w);	// not UTF-8 at all: a Latin-1 byte, not a box
+	// Drawing advances by each character's own width
+	CHECK(gfx_text(f, 0, 0, "\xE4\xBF\xA1\xE9\x81\x93", 0) == 2 * CJK_FONT_W);
+	CHECK(gfx_text(f, 0, 0, "Se\xF1" "al", 0) == 5 * f->w);
+	// The end cut keeps the start: Latin at a word (fit_end's job), Chinese by whole characters
+	gfx_text_fit_end(f, "Channel here now", 8 * f->w, buf, sizeof buf);
+	CHECK(strcmp(buf, "Channel" GLYPH_ELLIPSIS) == 0);
+	gfx_text_fit_end(f, "\xE4\xBF\xA1\xE9\x81\x93", CJK_FONT_W + f->w, buf, sizeof buf);
+	CHECK(strcmp(buf, "\xE4\xBF\xA1" GLYPH_ELLIPSIS) == 0);
+	// A byte buffer too small for a whole character keeps the characters before it, never half of one
+	char cut[4];
+	str_copy(cut, sizeof cut, "\xE4\xBF\xA1\xE9\x81\x93");
+	CHECK(strcmp(cut, "\xE4\xBF\xA1") == 0);
+}
+#endif
+
 int main(void)
 {
 	mkdir("out", 0755);
@@ -492,6 +584,24 @@ int main(void)
 	CHECK(strcmp(fit, "2d") == 0);
 	sb_init(&b, age, sizeof age); sb_age_long(&b, 30000u);
 	CHECK(strcmp(age, "30s ago") == 0);
+
+	// Ranges (sb_range, Stations heard and DMR GPS Info), BVA at each unit and rounding step and the compass's edges.
+	// 99950 m and up print 100.0 km: the 0.1 km rounding runs past the step to whole km (as before)
+	static const struct { uint32_t m; uint16_t deg; const char *want; } ranges[] = {
+		{ 0, 0, "0 m N" }, { 1, 0, "1 m N" }, { 999, 0, "999 m N" }, { 1000, 0, "1.0 km N" },
+		{ 1049, 0, "1.0 km N" }, { 1050, 0, "1.1 km N" }, { 9949, 0, "9.9 km N" }, { 9950, 0, "10.0 km N" },
+		{ 99949, 0, "99.9 km N" }, { 99950, 0, "100.0 km N" }, { 99999, 0, "100.0 km N" },
+		{ 100000, 0, "100 km N" }, { 100499, 0, "100 km N" }, { 100500, 0, "101 km N" },
+		{ 20015087, 0, "20015 km N" },
+		{ 5, 22, "5 m N" }, { 5, 23, "5 m NE" }, { 5, 67, "5 m NE" }, { 5, 68, "5 m E" }, { 5, 90, "5 m E" },
+		{ 5, 180, "5 m S" }, { 5, 270, "5 m W" }, { 5, 337, "5 m NW" }, { 5, 338, "5 m N" }, { 5, 359, "5 m N" },
+		{ 5, 360, "5 m N" },
+	};
+	for (size_t i = 0; i < sizeof ranges / sizeof ranges[0]; i++) {
+		sb_init(&b, age, sizeof age);
+		sb_range(&b, ranges[i].m, ranges[i].deg);
+		CHECK(strcmp(age, ranges[i].want) == 0);
+	}
 
 	// 160x120 color
 	ui_layout_init();
@@ -573,6 +683,9 @@ int main(void)
 	CHECK(gfx_init(&disp));
 	ui_layout_init();
 	render_set("128x64");
+#if CONFIG_LANG_ZH
+	test_cjk_text();
+#endif
 
 	// 240x320 color doesn't fit the frame buffer: gfx refuses it instead of overrunning
 	disp.width = 240; disp.height = 320; disp.bpp = 16;
@@ -590,6 +703,7 @@ int main(void)
 	test_idle_pill_contrast();
 	test_big_text();
 	test_hc_strip_white();
+	test_night_palette();
 
 	printf(fails ? "# FAILED gfxTest: %d\n" : "# PASSED gfxTest\n", fails);
 	return fails != 0;

@@ -14,6 +14,7 @@
 #include "dmr/ambe/ambeVoice.h"
 #include "sim/dmr_sim_modem.h"
 #include "settings/settings.h"
+#include "codeplug/codeplug_kv.h"	// the settings area fakes
 
 static int failures;
 static int checks;
@@ -684,13 +685,13 @@ static struct {
 static bool a_start(audio_block_cb_t cb, void *ctx) { (void)ctx; aud.cb = cb; aud.streaming = true; return true; }
 static void a_stop(void) { aud.streaming = false; aud.cb = NULL; }
 static void a_pcm(bool on) { (void)on; }
-static const hal_audio_t fake_audio = { a_start, a_stop, a_pcm };
+static const hal_audio_t fake_audio = { .start = a_start, .stop = a_stop, .speaker_pcm = a_pcm };
 
 static bool v_present(void) { return true; }
 static void v_reset(void) {}
 static void v_encode(const int16_t *pcm, uint8_t *bits) { (void)pcm; memset(bits, 0, VOCODER_BITS); }
 static void v_decode(const uint8_t *bits, int16_t *pcm) { (void)bits; memset(pcm, 0, VOCODER_FRAME_SAMPLES * 2); }
-static const hal_vocoder_t fake_vocoder = { v_present, v_reset, v_encode, v_decode, NULL, NULL, NULL, NULL };
+static const hal_vocoder_t fake_vocoder = { v_present, v_reset, v_encode, v_decode, NULL, NULL, NULL, NULL, NULL };
 
 static const band_t bands[] = {
 	{ 136000000, 174000000, true },
@@ -746,7 +747,16 @@ bool codeplug_zone(uint16_t i, zone_t *out)
 	return true;
 }
 static const contact_t contacts[] = { { "Local", 9, CONTACT_GROUP, 0 }, { "World", 91, CONTACT_GROUP, 0 } };
-uint32_t codeplug_dmr_id(void) { return 3101276; }
+uint32_t codeplug_dmr_id(void) { return 9996543; }
+int codeplug_kv_get(uint16_t key, void *buf, uint16_t max) { (void)key; (void)buf; (void)max; return -1; }	// no settings area
+bool codeplug_kv_write(const codeplug_kv_op_t *ops, uint8_t n) { (void)ops; (void)n; return false; }
+void codeplug_kv_begin(codeplug_kv_cursor_t *c, uint16_t lo, uint16_t hi) { (void)c; (void)lo; (void)hi; }
+// No settings area to write: the radio core writes no tag
+bool codeplug_kv_set(uint16_t key, const void *value, uint16_t len) { (void)key; (void)value; (void)len; return false; }
+bool codeplug_kv_remove(uint16_t key) { (void)key; return false; }
+int codeplug_kv_next(codeplug_kv_cursor_t *c, uint16_t *key, void *buf, uint16_t max)
+	{ (void)c; (void)key; (void)buf; (void)max; return -1; }
+uint8_t codeplug_kv_serial(void) { return 0; }
 bool codeplug_contact(uint16_t index, contact_t *out)
 {
 	if (index < 1 || index > 2) {
@@ -768,7 +778,7 @@ bool codeplug_contact_find(uint32_t id, bool group, contact_t *out)
 }
 bool codeplug_dmr_settings(codeplug_dmr_settings_t *out)
 {
-	*out = (codeplug_dmr_settings_t){ "N0CALL", 0, 0 };
+	*out = (codeplug_dmr_settings_t){ "Q0TEST", 0, 0 };
 	return true;
 }
 bool dmr_iddb_lookup(uint32_t id, char *out, size_t len) { (void)id; (void)out; (void)len; return false; }
@@ -1063,7 +1073,7 @@ static void test_block_list(void)
 
 	// A call: blocked, and for ROAM_QUIET_MS after
 	uint8_t lc[9];
-	dmr_lc_t l = { .flco = DMR_FLCO_GROUP_VOICE, .dst = 9, .src = 3101234 };
+	dmr_lc_t l = { .flco = DMR_FLCO_GROUP_VOICE, .dst = 9, .src = 9991234 };
 	dmr_lc_pack(&l, lc);
 	for (int k = 0; k < 140; k++) {	// 8.4 s of voice header + voice
 		dmr_burst_t b;
@@ -1111,7 +1121,7 @@ static void test_block_list(void)
 	CHECK(sm.view.dmr.state == RDMR_IDLE && RV->searches == 0);
 	CHECK(RV->blocked == RROAM_BLOCK_QUIET || RV->blocked == RROAM_BLOCK_REPLY);
 	// A temporary talk target: an override
-	req(RREQ_DMR_TARGET, 3101234 | (1 << 24));
+	req(RREQ_DMR_TARGET, 9991234 | (1 << 24));
 	run(ROAM_QUIET_MS + 3000);
 	CHECK(RV->blocked == RROAM_BLOCK_OVERRIDE && RV->searches == 0 && on_ch() == 1);
 	req(RREQ_DMR_TARGET_CLEAR, 0);
@@ -1413,7 +1423,7 @@ static void test_rc_survey_ptt_and_traffic(void)
 	CHECK(sm.roam.state == ROAM_SURVEY);
 	cuts = RV->cuts;
 	uint8_t lc[9];
-	dmr_lc_t l = { .flco = DMR_FLCO_GROUP_VOICE, .dst = 9, .src = 3101234 };
+	dmr_lc_t l = { .flco = DMR_FLCO_GROUP_VOICE, .dst = 9, .src = 9991234 };
 	dmr_lc_pack(&l, lc);
 	for (int k = 0; k < 3 && sm.roam.state == ROAM_SURVEY; k++) {
 		dmr_burst_t b;

@@ -147,8 +147,10 @@ typedef struct {
 					// bits 3-5 the SFR repeater's CW ID interval (radio_settings_t.sfr_cwid; 0 off)
 	uint8_t aprs_power;		// APRS RF power: 0 = the radio's current level, n = level n - 1 (was reserved6[0]; taken
 					// with the aprs_ fields below)
-	uint8_t aprs_cp_path;		// the codeplug APRS record's path last taken into aprs_path, aprs_path_t + 1 (0 = none
-					// yet; was reserved6[1]). A different path in the codeplug replaces aprs_path (aprs.md 11)
+	uint8_t aprs_cp_path;		// what was last taken from the codeplug APRS record (aprs.md 11; was reserved6[1]):
+					// bits 0-2 the path into aprs_path, aprs_path_t + 1, bits 3-7 the SSID into
+					// aprs_ssid, + 1; 0 = none yet. A different one in the codeplug replaces ours.
+					// Through settings_aprs_cp_path / _ssid
 	uint8_t volume;			// speaker volume on radios without a knob: 0 = the default, else 0x80 | (step + 1)
 					// (step 0..RADIO_VOLUME_MAX, 0 = mute); 1..11 = a step 0..10 of the first version
 					// (was reserved6, radio.h RADIO_VOLUME_*, radio_volume_step)
@@ -167,10 +169,11 @@ typedef struct {
 	uint16_t aprs_distance_m;	// beacon after moving this far, 0 = off
 	char aprs_symbol[2];		// symbol table and code
 	uint8_t aprs_path;		// aprs_path_t
-	uint8_t aprs_pos_src;		// aprs_pos_src_t
+	uint8_t aprs_pos_src;		// position_pref_t
 	uint8_t aprs_level;		// AFSK level, 0-100
 	uint8_t aprs_txdelay;		// preamble in 10 ms units
-	uint8_t aprs_misc;		// bits 0-1 aprs_via_t, 2-3 digipeater mode, 4-6 position ambiguity
+	uint8_t aprs_misc;		// bits 0-1 aprs_via_t, 2-3 digipeater mode, 4-6 position ambiguity, 7
+					// SETTINGS_APRS_MISC_POSITION
 	uint8_t aprs_stored;		// 1 = the aprs_ fields are set
 	uint16_t snmp_rf_gap_s;		// SNMP: at most one RF notification per this many seconds, 0 = 60 (was reserved7)
 	// The data service's confirmed IP rules (dmrDataSettings_t.ipConfirmedRule, docs/spec/dmr-data.md 12; appended
@@ -224,6 +227,33 @@ typedef struct {
 	// Zone share: the zones imported last, so the same zone sent again updates its import instead of adding a copy
 	// (docs/spec/zone-share.md 5.4); key 0 = unused, the oldest replaced first
 	settings_zs_import_t zs_import[SETTINGS_ZS_IMPORTS];
+	// Sound options (appended; was knob_flags, bit 0 only): SETTINGS_KNOB_LOCK, then the Settings > Sound tones off
+	// in bits 4..7 (settings_tones_off). 0 = the knob works and every tone is on, as an older record reads
+	uint8_t sound_flags;
+	// The VFOs' SFR role (docs/spec/sfr.md 4): byte A of a codeplug channel's SFR bytes (core/dmr/sfr.h), role bits 0 =
+	// none (was reserved9[0..1]: an older record reads none). The VFO's outbound color code is its own (no byte B)
+	uint8_t vfo_sfr;		// the first VFO
+	uint8_t vfo2_sfr;		// the second
+	// The board's power level count the stored levels count against (vfo_power, vfo2_power, master_power, aprs_power;
+	// was reserved9: 0 in an older record). A record whose count isn't the board's has those levels reset at load
+	// (settings-store.md 3): a level index names another power when a board's levels change
+	uint8_t power_levels;
+	// A Tier III stun kept across a restart (dmr-trunking.md 7.9; appended: an older record reads none):
+	// SETTINGS_T3_STUN set, the codeplug system's slot in bits 4-6, its network's hash in bits 0-3
+	uint8_t t3_stun;
+	// A Tier III kill kept across a restart (dmr-trunking.md 7.9; appended: an older record reads none):
+	// SETTINGS_T3_KILLED set, no DMR at all until a factory reset
+	uint8_t t3_kill;
+	uint8_t satellite_index;	// reserved10[0]: selected TLE record; older records select the first
+	uint8_t reserved10[1];		// 0
+	// Signaling tones (core/radio/sigtone.h), appended at the end so a record written before reads them as 0:
+	// per event (start of a transmission, its end, a reception's end) where it sounds in DMR and in FM (sig_out_t).
+	// 0 = the default output, as an older record reads. The event's chain of steps is only in its codeplug record
+	// (CODEPLUG_KEY_SIG_BEGIN + event): settings_t is copied onto several task stacks, and the steps would cost every
+	// copy 60 bytes
+	uint8_t sig_dmr[3];
+	uint8_t sig_fm[3];
+	uint8_t reserved11[2];		// 0
 #if CONFIG_SAT
 	// Satellite tracking's settings (Settings > Location, docs/spec/satellite.md 5.1; appended for sat); 0 in an older
 	// record: UTC and the default lowest pass. Only in a build with satellites: settings_t is kept in six copies in
@@ -254,6 +284,9 @@ typedef struct {
 // cp_flags: the owner kept another firmware's codeplug as the radio's own ("Use anyway", docs/spec/codeplug-native.md
 // 2); app.c keeps it equal to codeplug_acceptance(), which a codeplug written by a CPS or TFTP drops
 #define SETTINGS_CP_ACCEPTED		0x01u
+#define SETTINGS_CP_RX_EXT		0x02u	// receive past the band table is on (not about the codeplug: the free bit here)
+#define SETTINGS_T3_STUN		0x80u	// t3_stun: a stun is kept (bits 0-6 say on which system)
+#define SETTINGS_T3_KILLED		0x01u	// t3_kill: killed
 
 #define SETTINGS_ZONE_JRN_NONE		0u	// zone_jrn_kind
 #define SETTINGS_ZONE_JRN_ADD		1u
@@ -302,29 +335,51 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 	s->vfo_ts = (uint8_t)((s->vfo_ts & 0x03u) | (((id >> 20) & 0x0Fu) << 2) | (private_call ? 0x80u : 0));
 }
 
+// settings_t.aprs_cp_path: the codeplug APRS record's path (bits 0-2) and SSID (bits 3-7) last taken, each + 1 so 0
+// is "none yet", as an older record reads the SSID
+static inline uint8_t settings_aprs_cp_path(const settings_t *s) { return s->aprs_cp_path & 0x07u; }
+static inline uint8_t settings_aprs_cp_ssid(const settings_t *s) { return s->aprs_cp_path >> 3; }
+static inline void settings_set_aprs_cp_path(settings_t *s, uint8_t path_plus_1)
+{
+	s->aprs_cp_path = (uint8_t)((s->aprs_cp_path & 0xF8u) | (path_plus_1 & 0x07u));
+}
+static inline void settings_set_aprs_cp_ssid(settings_t *s, uint8_t ssid_plus_1)
+{
+	s->aprs_cp_path = (uint8_t)((s->aprs_cp_path & 0x07u) | ((ssid_plus_1 & 0x1Fu) << 3));
+}
+
 // settings_t.accent: bits 0-2 the highlight color (0 the theme's own, 1 red, 2 orange, 3 yellow, 4 teal, 5 light blue,
 // 6 purple, 7 pink), bit 3 set: the status strip on the screen's background, not filled (0, the default: filled),
 // bits 4-5 the crash report's mode (below), bits 6-7 the vocoder's mic options (SETTINGS_AUDIO_* below)
 #define SETTINGS_ACCENT_COLOR	0x07u
 #define SETTINGS_ACCENT_PLAIN	0x08u
 
-// theme holds 0..3 and updown_home 0..2 in bits 0-1; their upper bits hold the crash report's target (below). The fifth
-// theme (4, terminal) has its bit 2 in updown_home bit 7, the one spare bit: a firmware from before reads the low bits,
-// 0, and shows the dark theme
+// theme holds 0..3 and updown_home 0..2 in bits 0-1 (firmware from before night reads theme 3 as dark); their upper
+// bits hold the crash report's target (below), and updown_home bit 7 Home's talk line order (0, older records:
+// talkgroup number first, 1: its name first). The fifth theme (4, terminal, CONFIG_SAT) has its bit 2 in sat_flags
 #define SETTINGS_SMALL_MASK	0x03u
+#define SETTINGS_HOME_LABEL_FIRST	0x80u
 #define SETTINGS_SAT_UTC	0x01u	// sat_flags: the satellite screens show times in UTC, not local time (Pass times in UTC)
 #define SETTINGS_SAT_QUIET	0x02u	// sat_flags: a pass alert shows its banner without the tone and the vibration
-#define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
+#define SETTINGS_SAT_THEME_HIGH	0x04u	// sat_flags: the theme number's bit 2 (theme 4, terminal)
 #define SETTINGS_THEME_MAX	7u
+#if CONFIG_SAT
 static inline uint8_t settings_theme(const settings_t *s)
 {
-	return (uint8_t)((s->theme & 3u) | ((s->updown_home & SETTINGS_THEME_HIGH) ? 4u : 0u));
+	return (uint8_t)((s->theme & SETTINGS_SMALL_MASK) | ((s->sat_flags & SETTINGS_SAT_THEME_HIGH) ? 4u : 0u));
 }
 static inline void settings_set_theme(settings_t *s, uint8_t theme)
 {
 	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
-	s->updown_home = (uint8_t)((s->updown_home & ~SETTINGS_THEME_HIGH) | ((theme & 4u) ? SETTINGS_THEME_HIGH : 0u));
+	s->sat_flags = (uint8_t)((s->sat_flags & ~SETTINGS_SAT_THEME_HIGH) | ((theme & 4u) ? SETTINGS_SAT_THEME_HIGH : 0u));
 }
+#else
+static inline uint8_t settings_theme(const settings_t *s) { return s->theme & SETTINGS_SMALL_MASK; }
+static inline void settings_set_theme(settings_t *s, uint8_t theme)
+{
+	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
+}
+#endif
 static inline uint8_t settings_updown_home(const settings_t *s)
 {
 	return (s->updown_home & 3u) <= 2u ? s->updown_home & 3u : 0;
@@ -348,6 +403,23 @@ static inline void settings_set_crash_contact(settings_t *s, uint16_t num)
 {
 	s->theme = (uint8_t)((s->theme & 3u) | ((num & 0x3Fu) << 2));
 	s->updown_home = (uint8_t)((s->updown_home & 0x83u) | (((num >> 6) & 0x1Fu) << 2));
+}
+
+// settings_t.sound_flags (bits 1..3 reserved, 0)
+#define SETTINGS_KNOB_LOCK		0x01u	// the volume knob does nothing while the keys are locked (Settings > Key lock > Knob when locked Off)
+#define SETTINGS_TONES_OFF_SHIFT	4	// radio_settings_t.tones_off, the radio's own copy of the codeplug's tone keys
+#define SETTINGS_TONES_OFF_MASK		0xF0u
+
+// The tones off bits (bit n = radio_tone_rows[n] off). Firmware from before them only tests and changes bit 0, so
+// they survive it.
+static inline uint8_t settings_tones_off(const settings_t *s)
+{
+	return (uint8_t)((s->sound_flags & SETTINGS_TONES_OFF_MASK) >> SETTINGS_TONES_OFF_SHIFT);
+}
+static inline void settings_set_tones_off(settings_t *s, uint8_t off)
+{
+	s->sound_flags = (uint8_t)((s->sound_flags & ~SETTINGS_TONES_OFF_MASK) |
+				   ((off << SETTINGS_TONES_OFF_SHIFT) & SETTINGS_TONES_OFF_MASK));
 }
 
 // settings_t.ui_flags (defaults: hints, message tone, talker alias, PTT when locked and vibrate on)
@@ -422,6 +494,9 @@ static inline void settings_set_crash_contact(settings_t *s, uint16_t num)
 #define SETTINGS_APRS2_DMR_UDT		0x08u	// digital APRS as an ETSI UDT location (else Motorola LRRP)
 #define SETTINGS_APRS2_TO_IS		0x10u	// our own beacons to APRS-IS through the host helper
 #define SETTINGS_APRS2_DMR_GPS		0x20u	// our position in DMR voice calls (ETSI GPS Info LC, CONFIG_DMR_GPS)
+// aprs_misc bit 7: the position service's settings are set (core/position: aprs_lat, aprs_lon, aprs_alt_m,
+// aprs_pos_src, the ambiguity and SETTINGS_APRS2_DMR_GPS). They are also taken when aprs_stored is 1
+#define SETTINGS_APRS_MISC_POSITION	0x80u
 
 typedef enum {
 	SETTINGS_RAM,		// no flash: defaults, nothing saved

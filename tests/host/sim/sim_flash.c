@@ -9,8 +9,9 @@ uint8_t *sim_flash_data;
 static uint32_t *erase_count;
 static uint32_t budget;		// units left before the cut, 0 = not armed
 static bool armed, cut;
-static uint32_t units, violations;
+static uint32_t units, violations, reads;
 static uint32_t bad_addr, bad_len;
+static uint32_t unread_addr, unread_len;
 
 static bool sim_init(void) { return true; }
 
@@ -38,7 +39,11 @@ static bool spend(void)
 
 static bool sim_read(uint32_t addr, void *buf, uint32_t len)
 {
+	reads++;
 	if (cut || !in_range(addr, len)) {
+		return false;
+	}
+	if (unread_len != 0 && addr < unread_addr + unread_len && addr + len > unread_addr) {
 		return false;
 	}
 	memcpy(buf, &sim_flash_data[addr], len);
@@ -101,6 +106,7 @@ void sim_flash_create(uint32_t size, const hal_flash_map_t *map)
 	armed = cut = false;
 	units = violations = 0;
 	bad_len = 0;
+	unread_len = 0;
 }
 
 void sim_flash_free(void)
@@ -126,6 +132,7 @@ void sim_flash_power_on(void)
 }
 
 uint32_t sim_flash_units(void) { return units; }
+uint32_t sim_flash_reads(void) { return reads; }
 uint32_t sim_flash_erases(uint32_t addr) { return erase_count[addr / SIM_FLASH_SECTOR]; }
 uint32_t sim_flash_violations(void) { return violations; }
 
@@ -133,4 +140,10 @@ void sim_flash_bad_range(uint32_t addr, uint32_t len)
 {
 	bad_addr = addr;
 	bad_len = len;
+}
+
+void sim_flash_bad_read(uint32_t addr, uint32_t len)
+{
+	unread_addr = addr;
+	unread_len = len;
 }

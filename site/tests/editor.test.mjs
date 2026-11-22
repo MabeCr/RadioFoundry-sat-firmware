@@ -6,8 +6,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { bulkColumns, channelForm, columns } from "../static/js/editor/views.js";
+import { bulkColumns, channelForm, columns, parseAreaKey } from "../static/js/editor/views.js";
 import { empty } from "../static/js/codeplug/model.js";
+import { KEYS } from "../static/js/codeplug/kv.js";
 import { Grid } from "../static/js/editor/grid.js";
 
 const t = (k) => (k === "editor.tot.default" ? "Radio Default" : k);
@@ -60,6 +61,30 @@ test("the channel table shows the mode the radio uses in a receive-only band", (
 		["editor.mode.air", "editor.mode.bcast", "FM", "DMR"]);
 });
 
+test("Tier III channels expose the talk target and RX group list in the grid and form", () => {
+	const model = empty();
+	const contact = { number: 1, name: "TestGroup", id: 147862, type: "group" };
+	const rxList = { number: 1, name: "Test groups", contacts: [contact] };
+	model.contacts.push(contact);
+	model.rxLists.push(rxList);
+	const channel = { kind: 1, mode: "dmr" };
+	const grid = columns("channels", model, t);
+	const form = channelForm(model, t);
+	for (const [key, entry] of [["contact", contact], ["rxList", rxList]]) {
+		const column = grid.find((c) => c.key === key);
+		const selector = form.find((f) => f.key === key);
+		assert.equal(column.readOnly(channel), false);
+		assert.equal(selector.show(channel), true);
+		column.set(channel, entry);
+		assert.equal(channel[key], entry);
+		assert.equal(column.format(entry, channel), entry.name);
+	}
+	for (const key of ["colorCode", "timeslot"]) {
+		assert.equal(grid.find((c) => c.key === key).readOnly(channel), true);
+		assert.equal(form.find((f) => f.key === key).show(channel), false);
+	}
+});
+
 test("Bulk Edit sets no names or numbers, and has nothing to set on zones and RX lists", () => {
 	const keys = (table) => bulkColumns(table, empty(), t).map((c) => c.key);
 	assert.deepEqual([keys("zones"), keys("rxLists")], [[], []]);
@@ -79,4 +104,13 @@ test("the table filter and sort take every column's text, numbers too", () => {
 	g.filter = "";
 	g.sort = { key: "number", dir: 1 };
 	assert.deepEqual(g.shown().map((r) => r.number), [3, 12]);
+});
+
+test("Radio tab ARS server and IP gateway: empty is an absent key, 0 is off", () => {
+	const typed = (s) => parseAreaKey(KEYS[0], s, (k, p) => `${k} ${p.min}-${p.max}`);
+	for (const s of ["", " ", null]) assert.deepEqual(typed(s), { value: null }, JSON.stringify(s));
+	assert.deepEqual(typed("0"), { value: 0 });
+	assert.deepEqual(typed(" 3100500 "), { value: 3100500 });
+	assert.deepEqual(typed("16776415"), { value: 16776415 });
+	for (const s of ["16776416", "-1", "1.5", "abc"]) assert.deepEqual(typed(s), { error: "editor.err.range 0-16776415" }, s);
 });

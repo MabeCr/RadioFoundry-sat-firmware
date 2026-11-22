@@ -65,21 +65,21 @@ static void alert_toggle_sat(uint32_t norad, const char *name)
 {
 	bool on = !ui_svc_sat_alert_get(norad);
 	if (!ui_svc_sat_alert_set(norad, on)) {
-		ui_toast(TR("Six satellites alert already"));
+		ui_toast(TR(SIX_SATELLITES_ALERT_ALREADY, "Six satellites alert already"));
 		return;
 	}
-	alert_say(on ? TR("Alerts on:") : TR("Alerts off:"), name);
+	alert_say(on ? TR(ALERTS_ON, "Alerts on:") : TR(ALERTS_OFF, "Alerts off:"), name);
 }
 
 // Alert for the pass of satellite norad rising at aos, or not (a satellite marked for every pass alerts for it anyway)
 static void alert_toggle_pass(uint32_t norad, const char *name, uint32_t aos)
 {
 	if (ui_svc_sat_alert_get(norad)) {
-		alert_say(TR("Every pass alerts:"), name);
+		alert_say(TR(EVERY_PASS_ALERTS, "Every pass alerts:"), name);
 		return;
 	}
 	ui_svc_sat_pass_alert_toggle(norad, aos);
-	alert_say(ui_svc_sat_pass_alert(norad, aos) ? TR("Alert for this pass:") : TR("No alert for this pass:"), name);
+	alert_say(ui_svc_sat_pass_alert(norad, aos) ? TR(ALERT_FOR_THIS_PASS, "Alert for this pass:") : TR(NO_ALERT_FOR_THIS_PASS, "No alert for this pass:"), name);
 }
 
 // A mark after a row's text
@@ -145,19 +145,19 @@ static const char *list_body(void)
 	sb_init(&b, t, sizeof t);
 	status();
 	if (st.state == UI_SAT_NO_TIME) {
-		sb_str(&b, TR("Waiting for the time: passes need UTC from a GPS fix"));
+		sb_str(&b, TR(WAITING_FOR_THE_TIME_PASSES, "Waiting for the time: passes need UTC from a GPS fix"));
 	} else if (st.state == UI_SAT_NO_MEMORY) {
-		sb_str(&b, TR("Not enough memory to work out passes"));
+		sb_str(&b, TR(NOT_ENOUGH_MEMORY_TO_WORK, "Not enough memory to work out passes"));
 	} else if (st.state == UI_SAT_NO_POSITION) {
-		sb_str(&b, TR("No position: a GPS fix, or a fixed one in Tools > APRS"));
+		sb_str(&b, TR(NO_POSITION_A_GPS_FIX_OR_A, "No position: a GPS fix, or a fixed one in Tools > APRS"));
 #if CONFIG_SAT_SOUND
 	} else if (st.count == 0) {
 		// the list is never empty with the Receive sound row: say what the .empty text says elsewhere
-		sb_str(&b, TR("No satellites stored: load them over the cable, or by sound"));
+		sb_str(&b, TR(NO_SATELLITES_STORED_LOAD, "No satellites stored: load them over the cable, or by sound"));
 #endif
 	} else {
 		// "Above 10°, 24 h, UTC-6": what the list holds and the time zone its times are in
-		sb_str(&b, TR("Above"));
+		sb_str(&b, TR(ABOVE, "Above"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, st.min_el, 1);
 		sb_str(&b, GLYPH_DEGREE ", 24 h, ");
@@ -171,7 +171,7 @@ static void list_item(uint16_t i, ui_item_t *it)
 	ui_sat_t s;
 #if CONFIG_SAT_SOUND
 	if (i == st.count) {
-		str_copy(it->label, sizeof it->label, TR("Receive sound"));
+		str_copy(it->label, sizeof it->label, TR(RECEIVE_SOUND_2, "Receive sound"));
 		if (i < 9)
 			item_num_set(it, (uint16_t)(i + 1u));
 		return;
@@ -189,7 +189,7 @@ static void list_item(uint16_t i, ui_item_t *it)
 	sbuf_t b;
 	sb_init(&b, it->value, sizeof it->value);
 	if (s.state == UI_SAT_NO_ORBIT) {
-		sb_str(&b, TR("no orbit"));
+		sb_str(&b, TR(NO_ORBIT, "no orbit"));
 		it->flags |= UI_ITEM_DIM;
 		return;
 	}
@@ -199,7 +199,7 @@ static void list_item(uint16_t i, ui_item_t *it)
 			sb_i32(&b, s.age_d);
 			sb_chr(&b, 'd');
 		} else {
-			sb_str(&b, TR("bad orbit"));
+			sb_str(&b, TR(BAD_ORBIT, "bad orbit"));
 		}
 		it->flags |= UI_ITEM_WARN;
 		return;
@@ -209,7 +209,7 @@ static void list_item(uint16_t i, ui_item_t *it)
 		return;
 	}
 	if (s.state == UI_SAT_NONE) {
-		sb_str(&b, TR("no pass"));
+		sb_str(&b, TR(NO_PASS, "no pass"));
 		return;
 	}
 	// Its way across the sky, then the time (or "up now") and how high: with a shorter form for narrow screens
@@ -217,7 +217,7 @@ static void list_item(uint16_t i, ui_item_t *it)
 	sbuf_t w;
 	sb_init(&w, when, sizeof when);
 	if (s.state == UI_SAT_UP) {
-		sb_str(&w, TR("up now"));
+		sb_str(&w, TR(UP_NOW, "up now"));
 		sb_chr(&w, ' ');
 		sb_i32(&w, s.el_now);
 		it->flags |= UI_ITEM_LIVE;
@@ -248,11 +248,11 @@ static void list_select(uint16_t i, bool hold)
 	if (!ui_svc_sat_get((uint8_t)i, &s))
 		return;
 	if (s.state == UI_SAT_NO_ORBIT) {
-		ui_toast(TR("No orbit data: load its TLE over the cable"));
+		ui_toast(TR(NO_ORBIT_DATA_LOAD_ITS_TLE, "No orbit data: load its TLE over the cable"));
 		return;
 	}
 	if (s.state == UI_SAT_BAD) {
-		ui_toast(TR("This TLE can't be predicted"));
+		ui_toast(TR(THIS_TLE_CANT_BE_PREDICTED, "This TLE can't be predicted"));
 		return;
 	}
 	str_copy(open_name, sizeof open_name, s.name);
@@ -289,7 +289,7 @@ static uint16_t del_count(void) { return 2; }
 
 static void del_item(uint16_t i, ui_item_t *it)
 {
-	str_copy(it->label, sizeof it->label, i == 0 ? TR("No, keep it") : TR("Yes, delete"));
+	str_copy(it->label, sizeof it->label, i == 0 ? TR(ZONE_ROW_KEEP, "No, keep it") : TR(ZONE_ROW_CONFIRM_DELETE, "Yes, delete"));
 	if (i == 1)
 		it->flags |= UI_ITEM_WARN;
 }
@@ -306,7 +306,7 @@ static void del_select(uint16_t i, bool hold)
 	static char t[28];
 	sbuf_t b;
 	sb_init(&b, t, sizeof t);
-	sb_str(&b, TR("Deleted"));
+	sb_str(&b, TR(DELETED, "Deleted"));
 	sb_chr(&b, ' ');
 	sb_str(&b, del_name);
 	ui_toast(t);
@@ -316,11 +316,11 @@ static const char *del_title(void) { return del_name; }
 
 static const char *del_body(void)
 {
-	return TR("Delete this satellite? Its elements and profile are removed. Load them again over the cable or by sound.");
+	return TR(DELETE_THIS_SATELLITE_ITS, "Delete this satellite? Its elements and profile are removed. Load them again over the cable or by sound.");
 }
 
 const ui_scr_def_t ui_sat_delete_screen = {
-	.name = "sat-delete", .flags = SF_LIST, .prefix = TRN("Delete"), .hint = TRN("OK choose  Back cancel"),
+	.name = "sat-delete", .flags = SF_LIST, .prefix = TRN(MSG_ROW_DELETE, "Delete"), .hint = TRN(HINT_OK_CHOOSE_BACK_CANCELS, "OK choose  Back cancel"),
 	.count = del_count, .item = del_item, .select = del_select, .title = del_title, .body = del_body,
 };
 
@@ -349,10 +349,10 @@ static void list_enter(void)
 }
 
 const ui_scr_def_t ui_sat_screen = {
-	.name = "satellites", .flags = SF_LIST | SF_NUMBERED | SF_FIELD | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = TRN("Satellites"),
-	.hint = CONFIG_SAT_ALERT ? TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  * Alert  # Delete" TEXT_ALT_NEXT "OK passes  * Alert  # Delete" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_CLOSE) :
-		TRN(TEXT_ALT_OPEN "OK passes  Hold OK track  # Delete" TEXT_ALT_NEXT "OK passes  # Delete" TEXT_ALT_NEXT "OK passes  Hold OK track" TEXT_ALT_CLOSE),
-	.empty = TRN("No satellites stored. Load them over the cable: rfoundry_debug.py sat"),
+	.name = "satellites", .flags = SF_LIST | SF_NUMBERED | SF_FIELD | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = TRN(SATELLITES, "Satellites"),
+	.hint = CONFIG_SAT_ALERT ? TRN(OK_PASSES_HOLD_OK_TRACK, TEXT_ALT_OPEN "OK passes  Hold OK track  * Alert  # Delete" TEXT_ALT_NEXT "OK passes  * Alert  # Delete" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_CLOSE) :
+		TRN(OK_PASSES_HOLD_OK_TRACK_2, TEXT_ALT_OPEN "OK passes  Hold OK track  # Delete" TEXT_ALT_NEXT "OK passes  # Delete" TEXT_ALT_NEXT "OK passes  Hold OK track" TEXT_ALT_CLOSE),
+	.empty = TRN(NO_SATELLITES_STORED_LOAD_2, "No satellites stored. Load them over the cable: rfoundry_debug.py sat"),
 	.count = list_count, .item = list_item, .select = list_select, .title = list_title, .body = list_body,
 	.enter = list_enter, .key = list_key,
 };
@@ -417,14 +417,14 @@ static const char *passes_body(void)
 	}
 	sb_chr(&b, '\n');
 	if (p.up_tone) {
-		sb_str(&b, TR("Tone"));
+		sb_str(&b, TR(QUICK_LABEL_TONE, "Tone"));
 		sb_chr(&b, ' ');
 		subtone_t tone = { .type = TONE_CTCSS, .value = p.up_tone };
 		sb_tone(&b, &tone);
 		sb_chr(&b, ' ');
 	}
 	if (p.arm_tone) {
-		sb_str(&b, TR("arm"));
+		sb_str(&b, TR(ARM, "arm"));
 		sb_chr(&b, ' ');
 		subtone_t tone = { .type = TONE_CTCSS, .value = p.arm_tone };
 		sb_tone(&b, &tone);
@@ -435,7 +435,7 @@ static const char *passes_body(void)
 static void passes_item(uint16_t row, ui_item_t *it)
 {
 	if (divider >= 0 && row == (uint16_t)divider) {
-		str_copy(it->label, sizeof it->label, TR("Tomorrow"));
+		str_copy(it->label, sizeof it->label, TR(TOMORROW, "Tomorrow"));
 		it->flags |= UI_ITEM_INFO;
 		return;
 	}
@@ -444,7 +444,7 @@ static void passes_item(uint16_t row, ui_item_t *it)
 	if (k >= npass || !ui_svc_sat_pass((uint8_t)k, &p)) {
 		sbuf_t w;
 		sb_init(&w, it->label, sizeof it->label);
-		sb_str(&w, TR("Working"));
+		sb_str(&w, TR(WORKING_2, "Working"));
 		sb_str(&w, GLYPH_ELLIPSIS);
 		it->flags |= UI_ITEM_INFO;
 		return;
@@ -531,9 +531,9 @@ static bool passes_key(const input_event_t *ev)
 
 const ui_scr_def_t ui_sat_passes_screen = {
 	// Not a field-use screen (P4): looking ahead is planning, and four levels from Home (OK 6 0 OK)
-	.name = "passes", .flags = SF_LIST | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = NULL, .hint = CONFIG_SAT_ALERT ? TRN(TEXT_ALT_OPEN "OK track  * Alert  # Delete  Back" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE) :
-		TRN(TEXT_ALT_OPEN "OK track  # Delete  Back" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE),
-	.empty = TRN("No pass above the lowest in 24 h (Settings > Location)"),
+	.name = "passes", .flags = SF_LIST | (CONFIG_SAT_ALERT ? SF_OWN_QUICK : 0), .prefix = TR_NONE, .hint = CONFIG_SAT_ALERT ? TRN(OK_TRACK_ALERT_DELETE_BACK, TEXT_ALT_OPEN "OK track  * Alert  # Delete  Back" TEXT_ALT_NEXT "* Alert  # Delete" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE) :
+		TRN(OK_TRACK_DELETE_BACK, TEXT_ALT_OPEN "OK track  # Delete  Back" TEXT_ALT_NEXT "OK track  Back" TEXT_ALT_CLOSE),
+	.empty = TRN(NO_PASS_ABOVE_THE_LOWEST_IN, "No pass above the lowest in 24 h (Settings > Location)"),
 	.count = passes_count, .item = passes_item, .select = passes_select, .title = passes_title,
 	.body = passes_body, .key = passes_key,
 };
@@ -776,11 +776,11 @@ static void track_tune(bool clear)
 	const radio_view_t *v = ui_view();
 	ui_sat_profile_t p;
 	if (!ui_svc_sat_profile(&p) || track_base(&p) == 0) {
-		ui_toast(TR("No downlink set for this satellite"));
+		ui_toast(TR(NO_DOWNLINK_SET_FOR_THIS, "No downlink set for this satellite"));
 		return;
 	}
 	if (v->state == RS_TX) {
-		ui_toast(TR("Not while transmitting"));
+		ui_toast(TR(NOT_WHILE_TRANSMITTING, "Not while transmitting"));
 		return;
 	}
 	if (clear)
@@ -790,7 +790,7 @@ static void track_tune(bool clear)
 	sat_follow_retuned(&trk_follow, ui_st.now_ms);	// a retune of the user's: the automatic one waits its interval
 	if (trk_tuned && v->vfo) {
 		radio_req_rx_hz(hz);	// a light retune: one rx() call, a reception in progress goes on
-		ui_toast(clear ? TR("Dial cleared") : TR("Retuned"));
+		ui_toast(clear ? TR(DIAL_CLEARED, "Dial cleared") : TR(RETUNED, "Retuned"));
 		return;
 	}
 	// The first time: the temporary VFO on the satellite's profile, FM 25 kHz, no receive tone; the uplink as a split
@@ -809,7 +809,7 @@ static void track_tune(bool clear)
 		radio_req_tone(RADIO_TONE_TX, p.up_tone != 0 ? (subtone_t){ TONE_CTCSS, p.up_tone } : (subtone_t){ TONE_NONE, 0 });
 	}
 	trk_tuned = true;
-	ui_toast(TR("Tuned to the downlink"));
+	ui_toast(TR(TUNED_TO_THE_DOWNLINK, "Tuned to the downlink"));
 }
 
 // * : on, when the receiver is tuned to the satellite (tuning it first when it is not), or off
@@ -817,7 +817,7 @@ static void track_auto(void)
 {
 	if (trk_follow.on) {
 		trk_follow.on = false;
-		ui_toast(TR("Auto off"));
+		ui_toast(TR(AUTO_OFF_2, "Auto off"));
 		return;
 	}
 	if (!(trk_tuned && ui_view()->vfo)) {
@@ -827,7 +827,7 @@ static void track_auto(void)
 	}
 	trk_follow.on = true;
 	sat_follow_retuned(&trk_follow, ui_st.now_ms);
-	ui_toast(TR("Auto on: following the Doppler"));
+	ui_toast(TR(AUTO_ON_FOLLOWING_THE, "Auto on: following the Doppler"));
 }
 
 // Once a draw while following: retune when the receiver is the threshold off, at the interval. The draw is the
@@ -841,7 +841,7 @@ static void track_follow(void)
 		// The radio takes a moment to enter the VFO; after that it is the user's doing (another channel): stop
 		if (ui_st.now_ms - trk_tune_ms > 1500u) {
 			trk_follow.on = trk_tuned = false;
-			ui_toast(TR("Auto off"));
+			ui_toast(TR(AUTO_OFF_2, "Auto off"));
 		}
 		return;
 	}
@@ -857,14 +857,14 @@ static void track_squelch(void)
 {
 	const radio_view_t *v = ui_view();
 	if (v->ch.mode == RADIO_MODE_DMR) {
-		ui_toast(TR("Squelch: FM only"));
+		ui_toast(TR(SQUELCH_FM_ONLY, "Squelch: FM only"));
 		return;
 	}
 	bool on = !v->monitor;
 	if (!ui_svc_monitor(on))
 		return;
 	trk_mon_ours = on;
-	ui_toast(on ? TR("Squelch open") : TR("Squelch normal"));
+	ui_toast(on ? TR(ACTIVITY_STATE_SQUELCH_OPEN, "Squelch open") : TR(SQUELCH_NORMAL, "Squelch normal"));
 }
 
 static void track_nudge(int dir)
@@ -874,7 +874,7 @@ static void track_nudge(int dir)
 	static char buf[24];	// a toast keeps the pointer it is given
 	sbuf_t b;
 	sb_init(&b, buf, sizeof buf);
-	sb_str(&b, TR("Dial"));
+	sb_str(&b, TR(DIAL, "Dial"));
 	sb_chr(&b, ' ');
 	sb_chr(&b, trk_nudge_hz < 0 ? '-' : '+');
 	uint32_t a = (uint32_t)(trk_nudge_hz < 0 ? -trk_nudge_hz : trk_nudge_hz);
@@ -897,7 +897,7 @@ static bool track_key(const input_event_t *ev)
 	if (press && (ev->action == ACT_NAV_LEFT || ev->action == ACT_NAV_RIGHT) && trk_aos != 0) {	// Left, Right: alert for this pass
 		status();
 		if (st.utc != 0 && st.utc >= trk_aos)
-			ui_toast(TR("This pass has begun"));
+			ui_toast(TR(THIS_PASS_HAS_BEGUN, "This pass has begun"));
 		else
 			alert_toggle_pass(open_norad, open_name, trk_aos);
 		return true;
@@ -980,9 +980,9 @@ static void keys_row(int hy)
 		bool more;
 		lt[0] = '\0';
 		if (CONFIG_SAT_CHART)
-			gfx_text_alt(TR(TEXT_ALT_OPEN "2 Signal" TEXT_ALT_NEXT "2 Sig" TEXT_ALT_CLOSE), levels[k][0], lt, sizeof lt, &more);
-		str_copy(mid, sizeof mid, TR("3 Info"));
-		gfx_text_alt(TR(TEXT_ALT_OPEN "0 Squelch" TEXT_ALT_NEXT "0 Sql" TEXT_ALT_CLOSE), levels[k][1], rt, sizeof rt, &more);
+			gfx_text_alt(TR(N2_SIGNAL, TEXT_ALT_OPEN "2 Signal" TEXT_ALT_NEXT "2 Sig" TEXT_ALT_CLOSE), levels[k][0], lt, sizeof lt, &more);
+		str_copy(mid, sizeof mid, TR(N3_INFO, "3 Info"));
+		gfx_text_alt(TR(N0_SQUELCH, TEXT_ALT_OPEN "0 Squelch" TEXT_ALT_NEXT "0 Sql" TEXT_ALT_CLOSE), levels[k][1], rt, sizeof rt, &more);
 		int lw = gfx_text_width(fs, lt), mw = gfx_text_width(fs, mid), rw = gfx_text_width(fs, rt);
 		int mx = (w - mw) / 2;
 		if (k == 2 || (2 + lw + fs->w <= mx && mx + mw + fs->w <= w - 2 - rw))
@@ -1002,7 +1002,7 @@ static void __attribute__((noinline)) info_draw(void)
 	sbuf_t b;
 	gfx_clear(ui_col.bg);
 	int key_y = keys_reserve();
-	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Pass info")) + 4;
+	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR(PASS_INFO, "Pass info")) + 4;
 	int w = gfx_width();
 	const font_t *fs = ui_layout.small, *tf = w >= 200 ? ui_layout.medium : fs;
 	if (trk_aos != 0 && trk_los != 0) {
@@ -1026,14 +1026,14 @@ static void __attribute__((noinline)) info_draw(void)
 		y += 4;
 		sb_init(&b, buf, sizeof buf);
 		sb_clock(&b, trk_los - trk_aos);
-		trow(0, &y, TR("Length"), buf, ui_col.fg);
+		trow(0, &y, TR(LENGTH, "Length"), buf, ui_col.fg);
 	}
 	ui_sat_profile_t p;
 	if (ui_svc_sat_profile(&p)) {
 		if (p.down_hz != 0) {
 			sb_init(&b, buf, sizeof buf);
 			sb_freq(&b, p.down_hz);
-			trow(0, &y, TR("Down"), buf, ui_col.fg);
+			trow(0, &y, TR(DOWN, "Down"), buf, ui_col.fg);
 		}
 		if (p.up_hz != 0) {
 			sb_init(&b, buf, sizeof buf);
@@ -1043,22 +1043,22 @@ static void __attribute__((noinline)) info_draw(void)
 				sb_chr(&b, ' ');
 				sb_tone(&b, &tone);
 			}
-			trow(0, &y, TR("Up"), buf, ui_col.fg);
+			trow(0, &y, TR(UP_2, "Up"), buf, ui_col.fg);
 		}
 	}
 	if (st.pos_ok) {
 		sb_init(&b, loc, sizeof loc);
 		sb_locator(&b, st.lat_e7, st.lon_e7);
-		trow(0, &y, TR("Grid"), loc, ui_col.fg);
+		trow(0, &y, TR(WORD_GRID, "Grid"), loc, ui_col.fg);
 	}
 	if (ui_svc_sat_profile(&p) && p.age_d != INT16_MIN) {
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, p.age_d < 0 ? 0u : (uint32_t)p.age_d, 1);
 		sb_str(&b, " d");
-		trow(0, &y, TR("Elements"), buf, p.age_d > 7 ? ui_col.warn : ui_col.fg);
+		trow(0, &y, TR(ELEMENTS, "Elements"), buf, p.age_d > 7 ? ui_col.warn : ui_col.fg);
 	}
 	keys_row(key_y);
-	ui_draw_bottom(&ui_st, TR("Back close"));
+	ui_draw_bottom(&ui_st, TR(BACK_CLOSE_3, "Back close"));
 	ui_draw_banner(&ui_st);
 }
 
@@ -1126,7 +1126,7 @@ static void __attribute__((noinline)) chart_draw(void)
 	static char buf[24];
 	sbuf_t b;
 	gfx_clear(ui_col.bg);
-	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Signal")) + 2;
+	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR(GPS_TITLE_SIGNAL, "Signal")) + 2;
 	int w = gfx_width();
 	const font_t *fs = ui_layout.small;
 	int rh = fs->h + (ui_layout.row_h > fs->h ? 1 : 0);
@@ -1206,18 +1206,18 @@ static void __attribute__((noinline)) chart_draw(void)
 			gfx_vline(chart_x(st.utc), cg.y0, cg.h, ui_col.fg);
 	}
 	if (!ss.any) {
-		gfx_text(fs, 0, ry, TR("No readings yet"), ui_col.dim);
+		gfx_text(fs, 0, ry, TR(NO_READINGS_YET, "No readings yet"), ui_col.dim);
 	} else {
 		sb_init(&b, buf, sizeof buf);
 		sb_i32(&b, ss.hi);
 		sb_str(&b, " dBm  ");
 		sb_hhmmss(&b, local(ss.hi_utc));
-		trow(0, &ry, TR("Best"), buf, ui_col.rx);
+		trow(0, &ry, TR(BEST, "Best"), buf, ui_col.rx);
 		if (tall) {
 			sb_init(&b, buf, sizeof buf);
 			sb_i32(&b, ss.lo);
 			sb_str(&b, " dBm");
-			trow(0, &ry, TR("Lowest"), buf, ui_col.fg);
+			trow(0, &ry, TR(LOWEST, "Lowest"), buf, ui_col.fg);
 			const radio_view_t *rv = ui_view();
 			sb_init(&b, buf, sizeof buf);
 			if (rv->ch.rx_hz != 0 && rv->ch.mode != RADIO_MODE_DMR && rv->rssi_dbm != 0) {
@@ -1226,11 +1226,11 @@ static void __attribute__((noinline)) chart_draw(void)
 			} else {
 				sb_str(&b, "-");
 			}
-			trow(0, &ry, TR("Now"), buf, ui_col.fg);
+			trow(0, &ry, TR(NOW, "Now"), buf, ui_col.fg);
 		}
 	}
 	keys_row(key_y);
-	ui_draw_bottom(&ui_st, TR("Back close"));
+	ui_draw_bottom(&ui_st, TR(BACK_CLOSE_3, "Back close"));
 	ui_draw_banner(&ui_st);
 }
 #endif
@@ -1244,7 +1244,7 @@ static void __attribute__((noinline)) track_main_draw(void)
 	ui_sat_live_t live;
 	bool have = ui_svc_sat_live(&live);
 	gfx_clear(ui_col.bg);
-	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Tracking")) + 2;
+	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR(TRACKING_4, "Tracking")) + 2;
 	int w = gfx_width();
 	bool below = gfx_height() > w;		// a tall panel: the numbers under the plot
 	const font_t *fs = ui_layout.small;
@@ -1283,7 +1283,7 @@ static void __attribute__((noinline)) track_main_draw(void)
 		sb_init(&tb, txs, sizeof txs);
 		bool none = on && trk_rx_only;		// listening only: nothing is transmitted on it
 		if (none)
-			sb_str(&tb, TR("RX only"));
+			sb_str(&tb, TR(WORD_RX_ONLY, "RX only"));
 		else
 			sb_freq(&tb, rv->ch.tx_hz);
 		tc = none ? ui_col.dim : ui_col.fg;
@@ -1336,11 +1336,11 @@ static void __attribute__((noinline)) track_main_draw(void)
 		sbuf_t cb;
 		sb_init(&cb, cd, sizeof cd);
 		if (st.utc >= trk_los)
-			sb_str(&cb, TR("Pass over"));
+			sb_str(&cb, TR(PASS_OVER, "Pass over"));
 		else
 			sb_clock(&cb, up ? trk_los - st.utc : trk_aos - st.utc);
 	}
-	const char *cd_word = st.utc >= trk_los ? "" : up ? TR("Sets in") : TR("Rises in");
+	const char *cd_word = st.utc >= trk_los ? "" : up ? TR(SETS_IN, "Sets in") : TR(RISES_IN, "Rises in");
 	int side = below ? w : (h < w / 2 ? h : w / 2);
 	if (below) {
 		int need = (seen ? rh : have ? fs->h + 2 : 0) + (st.utc != 0 ? rh : 0) +
@@ -1375,9 +1375,9 @@ static void __attribute__((noinline)) track_main_draw(void)
 	if (!seen) {
 		sb_init(&b, buf, sizeof buf);
 		if (!have && near)
-			sb_str(&b, TR("Working")), sb_str(&b, GLYPH_ELLIPSIS);
+			sb_str(&b, TR(WORKING_2, "Working")), sb_str(&b, GLYPH_ELLIPSIS);
 		else if (have)
-			sb_str(&b, TR("Below horizon"));
+			sb_str(&b, TR(BELOW_HORIZON_2, "Below horizon"));
 		if (buf[0] != '\0') {
 			gfx_text(ui_layout.small, x, ty, buf, ui_col.dim);
 			ty += ui_layout.small->h + 2;
@@ -1469,7 +1469,7 @@ static void __attribute__((noinline)) track_main_draw(void)
 		char *sp = strchr(fq, ' ');
 		if (sp != NULL)
 			*sp = '\0';
-		const char *word = TR("Tune");
+		const char *word = TR(TUNE, "Tune");
 		bool room = x + gfx_text_width(ui_layout.small, word) + ui_layout.small->w + gfx_text_width(ui_layout.small, fq) <= gfx_width();
 		trow(x, &ty, room ? word : ">", buf, ui_col.dim);
 	}
@@ -1480,7 +1480,7 @@ static void __attribute__((noinline)) track_main_draw(void)
 		if (below)	// the plot's lower right corner is empty
 			gfx_text(sm, ax, y + side - sm->h, "AUTO", ui_col.rx);
 		else
-			trow(x, &ty, "Auto", TR("on"), ui_col.rx);
+			trow(x, &ty, "Auto", TR(ON, "on"), ui_col.rx);
 	}
 	// Beside the plot the pass's times come after the frequencies, the highest point first, the other end of the pass last:
 	// each goes only where a row is left
@@ -1491,16 +1491,16 @@ static void __attribute__((noinline)) track_main_draw(void)
 		sb_init(&b, buf, sizeof buf);
 		sb_u32(&b, (uint32_t)(live.range_km + 0.5f), 1);
 		sb_str(&b, " km");
-		trow(x, &ty, TR("Rng"), buf, ui_col.fg);
+		trow(x, &ty, TR(RNG, "Rng"), buf, ui_col.fg);
 	}
 	if (!below && times && st.utc != 0 && st.utc < trk_los)
 		trow(x, &ty, up2 ? "AOS" : "LOS", up2 ? t_aos : t_los, ui_col.dim);
 	if (sig && !below)
 		signal_row(x, &ty, rv->rssi_dbm);
 	keys_row(hint_y);
-	ui_draw_bottom(&ui_st, trk_follow.on ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  Back" TEXT_ALT_NEXT "# Tune  * Stop  Back" TEXT_ALT_CLOSE) :
-		       trk_tuned ? TR(TEXT_ALT_OPEN "0 Squelch  # Retune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE) :
-		       TR(TEXT_ALT_OPEN "0 Squelch  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE));
+	ui_draw_bottom(&ui_st, trk_follow.on ? TR(N0_SQUELCH_RETUNE_STOP_OK, TEXT_ALT_OPEN "0 Squelch  # Retune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Stop  Back" TEXT_ALT_NEXT "# Tune  * Stop  Back" TEXT_ALT_CLOSE) :
+		       trk_tuned ? TR(N0_SQUELCH_RETUNE_AUTO_OK, TEXT_ALT_OPEN "0 Squelch  # Retune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE) :
+		       TR(N0_SQUELCH_TUNE_AUTO_OK_FREQ, TEXT_ALT_OPEN "0 Squelch  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  OK Freq  Back" TEXT_ALT_NEXT "0 Sql  # Tune  * Auto  Back" TEXT_ALT_NEXT "# Tune  * Auto  Back" TEXT_ALT_CLOSE));
 	ui_draw_banner(&ui_st);
 }
 
@@ -1561,20 +1561,20 @@ static void alt_toast(const ui_sat_profile_t *p)
 	sb_init(&b, msg, sizeof msg);
 	if (!(trk_tuned && ui_view()->vfo)) {
 		if (trk_alt_on) {
-			sb_str(&b, TR("Next tune"));
+			sb_str(&b, TR(NEXT_TUNE, "Next tune"));
 			sb_chr(&b, ' ');
 			sb_freq(&b, alt_hz);
-			sb_str(&b, TR(": press #"));
+			sb_str(&b, TR(PRESS, ": press #"));
 		} else {
-			sb_str(&b, TR("Next tune: its own, press #"));
+			sb_str(&b, TR(NEXT_TUNE_ITS_OWN_PRESS, "Next tune: its own, press #"));
 		}
 	} else if (trk_alt_on) {
-		sb_str(&b, TR("Listening on"));
+		sb_str(&b, TR(LISTENING_ON, "Listening on"));
 		sb_chr(&b, ' ');
 		sb_freq(&b, alt_hz);
-		sb_str(&b, TR(": RX only"));
+		sb_str(&b, TR(RX_ONLY, ": RX only"));
 	} else {
-		sb_str(&b, TR("The satellite's own frequency"));
+		sb_str(&b, TR(THE_SATELLITES_OWN_FREQUENCY, "The satellite's own frequency"));
 		(void)p;
 	}
 	ui_toast(msg);
@@ -1638,7 +1638,7 @@ static void freq_draw(void)
 	sbuf_t b;
 	status();
 	gfx_clear(ui_col.bg);
-	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR("Frequency")) + 6;
+	int y = ui_draw_top(ui_view(), &ui_st, open_name, TR(APRS_LABEL_FREQUENCY, "Frequency")) + 6;
 	int w = gfx_width();
 	const font_t *big = w >= 200 ? ui_layout.large : ui_layout.medium, *sm = ui_layout.small;
 	// the digits so far, blanks for the rest, as the VFO's own entry
@@ -1659,7 +1659,7 @@ static void freq_draw(void)
 	ui_sat_profile_t p;
 	if (ui_svc_sat_profile(&p) && p.down_hz != 0 && y + sm->h <= hy) {
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Its own"));
+		sb_str(&b, TR(ITS_OWN, "Its own"));
 		sb_chr(&b, ' ');
 		sb_freq(&b, p.down_hz);
 		gfx_text(sm, 2, y, buf, trk_alt_on || alt_hz == 0 ? ui_col.dim : ui_col.rx);
@@ -1667,7 +1667,7 @@ static void freq_draw(void)
 	}
 	if (alt_hz != 0 && y + sm->h <= hy) {
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Yours"));
+		sb_str(&b, TR(YOURS, "Yours"));
 		sb_chr(&b, ' ');
 		sb_freq(&b, alt_hz);
 		gfx_text(sm, 2, y, buf, trk_alt_on ? ui_col.rx : ui_col.dim);
@@ -1675,15 +1675,15 @@ static void freq_draw(void)
 	}
 	y += 3;
 	if (y + sm->h <= hy)
-		gfx_text(sm, 2, y, TR("Downlink to listen on,"), ui_col.fg);
+		gfx_text(sm, 2, y, TR(DOWNLINK_TO_LISTEN_ON, "Downlink to listen on,"), ui_col.fg);
 	y += sm->h + 1;
 	if (y + sm->h <= hy)
-		gfx_text(sm, 2, y, TR("before the Doppler shift"), ui_col.fg);
+		gfx_text(sm, 2, y, TR(BEFORE_THE_DOPPLER_SHIFT, "before the Doppler shift"), ui_col.fg);
 	y += sm->h + 4;
 	if (y + sm->h <= hy)
-		gfx_text(sm, 2, y, TR("Receive only"), ui_col.dim);
-	ui_draw_bottom(&ui_st, fq_len == 0 ? TR(TEXT_ALT_OPEN "0-9 type  OK close  Back" TEXT_ALT_NEXT "0-9 type  Back" TEXT_ALT_CLOSE) :
-		       TR(TEXT_ALT_OPEN "0-9 type  OK set  Back: delete" TEXT_ALT_NEXT "0-9  OK set  Back del" TEXT_ALT_CLOSE));
+		gfx_text(sm, 2, y, TR(RECEIVE_ONLY, "Receive only"), ui_col.dim);
+	ui_draw_bottom(&ui_st, fq_len == 0 ? TR(N0_9_TYPE_OK_CLOSE_BACK, TEXT_ALT_OPEN "0-9 type  OK close  Back" TEXT_ALT_NEXT "0-9 type  Back" TEXT_ALT_CLOSE) :
+		       TR(N0_9_TYPE_OK_SET_BACK_DELETE, TEXT_ALT_OPEN "0-9 type  OK set  Back: delete" TEXT_ALT_NEXT "0-9  OK set  Back del" TEXT_ALT_CLOSE));
 	ui_draw_banner(&ui_st);
 }
 
@@ -1749,35 +1749,35 @@ static void sound_draw(void)
 	sbuf_t b;
 	snd_read();
 	gfx_clear(ui_col.bg);
-	int y = ui_draw_top(ui_view(), &ui_st, NULL, TR("Receive sound")) + 4;
+	int y = ui_draw_top(ui_view(), &ui_st, NULL, TR(RECEIVE_SOUND_2, "Receive sound")) + 4;
 	int w = gfx_width();
 	const font_t *sm = ui_layout.small;
 	const int hy = ui_layout.hint_y;
 	if (snd_state != SOUND_LISTENING) {
-		const char *l1 = TR("Starting"), *l2 = "", *l3 = "", *l4 = "";
+		const char *l1 = TR(STARTING, "Starting"), *l2 = "", *l3 = "", *l4 = "";
 		switch (snd_state) {
 		case SOUND_NEED_DMR:
-			l1 = TR("Switch to a DMR channel,");
-			l2 = TR("then open this again");
+			l1 = TR(SWITCH_TO_A_DMR_CHANNEL, "Switch to a DMR channel,");
+			l2 = TR(THEN_OPEN_THIS_AGAIN, "then open this again");
 			break;
 		case SOUND_BUSY:
-			l1 = TR("Transmitting, or still");
-			l2 = TR("storing the last transfer");
+			l1 = TR(TRANSMITTING_OR_STILL, "Transmitting, or still");
+			l2 = TR(STORING_THE_LAST_TRANSFER, "storing the last transfer");
 			break;
 		case SOUND_NO_STORE:
-			l1 = TR("No place to keep");
-			l2 = TR("satellites on this radio");
+			l1 = TR(NO_PLACE_TO_KEEP, "No place to keep");
+			l2 = TR(SATELLITES_ON_THIS_RADIO, "satellites on this radio");
 			break;
 		case SOUND_NO_AUDIO:
-			l1 = TR("This radio can't");
-			l2 = TR("listen for sound");
+			l1 = TR(THIS_RADIO_CANT, "This radio can't");
+			l2 = TR(LISTEN_FOR_SOUND, "listen for sound");
 			break;
 		case SOUND_FOREIGN:
 			// another firmware's bytes where satellites go (satellite.md 6.3): the installer clears them after its backup
-			l1 = TR("Another firmware's data");
-			l2 = TR("is where satellites go");
-			l3 = TR("The web installer clears");
-			l4 = TR("it after a full backup");
+			l1 = TR(ANOTHER_FIRMWARES_DATA, "Another firmware's data");
+			l2 = TR(IS_WHERE_SATELLITES_GO, "is where satellites go");
+			l3 = TR(THE_WEB_INSTALLER_CLEARS, "The web installer clears");
+			l4 = TR(IT_AFTER_A_FULL_BACKUP, "it after a full backup");
 			break;
 		default:
 			break;
@@ -1787,7 +1787,7 @@ static void sound_draw(void)
 		y += 4;
 		snd_line(2, &y, sm, l3, ui_col.dim, hy);
 		snd_line(2, &y, sm, l4, ui_col.dim, hy);
-		ui_draw_bottom(&ui_st, TR("Back close"));
+		ui_draw_bottom(&ui_st, TR(BACK_CLOSE_3, "Back close"));
 		ui_draw_banner(&ui_st);
 		return;
 	}
@@ -1804,28 +1804,28 @@ static void sound_draw(void)
 		// that failed their check (a bar that never moves means no sound reaches the microphone; frames with errors, a signal
 		// that is too weak or too distorted)
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Lvl"));
+		sb_str(&b, TR(LVL, "Lvl"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.level, 1);
 		sb_chr(&b, ' ');
-		sb_str(&b, TR("Fr"));
+		sb_str(&b, TR(FR, "Fr"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.frames, 1);
 		sb_chr(&b, ' ');
-		sb_str(&b, TR("Err"));
+		sb_str(&b, TR(ERR, "Err"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, (uint32_t)snd.fcs_errors + snd.refused, 1);
 		snd_line(2, &y, sm, buf, ui_col.dim, hy);
-		snd_line(2, &y, sm, TR("Waiting for the sound"), ui_col.fg, hy);
-		snd_line(2, &y, sm, TR("Hold the phone's speaker"), ui_col.dim, hy);
-		snd_line(2, &y, sm, TR("at the microphone"), ui_col.dim, hy);
+		snd_line(2, &y, sm, TR(WAITING_FOR_THE_SOUND, "Waiting for the sound"), ui_col.fg, hy);
+		snd_line(2, &y, sm, TR(HOLD_THE_PHONES_SPEAKER, "Hold the phone's speaker"), ui_col.dim, hy);
+		snd_line(2, &y, sm, TR(AT_THE_MICROPHONE, "at the microphone"), ui_col.dim, hy);
 	} else {
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Sats heard"));
+		sb_str(&b, TR(SATS_HEARD, "Sats heard"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.heard, 1);
 		sb_chr(&b, ' ');
-		sb_str(&b, TR("of"));
+		sb_str(&b, TR(OF, "of"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.count, 1);
 		bool done = snd.heard == snd.count && snd.queued == 0;
@@ -1834,27 +1834,27 @@ static void sound_draw(void)
 		uint16_t bad = (uint16_t)(snd.applied[SAT_SOUND_APPLY_FULL] + snd.applied[SAT_SOUND_APPLY_MODEL] +
 					  snd.applied[SAT_SOUND_APPLY_STORE]);
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("New"));
+		sb_str(&b, TR(NEW, "New"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.applied[SAT_SOUND_APPLY_NEW], 1);
 		sb_str(&b, "  ");
-		sb_str(&b, TR("Updated"));
+		sb_str(&b, TR(UPDATED, "Updated"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, snd.applied[SAT_SOUND_APPLY_UPDATED], 1);
 		snd_line(2, &y, sm, buf, ui_col.fg, hy);
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Kept"));
+		sb_str(&b, TR(KEPT, "Kept"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, kept, 1);
 		sb_str(&b, "  ");
-		sb_str(&b, TR("Problems"));
+		sb_str(&b, TR(PROBLEMS, "Problems"));
 		sb_chr(&b, ' ');
 		sb_u32(&b, bad, 1);
 		snd_line(2, &y, sm, buf, bad != 0 ? ui_col.warn : ui_col.dim, hy);
 		if (done)
-			snd_line(2, &y, sm, TR("Done: all heard"), ui_col.rx, hy);
+			snd_line(2, &y, sm, TR(DONE_ALL_HEARD, "Done: all heard"), ui_col.rx, hy);
 	}
-	ui_draw_bottom(&ui_st, TR("Back stop"));
+	ui_draw_bottom(&ui_st, TR(BACK_STOP, "Back stop"));
 	ui_draw_banner(&ui_st);
 }
 
@@ -1913,7 +1913,7 @@ static void clock_draw(void)
 	sbuf_t b;
 	status();
 	gfx_clear(ui_col.bg);
-	int y = ui_draw_top(ui_view(), &ui_st, TR("Set time"), "UTC") + 4;
+	int y = ui_draw_top(ui_view(), &ui_st, TR(SET_TIME, "Set time"), "UTC") + 4;
 	const font_t *f = gfx_width() >= 200 ? ui_layout.large : ui_layout.medium;
 	int w = gfx_width();
 	// the two lines, centered
@@ -1930,14 +1930,14 @@ static void clock_draw(void)
 	uint32_t u = sat_clock_from_civil(clk[CF_YEAR], clk[CF_MONTH], clk[CF_DAY], clk[CF_HOUR], clk[CF_MIN], clk[CF_SEC]);
 	if (u != 0 && y + ui_layout.small->h < ui_layout.hint_y) {
 		sb_init(&b, buf, sizeof buf);
-		sb_str(&b, TR("Local"));
+		sb_str(&b, TR(LOCAL, "Local"));
 		sb_chr(&b, ' ');
 		sb_hhmm(&b, (uint32_t)((int32_t)u + st.utc_offset_min * 60));
 		sb_str(&b, "  ");
 		sb_utc_offset(&b, st.utc_offset_min);
 		gfx_text(ui_layout.small, (w - gfx_text_width(ui_layout.small, buf)) / 2, y, buf, ui_col.dim);
 	}
-	ui_draw_bottom(&ui_st, TR("# next field  OK set"));
+	ui_draw_bottom(&ui_st, TR(NEXT_FIELD_OK_SET, "# next field  OK set"));
 	ui_draw_banner(&ui_st);
 }
 
@@ -1984,12 +1984,12 @@ static bool clock_key(const input_event_t *ev)
 		uint32_t u = sat_clock_from_civil(clk[CF_YEAR], clk[CF_MONTH], clk[CF_DAY], clk[CF_HOUR], clk[CF_MIN],
 						  clk[CF_SEC]);
 		if (u == 0) {
-			ui_toast(TR("Not a date"));
+			ui_toast(TR(NOT_A_DATE, "Not a date"));
 		} else if (ui_svc_sat_clock_set(u)) {
-			ui_toast(TR("Clock set"));
+			ui_toast(TR(CLOCK_SET, "Clock set"));
 			ui_pop();
 		} else {
-			ui_toast(TR("Couldn't set the clock"));
+			ui_toast(TR(COULDNT_SET_THE_CLOCK, "Couldn't set the clock"));
 		}
 	} else {
 		return false;

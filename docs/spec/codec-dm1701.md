@@ -52,6 +52,9 @@ the codec it calls at 0x0807537C is that firmware's. A DM-1701 that ran it carri
 DM-1701's. It is the same codec in function: the same entry offsets, state sizes and calls (the FEC decode offset
 differs and is not used), bit-identical in a host emulator ([codec-md9600.md](codec-md9600.md) "Verification").
 
+The MD-9600 board takes more files than the 21 below: the 03.xx, 04.03, 06.03 and Retevis RT90 V5 ones have a map and an
+MD-9600 profile only ([codec-md9600.md](codec-md9600.md)).
+
 So the MD-9600 files (21, V06.09, V06.24, V16.24, V16.45, V26.45 and D26.57, below) are DM-1701 codec sources too, each with its own map
 (`tools/rfoundry/rfoundry/codec_maps/md9600/`) and profile (`stockfw.py`, `"file_radio": "MD-9600"`):
 
@@ -348,10 +351,12 @@ no FPU instructions.
   | function | does |
   |---|---|
   | `present()` | checks the descriptor, that the code and tables are where one of the profiles in "Hosting" puts them, with its placed CRC-32s, the first word 0x4FF0E92D and the CRC of both windows (computed once) |
-  | `reset()` | runs the init sequence above on zeroed CCM blocks |
-  | `encode()` / `decode()` | make the two calls per frame |
+  | `reset()` | marks the state block empty; the next encode or decode builds its half of the init |
+  | `encode()` / `decode()` | make the two calls per frame; the first encode after a decode (or after `reset()`) runs the encoder's half of the init on the zeroed block, the first decode after an encode the decoder's |
 
   Without the codec it reports not present (FM only).
+* State: one 0x16E0-byte CCM block holds E or D, never both ([codec-placement.md](codec-placement.md), "STM32
+  radios").
 * `platform/stm32f4/codec_call.c` holds a file-scope assembly veneer `stm32_codec_call(fn, args, n)` with its own
   frame. It loads r0-r3 from the array and puts the rest on an 8-byte aligned stack. It restores SP from a saved
   frame register. The call therefore does not depend on how the caller was compiled (gotcha 4.1). To the compiler it
