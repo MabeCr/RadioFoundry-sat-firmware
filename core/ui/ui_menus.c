@@ -6871,6 +6871,12 @@ static const set_item_t s_talk[] = {
 	LIST(TRN(SET_LABEL_SFR_CW_ID, "SFR CW ID"), "single frequency repeater morse callsign identify",
 		UI_SET_SFR_CWID, v_sfrcwid, n_sfrcwid),
 #endif
+#if CONFIG_SCAN
+	// Last, so the rows above keep their places. The range, not a list: the least a DMR channel needs to be heard is
+	// a frame (60 ms), an FM one only its level, so a user trades speed for missed calls to suit the channels
+	NUMBER(TRN(SET_LABEL_SCAN_DWELL, "Scan dwell"), "scan speed listen time per channel faster slower", UI_SET_SCAN_DWELL_MS,
+	       RADIO_SCAN_DWELL_MIN_MS, RADIO_SCAN_DWELL_MAX_MS, 10, " ms"),
+#endif
 };
 static const set_item_t s_privacy[] = {
 	LIST(TRN(SET_LABEL_PRIVACY_KEY_TYPE, "Key type"), "privacy encryption", UI_SET_PRIVACY_TYPE, v_ptype, n_ptype),

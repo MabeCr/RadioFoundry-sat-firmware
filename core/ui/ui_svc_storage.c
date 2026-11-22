@@ -189,6 +189,11 @@ static __attribute__((noinline)) int32_t setting_get_radio(uint8_t id)
 		radio_get_settings(&rs);
 		return rs.sfr_cwid;
 #endif
+#if CONFIG_SCAN
+	case UI_SET_SCAN_DWELL_MS:
+		radio_get_settings(&rs);
+		return rs.scan_dwell_ms;
+#endif
 #if CONFIG_DUAL_WATCH
 	case UI_SET_DUAL_DELAY_MS:
 		radio_get_settings(&rs);
@@ -527,6 +532,9 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 #endif
 #if CONFIG_SFR_CWID
 	case UI_SET_SFR_CWID:
+#endif
+#if CONFIG_SCAN
+	case UI_SET_SCAN_DWELL_MS:
 #endif
 #if CONFIG_DUAL_WATCH
 	case UI_SET_DUAL_DELAY_MS:

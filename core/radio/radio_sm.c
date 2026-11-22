@@ -8077,6 +8077,11 @@ static void clamp_settings(radio_settings_t *s)
 	if (s->reply_s > 30 && s->reply_s != RADIO_REPLY_CODEPLUG) {
 		s->reply_s = 30;
 	}
+	if (s->scan_dwell_ms < RADIO_SCAN_DWELL_MIN_MS) {
+		s->scan_dwell_ms = RADIO_SCAN_DWELL_MIN_MS;
+	} else if (s->scan_dwell_ms > RADIO_SCAN_DWELL_MAX_MS) {
+		s->scan_dwell_ms = RADIO_SCAN_DWELL_MAX_MS;
+	}
 	if (s->dual_delay_ms > RADIO_DUAL_DELAY_MAX_MS) {
 		s->dual_delay_ms = RADIO_DUAL_DELAY_MAX_MS;
 	}
@@ -8173,7 +8178,9 @@ static void settings_to_radio(const settings_t *st, radio_settings_t *s)
 	s->scan_resume = st->rs_scan_resume;
 	s->scan_hold_s = st->rs_scan_hold_s;
 	s->scan_delay_ms = st->rs_scan_delay_ms;
-	s->scan_dwell_ms = st->rs_scan_dwell_ms;
+	if (st->rs_scan_dwell_ms != 0) {	// 0: never set, keeps the default
+		s->scan_dwell_ms = st->rs_scan_dwell_ms;
+	}
 	s->beep_level = st->rs_beep_level;
 	s->vox = st->rs_vox;
 	s->vox_level = st->rs_vox_level;

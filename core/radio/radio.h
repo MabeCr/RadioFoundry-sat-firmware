@@ -144,6 +144,10 @@ typedef struct {
 #define RADIO_REPLY_CODEPLUG	0xFFu	// radio_settings_t.reply_s: the codeplug's hang times (else the stack's 10 s)
 // radio_settings_t.dual_delay_ms: the default and the most. In the wait the receiver looks at the other channel for a
 // scan dwell after each dwell back on the signal's
+// radio_settings_t.scan_dwell_ms: the default and the range the setting keeps to (the least is the retune settle time)
+#define RADIO_SCAN_DWELL_MS	150u	// listen per channel (from the retune) with nothing heard
+#define RADIO_SCAN_DWELL_MIN_MS	50u
+#define RADIO_SCAN_DWELL_MAX_MS	1000u
 #define RADIO_DUAL_DELAY_MS	1000u
 #define RADIO_DUAL_DELAY_MAX_MS	10000u
 

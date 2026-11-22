@@ -4028,6 +4028,11 @@ msgid "SFR CW ID"
 msgstr "ID CW SFR"
 
 #: core/ui/ui_menus.c
+msgctxt "SET_LABEL_SCAN_DWELL"
+msgid "Scan dwell"
+msgstr "Tiempo de escucha del escaneo"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_LABEL_PRIVACY_KEY_TYPE"
 msgid "Key type"
 msgstr "Tipo clave"

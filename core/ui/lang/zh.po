@@ -4030,6 +4030,11 @@ msgid "SFR CW ID"
 msgstr "单频中继 CW ID"
 
 #: core/ui/ui_menus.c
+msgctxt "SET_LABEL_SCAN_DWELL"
+msgid "Scan dwell"
+msgstr "扫描驻留时间"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_LABEL_PRIVACY_KEY_TYPE"
 msgid "Key type"
 msgstr "按键类型"

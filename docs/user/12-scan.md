@@ -46,7 +46,8 @@ removes it. A list holds up to 80 channels and the radio stores 16 lists.
 
 - The scan visits the zone's channels in order, from the one it started on. It skips empty positions and channels
   the codeplug marks to skip. FM, DMR, P25 and NXDN channels can be mixed. P25 trunked channels are skipped.
-- On each channel it listens for 150 ms. An FM channel stops the scan when the squelch opens (with the channel's tone,
+- On each channel it listens for 150 ms, or the time in **Settings > Talk & listen > Scan dwell** (50 to 1000 ms; a
+  shorter time scans faster but can miss a short call, mostly on DMR). An FM channel stops the scan when the squelch opens (with the channel's tone,
   if it needs one). A DMR, P25 or NXDN channel stops it when the radio plays a call. On a signal it listens up to
   1.5 s for a call it would play.
 - Turn on [digital monitor](09-dmr.md) before you start the scan to stop on a call to any talkgroup, not only

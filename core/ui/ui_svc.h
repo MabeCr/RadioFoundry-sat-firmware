@@ -562,6 +562,9 @@ typedef enum {
 	// (0/1; sat_flags SETTINGS_SAT_QUIET)
 	UI_SET_SAT_ALERT_LEAD, UI_SET_SAT_ALERT_QUIET,
 #endif
+	// How long a scan listens on each channel with nothing heard, ms (Settings > Talk & listen, CONFIG_SCAN;
+	// radio_settings_t.scan_dwell_ms): RADIO_SCAN_DWELL_MIN_MS..RADIO_SCAN_DWELL_MAX_MS, the radio core clamps
+	UI_SET_SCAN_DWELL_MS,
 	UI_SET_COUNT
 } ui_setting_t;
 
