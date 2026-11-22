@@ -172,6 +172,10 @@ CONFIG_SCAN ?= y
 # the dual watch screens: two channels on Home, which one PTT uses and which one a call came in on; the radio core's
 # dual watch across zones and with the VFO, PTT on the selected channel (needs SCAN; docs/ux/dual-watch.md)
 CONFIG_DUAL_WATCH ?= $(CONFIG_SCAN)
+# stored scan lists: named lists of channels from any zone, kept in the board's scan list area (core/codeplug/scan_list.c,
+# docs/spec/scan-list.md). Needs SCAN. Off by default, on in a radio's own build (SATELLITE_VARS) where its flash map has
+# the area; a board with no scan list area (hal_flash_map_t.scan_size) has none
+CONFIG_SCAN_LIST ?= n
 # key assignment: Settings > Keys and the codeplug's quick-key slots say what the board's programmable keys do
 # (core/input/keyassign.c, docs/spec/ui.md 3.1)
 CONFIG_KEY_ASSIGN ?= y
@@ -277,7 +281,7 @@ CONFIG_SAT_CHART ?= $(CONFIG_SAT)
 
 
 FEATURES := FM SUBTONE DMR DMR_PRIVACY DMR_TALKER_ALIAS DMR_GPS DMR_SMS DMR_TMS DMR_ARS DMR_LRRP DMR_SIGNALING DMR_EMERGENCY DMR_ROAMING DMR_IP_GATEWAY ZONE_SHARE DMR_UDP_COMPRESS DMR_CONFIRMED NET_TCP NET_KISS NET_HTTP NET_HTTP_GZIP NET_WEBCTL NET_RIGCTL NET_APRSIS NET_USRP MDNS TFTP TFTP_IDDB IDDB_COMPACT DMR_CONTROL_STATION SNMP SFR SFR_DUALPATH_RX SFR_CWID TASK_STACKS \
-	USB HOSTLINK USB_NETWORK NET_PPP HOTSPOT HOTSPOT_SPLIT DEBUGLINK CPS_OPENFW CPS_FAST VFO VFO_FM VFO_DMR DIAG FONT_XL FONT_AA FONT_BIG LANG_ES LANG_IT LANG_DEFAULT_ES LANG_DEFAULT_IT UI_COLOR UI_SETTINGS SCAN DUAL_WATCH BEEP FM_TX_TONES DTMF \
+	USB HOSTLINK USB_NETWORK NET_PPP HOTSPOT HOTSPOT_SPLIT DEBUGLINK CPS_OPENFW CPS_FAST VFO VFO_FM VFO_DMR DIAG FONT_XL FONT_AA FONT_BIG LANG_ES LANG_IT LANG_DEFAULT_ES LANG_DEFAULT_IT UI_COLOR UI_SETTINGS SCAN DUAL_WATCH SCAN_LIST BEEP FM_TX_TONES DTMF \
 	VOX REF_TRIM BATTERY_SAVE VIBRATE GPS AUDIO_PROBE STUB_ENTRY NAND_STORAGE CRASH_LOG CRASH_SCREEN CRASH_REPORT WATCHDOG FAULT_TRACE AM_RX BCAST_FM APRS APRS_RX APRS_IGATE GPS_SKY SAT SAT_SOUND SAT_CHART KEY_ASSIGN CHANNEL_LIST CHANNEL_EDIT ZONE_EDIT CONTACT_EDIT
 
 # Dependencies
@@ -309,6 +313,11 @@ endif
 ifneq ($(call feature_on,DUAL_WATCH),)
   ifeq ($(call feature_on,SCAN),)
     $(error CONFIG_DUAL_WATCH=y needs CONFIG_SCAN=y)
+  endif
+endif
+ifneq ($(call feature_on,SCAN_LIST),)
+  ifeq ($(call feature_on,SCAN),)
+    $(error CONFIG_SCAN_LIST=y needs CONFIG_SCAN=y)
   endif
 endif
 ifneq ($(call feature_on,FONT_BIG),)

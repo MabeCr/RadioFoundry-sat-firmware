@@ -64,6 +64,7 @@ is `tools/bringup.py list --radio <id>`.
 | `key_assign` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `scan` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded |
 | `dual_watch` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded |
+| `scan_list` | off | off | off | off | off | off |
 | `beep` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `vibrate` | off | ✕ | not recorded | ✕ | ✕ | ✕ |
 | `gps` | pass (seed) | not recorded | ✕ | not recorded | not recorded | not recorded |
@@ -224,6 +225,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `UI_SETTINGS` | ● | ● | ● | ● | ● | ● |
 | `SCAN` | ● | ● | ● | ● | ● | ● |
 | `DUAL_WATCH` | ● | ● | ● | ● | ● | ● |
+| `SCAN_LIST` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `BEEP` | ● | ● | ● | ● | ● | ● |
 | `FM_TX_TONES` | ● | ● | ● | ● | … | ● |
 | `DTMF` | ● | ● | ● | ● | … | ● |

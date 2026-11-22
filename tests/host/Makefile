@@ -608,6 +608,12 @@ SATSTORE := satStoreTest.c $(CORE)/sat/sat_store.c $(CORE)/sat/sat_tle.c $(CORE)
 satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(SATSTORE) -lm
 
+# Stored scan lists (core/codeplug/scan_list.c) on the simulated flash, with power cuts
+TESTS   += scanListTest
+SCANLIST := scanListTest.c $(CORE)/codeplug/scan_list.c $(CORE)/storage/storage.c sim/sim_flash.c
+scanListTest: $(SCANLIST) $(CORE)/codeplug/scan_list.h $(wildcard $(CORE)/storage/*.h) sim/sim_flash.h
+	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -DCONFIG_SCAN_LIST=1 -o $@ $(SCANLIST)
+
 # Receiving element sets by sound: the update rules and whole transfers from audio to stored records, on the simulated flash
 TESTS   += satSoundRcvTest
 SATRCV  := satSoundRcvTest.c $(CORE)/sat/sat_sound_apply.c $(CORE)/sat/sat_sound_rcv.c $(CORE)/sat/sat_sound.c \

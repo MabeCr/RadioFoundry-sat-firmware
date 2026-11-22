@@ -194,7 +194,8 @@ void board_early_init(void)
 // 0x710000, the settings ring and the sector journal after it, the 1 MB open-firmware "flash" image at 0x720000
 // (CODEPLUG_OPENFW_FLASH_BASE) with room above it for the DMR ID database, the native codeplug in the last 1 MB. The
 // factory calibration is read only, so the open-firmware CPS gets no calibration window. Stored satellites take one
-// sector of the gap between the journal and the flash image, which no CPS reaches
+// sector of the gap between the journal and the flash image, which no CPS reaches, and stored scan lists the sector
+// after it
 static const hal_flash_map_t flash_map = {
 	.settings_addr = 0x711000u,
 	.settings_size = 0x008000u,	// 8 sectors
@@ -208,6 +209,8 @@ static const hal_flash_map_t flash_map = {
 	.native_size = 0x100000u,
 	.sat_addr = 0x71B000u,		// 32 satellites (docs/spec/satellite.md 6.3)
 	.sat_size = 0x001000u,
+	.scan_addr = 0x71C000u,		// 16 scan lists (docs/spec/scan-list.md)
+	.scan_size = 0x001000u,
 };
 static const hrc_flash_cfg_t flash_cfg = {
 	.cs_pin = PIN_FLASH_CS,

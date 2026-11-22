@@ -133,6 +133,11 @@ spec = "docs/spec/radio-features.md"
 switch = "DUAL_WATCH"
 spec = "docs/spec/radio-features.md"
 
+[feature.scan_list]
+switch = "SCAN_LIST"
+spec = "docs/spec/scan-list.md"
+source = ["core/codeplug/scan_list.c"]
+
 [feature.beep]
 switch = "BEEP"
 spec = "docs/spec/radio-features.md"

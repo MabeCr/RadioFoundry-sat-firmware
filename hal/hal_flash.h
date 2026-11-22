@@ -36,6 +36,10 @@ typedef struct {
 	// written by the open-firmware CPS. 0 size: none (satellites are loaded into RAM only)
 	uint32_t sat_addr;
 	uint32_t sat_size;
+	// Stored scan lists (CONFIG_SCAN_LIST, docs/spec/scan-list.md): whole erase units outside every area above, never
+	// written by the open-firmware CPS. 16 lists a unit. 0 size: none (the radio has no scan lists)
+	uint32_t scan_addr;
+	uint32_t scan_size;
 } hal_flash_map_t;
 
 typedef struct {
