@@ -247,6 +247,22 @@ int main(void)
 	settle(60);
 	CHECK(!sat_svc_profile(&prof) && sat_svc_passes(passes, SAT_SVC_PASSES, &done) == 0 && done);
 
+	// A delete (the housekeeping task calls it): the list follows at the next poll, the open satellite's passes close
+	sat_svc_open(25544);
+	settle(60);
+	CHECK(sat_svc_profile(&prof) && prof.norad == 25544);
+	uint8_t had = sat_svc_count();
+	sat_svc_delete(25544);
+	settle(60);
+	CHECK(sat_svc_count() == had - 1 && row_of(25544, &row) < 0 && row_of(27607, &row) >= 0);
+	CHECK(!sat_svc_profile(&prof) && sat_svc_passes(passes, SAT_SVC_PASSES, &done) == 0 && done);
+	sat_svc_delete(999999);		// not stored: nothing changes
+	settle(60);
+	CHECK(sat_svc_count() == had - 1);
+	put(0, "ISS");			// back for the rest
+	sat_svc_refresh();
+	settle(60);
+
 	// The observer moves: worked out again
 	in.now = t0;
 	sat_svc_refresh();
@@ -270,6 +286,76 @@ int main(void)
 	CHECK(again <= 1 && sat_svc_state() == SAT_SVC_READY);
 	CHECK(row_of(25544, &row) >= 0 && row.aos == aos_kept && row.state != SAT_ROW_WORKING);
 	CHECK(sat_svc_position(&lat_e7, &lon_e7) && lat_e7 == -339000000 && lon_e7 == 184000000);
+	// The pass lists of the satellites opened lately are kept: opening one pl_again is at once, with no search; a list that lost
+	// its pl_first pass to the clock is searched on, not from the start; a changed store or observer drops them all
+	in.now = t0;
+	in.lat = -33.9;
+	in.lon = 18.4;
+	in.pos_ok = true;
+	settle(60);
+	sat_pass_row_t pl_first[SAT_SVC_PASSES], pl_again[SAT_SVC_PASSES];
+	bool d1, d2;
+	sat_svc_open(25544);
+	settle(60);
+	uint8_t n1 = sat_svc_passes(pl_first, SAT_SVC_PASSES, &d1);
+	CHECK(n1 >= 2 && d1);
+	sat_svc_open(27607);
+	settle(60);
+	CHECK(sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2) > 0 && d2);
+	sat_svc_open(25544);
+	bool dn = true;
+	CHECK(sat_svc_pass_count(&dn) == 0 && !dn);	// asked for, not switched to yet: not the last one's passes
+	CHECK(sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2) == 0 && !d2 && !sat_svc_pass(0, &pl_again[0]));
+	CHECK(!sat_svc_poll(&in, 1));			// nothing left to work out: the list came from the cache
+	uint8_t n2 = sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2);
+	CHECK(n2 == n1 && d2 && memcmp(pl_first, pl_again, n1 * sizeof pl_first[0]) == 0);
+	sat_svc_open(25544);				// the one already open, asked for again: its list stays
+	CHECK(sat_svc_pass_count(&dn) == n1);
+	// The satellite list opened again (a refresh) keeps them as well
+	sat_svc_refresh();
+	sat_svc_open(25544);
+	sat_svc_poll(&in, 1);				// rows are worked again, the open list is not
+	CHECK(sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2) == n1 && memcmp(pl_first, pl_again, n1 * sizeof pl_first[0]) == 0);
+	// Time passes: the pl_first pass is over, the rest stay and the search goes on after them
+	in.now = (double)pl_first[0].los + 120.0;
+	sat_svc_open(27607);
+	settle(60);
+	sat_svc_open(25544);
+	settle(60);
+	n2 = sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2);
+	CHECK(n2 >= n1 - 1 && d2 && pl_again[0].aos == pl_first[1].aos && pl_again[0].los > (uint32_t)in.now);
+	for (uint8_t i = 1; i < n2; i++)
+		CHECK(pl_again[i].aos > pl_again[i - 1].aos);
+	CHECK(pl_again[n2 - 1].aos >= pl_first[n1 - 1].aos);
+	// The store changes: every kept list is out of date
+	sat_pass_row_t pl_before[SAT_SVC_PASSES];
+	uint8_t nb = sat_svc_passes(pl_before, SAT_SVC_PASSES, &d1);
+	sat_svc_open(27607);
+	settle(60);
+	CHECK(sat_store_put(&none));
+	unsigned worked = settle(60);
+	sat_svc_open(25544);
+	worked += settle(60);
+	CHECK(worked > 3);				// searched pl_again
+	n2 = sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2);
+	CHECK(n2 == nb);
+	for (uint8_t i = 0; i < nb && i < n2; i++)	// worked out from another start: the same passes to a second or two
+		CHECK(pl_again[i].aos - pl_before[i].aos + 2u <= 4u && pl_again[i].los - pl_before[i].los + 2u <= 4u);
+	// The observer moves: the same
+	sat_svc_open(27607);
+	settle(60);
+	in.lat = 51.5;
+	in.lon = -0.1;
+	settle(60);
+	sat_svc_open(25544);
+	settle(60);
+	n2 = sat_svc_passes(pl_again, SAT_SVC_PASSES, &d2);
+	CHECK(n2 > 0 && pl_again[0].aos != pl_before[0].aos);
+	in.now = t0;
+	in.lat = -33.9;
+	in.lon = 18.4;
+	settle(60);
+
 	// Without time it still stops
 	in.time_ok = false;
 	sat_svc_poll(&in, 1);
