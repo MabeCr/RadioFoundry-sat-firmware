@@ -283,6 +283,10 @@
 #ifndef CONFIG_SAT_SOUND
 #define CONFIG_SAT_SOUND		0
 #endif
+// The signal chart on the Tracking screen (core/sat/sat_sig.c). Needs CONFIG_SAT (features.mk checks); on with it
+#ifndef CONFIG_SAT_CHART
+#define CONFIG_SAT_CHART		CONFIG_SAT
+#endif
 #ifndef CONFIG_NET_KISS
 #define CONFIG_NET_KISS			(CONFIG_NET_TCP && CONFIG_APRS)
 #endif

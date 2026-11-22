@@ -83,6 +83,7 @@ is `tools/bringup.py list --radio <id>`.
 | `gps_sky` | not recorded | not recorded | ✕ | not recorded | not recorded | not recorded |
 | `sat` | off | off | off | off | off | off |
 | `sat_sound` | off | off | off | off | off | off |
+| `sat_chart` | off | off | off | off | off | off |
 | `sat_splash` | off | off | off | off | off | off |
 | `usb` | ✕ | pass (seed) | ✕ | ✕ | not recorded | not recorded |
 | `hostlink` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
@@ -248,6 +249,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `GPS_SKY` | ● | ● | ✕ | ● | ● | ● |
 | `SAT` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_SOUND` | ○ | ○ | ○ | ○ | ○ | ○ |
+| `SAT_CHART` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_SPLASH` | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● |
@@ -311,7 +313,8 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | GPS screen: sky plot, signal bars, grid locator (Tools > Position) | `GPS_SKY` | — | 5,244 | Needs GPS and APRS. 176 B of RAM. MD-380 measured 2026-10-29 (LTO) |
 | Satellite tracking: SGP4, passes, Doppler, profiles, repeater arming | `SAT` | 26,792 | — | Off by default. Tools > Satellites (the pass lists), stored satellites, the debug link's SAT command; tracking not built yet. DM-1701 figure with LTO and the debug link: 2,848 B of RAM and the `sat` task's 1.5 KB stack (2026-11-03; [satellite](spec/satellite.md) 7). Stored satellites need a satellite area in the board's flash map: DM-32UV, DM-1701 and MD-UV380 (untested on the radio) |
 | Element sets by sound: the AFSK receiver, the store rules and Tools > Satellites > Receive sound | `SAT_SOUND` | — | — | Needs `SAT`, `DMR` and `APRS`. Off by default; on in the DM-32UV and DM-1701 satellite builds. About 3 KB of RAM (the demodulator and the queue); the flash cost is not measured yet. Not tried at a microphone ([sound-transfer](spec/sound-transfer.md)) |
-| The boot splash's mark as the Tracking screen's sky plot | `SAT_SPLASH` | — | — | Needs `SAT`; on with it. Not on a radio yet ([ui](spec/ui.md)) |
+| The Tracking screen's signal chart (key 2): the receiver's level over the pass | `SAT_CHART` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash and 0.5 KB of RAM. Untried on a real pass ([ui](spec/ui.md)) |
+| The boot splash's mark as the Tracking screen's sky plot | `SAT_SPLASH` | — | — | Needs `SAT`; on with it. Seen on the DM-32UV ([ui](spec/ui.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB

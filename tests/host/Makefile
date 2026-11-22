@@ -456,7 +456,7 @@ i18nTestDefault: i18nTest.c $(I18N) $(LANG_H) $(wildcard $(CORE)/ui/*.h $(CORE)/
 # docs/ux/screens/sheets/). Built without the __attribute__ override above so the weak service stubs
 # (ui_svc_stub.c) give way to the simulator's.
 UIAPP   := $(UI) $(CORE)/ui/ui_app.c $(CORE)/ui/ui_menus.c $(CORE)/ui/ui_find.c $(CORE)/ui/ui_aprs.c $(CORE)/ui/ui_gps.c $(CORE)/ui/ui_dual.c \
-           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_follow.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
+           $(CORE)/ui/ui_sat.c $(CORE)/sat/sat_clock.c $(CORE)/sat/sat_follow.c $(CORE)/sat/sat_sig.c $(CORE)/sat/sat_tle.c $(CORE)/radio/tones.c \
            $(CORE)/codeplug/codeplug_talk.c $(CORE)/codeplug/zone_edit.c $(CORE)/codeplug/zone_shift.c $(CORE)/radio/radio_am.c \
            $(CORE)/radio/radio_bcast.c sim/ui_sim.c sim/ui_png.c
 # The About page's data header, as the firmware build makes it (tools/gen_about.py; the STM32F4 list stands in)
@@ -581,6 +581,16 @@ run: run-satFollow
 run-satFollow: satFollowTest
 	./satFollowTest
 .PHONY: run-satFollow
+
+# The signal level over a pass, for the Tracking screen's Chart view (core/sat/sat_sig.c)
+TESTS   += satSigTest
+satSigTest: satSigTest.c $(CORE)/sat/sat_sig.c $(CORE)/sat/sat_sig.h
+	$(CC) $(CFLAGS) -Wshadow -Wdouble-promotion -o $@ satSigTest.c $(CORE)/sat/sat_sig.c
+
+run: run-satSig
+run-satSig: satSigTest
+	./satSigTest
+.PHONY: run-satSig
 
 # The debug link's SAT command and view section on a fake clock (core/debuglink/debuglink_sat.c), against the same
 # reference values. Without APRS: no GPS to take the observer from
