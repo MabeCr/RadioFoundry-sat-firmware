@@ -71,7 +71,7 @@ static const tr_id_t interval_names[] = { TRN(VALUE_OFF, "Off"), TRN(VALUE_1_MIN
 // aprs_path_t order; the text is aprs_path_text()'s, kept here so the page builds without APRS (the simulator)
 static const tr_id_t path_names[APRS_PATH_COUNT] = { TRN(VALUE_NONE, "None"), TRX(APRS_VALUE_WIDE1_1, "WIDE1-1"),
 	TRX(APRS_VALUE_WIDE1_1_WIDE2_1, "WIDE1-1,WIDE2-1"), TRX(APRS_VALUE_WIDE2_1, "WIDE2-1"),
-	TRX(APRS_VALUE_WIDE2_2, "WIDE2-2") };
+	TRX(APRS_VALUE_WIDE2_2, "WIDE2-2"), TRX(APRS_VALUE_ARISS, "ARISS") };
 static const tr_id_t via_names[] = { TRX(APRS_VALUE_AFSK, "AFSK"), TRX(APRS_VALUE_DMR, "DMR"),
 	TRN(APRS_VALUE_BOTH, "Both") };
 static const tr_id_t pos_names[] = { TRN(VALUE_AUTO, "Auto"), TRX(WORD_GPS, "GPS"), TRN(POS_VALUE_COMPUTER, "Computer"),
@@ -276,7 +276,7 @@ static void aprs_select(uint16_t i, bool hold)
 		if (!rf_send()) {
 			return;
 		}
-		c.path = (uint8_t)((c.path + 1u) % APRS_PATH_COUNT);	// none, then more hops; WIDE2-2 wraps to none
+		c.path = (uint8_t)((c.path + 1u) % APRS_PATH_COUNT);	// none, then more hops, then ARISS (the ISS); ARISS wraps to none
 		break;
 	case AP_SSID:
 		if (!rf_send()) {

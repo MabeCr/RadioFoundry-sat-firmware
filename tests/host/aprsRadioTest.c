@@ -1538,11 +1538,22 @@ static void test_codeplug_path(void)
 	c.path = APRS_PATH_WIDE1_WIDE2;
 	aprs_set_cfg(&c, now);
 	CHECK(aprs_to_codeplug() && strcmp(cp_path[0], "WIDE1-1") == 0 && strcmp(cp_path[1], "WIDE2-1") == 0);
+	// ARISS (the ISS digipeater): one entry, written as is, and a CPS that writes it gets it
+	c.path = APRS_PATH_ARISS;
+	aprs_set_cfg(&c, now);
+	CHECK(aprs_to_codeplug() && strcmp(cp_path[0], "ARISS") == 0 && cp_path[1][0] == '\0');
+	CHECK(strcmp(aprs_path_text(APRS_PATH_ARISS), "ARISS") == 0);
 	// None: both empty
 	c.path = APRS_PATH_NONE;
 	aprs_set_cfg(&c, now);
 	CHECK(aprs_to_codeplug() && cp_path[0][0] == '\0' && cp_path[1][0] == '\0');
 	// The CPS writes a new path: taken
+	strcpy(cp_path[0], "ARISS");
+	cp_path[1][0] = '\0';
+	cp_serial++;
+	run(200);
+	aprs_get_cfg(&c);
+	CHECK(c.path == APRS_PATH_ARISS);
 	strcpy(cp_path[0], "WIDE1-1");
 	cp_serial++;
 	run(200);
