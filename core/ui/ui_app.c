@@ -29,7 +29,8 @@
 #include "hotspot/hotspot.h"
 #endif
 
-#define UI_STACK_MAX		7	// Home, the hub, Tools, Satellites, Passes, Tracking and its Frequency screen
+#define UI_STACK_MAX		9	// Home, the hub, Tools, Scan lists, a list's options, its channels, the picker and its zone;
+				// or Satellites, Passes, Tracking and its Frequency screen
 #define TOAST_MS		1800
 #define VOLUME_MS		3000	// the volume screen closes this long after the last key
 #define ENTRY_TIMEOUT_MS	10000

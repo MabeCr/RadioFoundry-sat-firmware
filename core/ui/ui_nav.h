@@ -12,6 +12,7 @@
 #include "ui_screens.h"
 #include "ui_svc.h"
 #include "i18n.h"
+#include "fmt.h"
 
 typedef enum {
 	SCR_HOME, SCR_QUICK, SCR_HUB, SCR_FIND, SCR_ACTIONS, SCR_CONTACTS, SCR_MESSAGES, SCR_MESSAGE, SCR_COMPOSE,
@@ -36,6 +37,9 @@ typedef enum {
 	SCR_LANGUAGE,			// Settings > Display > Language: every language, those not built dimmed
 	SCR_CP_FOREIGN,			// another firmware's codeplug: what the first edit does with it (ui_svc_codeplug_answer)
 	SCR_SAT, SCR_SAT_PASSES, SCR_SAT_TRACK, SCR_SAT_CLOCK, SCR_SAT_FREQ, SCR_SAT_SOUND, SCR_SAT_DELETE,	// Tools > Satellites (CONFIG_SAT, ui_sat.c): the list, its passes, tracking one
+	// Tools > Scan with CONFIG_SCAN_LIST (ui_scanlist.c): the lists, a list's options (arg = its slot), its delete
+	// question, its channels, the picker that adds channels (arg = slot) and the zone it lists
+	SCR_SLISTS, SCR_SLOPT, SCR_SLDEL, SCR_SLEDIT, SCR_SLPICK, SCR_SLZONE,
 	SCR_COUNT
 } ui_scr_t;
 
@@ -116,6 +120,14 @@ bool ui_has_action(uint8_t action);
 void ui_apply_setting(uint8_t id, int32_t v);
 // Scan on / off (quick 7, Tools 1, long SK2), with a toast that says what scans: the zone, or the band in the VFO
 void ui_scan_toggle(void);
+// A channel row's value (ui_menus.c): its RX frequency and what it talks to
+void sb_channel_row(sbuf_t *b, const channel_t *ch);
+#if CONFIG_SCAN_LIST
+// Scan the stored list in slot (ui_scanlist.c): Home, with a toast naming it
+void ui_scan_list(uint8_t slot, const char *name);
+// The text entry (ui_menus.c) with something to do once the text is kept
+void ui_text_open_done(char *target, uint8_t max, void (*done)(void));
+#endif
 // Actions for the last caller (CONTEXT on Home), or a toast when there is none
 void ui_open_caller_actions(void);
 // A list row's number key ('1'..'9', '0')

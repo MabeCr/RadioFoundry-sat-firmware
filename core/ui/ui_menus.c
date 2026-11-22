@@ -41,6 +41,10 @@ extern const ui_scr_def_t ui_gps_screen;	// ui_gps.c
 extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen, ui_sat_freq_screen, ui_sat_sound_screen, ui_sat_delete_screen;	// ui_sat.c
 #if CONFIG_DUAL_WATCH
 extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_screen;	// ui_dual.c
+#if CONFIG_SCAN_LIST
+extern const ui_scr_def_t ui_scanlists_screen, ui_scanlist_options_screen, ui_scanlist_delete_screen,
+	ui_scanlist_edit_screen, ui_scanlist_pick_screen, ui_scanlist_zone_screen;	// ui_scanlist.c
+#endif
 #endif
 
 static void item_num(ui_item_t *it, uint16_t n)
@@ -902,7 +906,7 @@ static const ui_scr_def_t channels_screen = {
 // A channel row's value: its RX frequency and what it talks to, the talkgroup on DMR ("TG3113", "ID3101234" for a
 // private contact) or "FM". The whole name comes first; where both don't fit beside it, the frequency and the bare
 // number, then the talkgroup alone (text alternates)
-static void sb_channel_row(sbuf_t *b, const channel_t *ch)
+void sb_channel_row(sbuf_t *b, const channel_t *ch)
 {
 	char what[16];
 	uint8_t prefix = 0;	// "TG" / "ID": left out in the middle form
@@ -2560,6 +2564,14 @@ static void ui_text_open(char *target, uint8_t max)
 	text_max = max < CODEPLUG_NAME_LEN ? max : CODEPLUG_NAME_LEN;
 	ui_push(SCR_TEXT, 0);
 }
+
+#if CONFIG_SCAN_LIST
+void ui_text_open_done(char *target, uint8_t max, void (*done)(void))
+{
+	ui_text_open(target, max);
+	text_done = done;
+}
+#endif
 
 static void text_enter(void)
 {
@@ -4728,6 +4740,10 @@ static void tools_select(uint16_t row, bool hold)
 	case T_SCAN:
 		if (!(feats() & UI_FEAT_SCAN)) {
 			ui_toast(TR("Scan: not in this build"));
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+		} else if (ui_svc_scanlist_slots() > 0) {
+			ui_push(SCR_SLISTS, 0);	// the zone scan is its first row; then the stored lists
+#endif
 		} else {
 			ui_go_home();
 			ui_scan_toggle();	// says what scans: the zone, or the band in the VFO (dual watch ends)
@@ -5840,6 +5856,11 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_SAT_SOUND	// ui_sat.c defines it under the same switch
 	[SCR_SAT_SOUND] = &ui_sat_sound_screen,
+#endif
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+	[SCR_SLISTS] = &ui_scanlists_screen, [SCR_SLOPT] = &ui_scanlist_options_screen,
+	[SCR_SLDEL] = &ui_scanlist_delete_screen, [SCR_SLEDIT] = &ui_scanlist_edit_screen,
+	[SCR_SLPICK] = &ui_scanlist_pick_screen, [SCR_SLZONE] = &ui_scanlist_zone_screen,
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,

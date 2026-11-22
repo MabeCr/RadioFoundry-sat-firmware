@@ -20,7 +20,7 @@ msgstr "Loader PC collegato"
 msgid "Power-cycle to exit"
 msgstr "Riavvia per uscire"
 
-#: core/ui/fmt.c core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/fmt.c core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_scanlist.c core/ui/ui_screens.c
 msgid "Off"
 msgstr "No"
 
@@ -264,7 +264,7 @@ msgstr "VFO: non in questa build"
 msgid "Back to channels"
 msgstr "Torna ai canali"
 
-#: core/ui/ui_app.c core/ui/ui_menus.c
+#: core/ui/ui_app.c core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Scan: not in this build"
 msgstr "Scansione: non in questa build"
 
@@ -672,7 +672,7 @@ msgstr "KISS su USB"
 msgid "Stations heard"
 msgstr "Stazioni sentite"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_scanlist.c core/ui/ui_screens.c
 msgid "On"
 msgstr "Sì"
 
@@ -904,7 +904,7 @@ msgstr "Doppio ascolto"
 msgid "1-5 pick  Back"
 msgstr "1-5 scegli  Indietro"
 
-#: core/ui/ui_dual.c core/ui/ui_menus.c
+#: core/ui/ui_dual.c core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Zone"
 msgstr "Zona"
 
@@ -920,7 +920,7 @@ msgstr "{OK ascolta  0-9 cerca  Indietro|OK ascolta  Indietro}"
 msgid "Zone for"
 msgstr "Zona per"
 
-#: core/ui/ui_dual.c core/ui/ui_menus.c
+#: core/ui/ui_dual.c core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "OK pick  Back"
 msgstr "OK scegli  Indietro"
 
@@ -936,7 +936,7 @@ msgstr "Messaggi"
 msgid "Recent"
 msgstr "Recenti"
 
-#: core/ui/ui_find.c core/ui/ui_menus.c
+#: core/ui/ui_find.c core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Channels"
 msgstr "Canali"
 
@@ -1296,7 +1296,7 @@ msgstr "Rispondi \"Arrivo\""
 msgid "Call"
 msgstr "Chiama"
 
-#: core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgid "Delete"
 msgstr "Elimina"
 
@@ -1376,7 +1376,7 @@ msgstr "Nessuna zona"
 msgid "Couldn't save now: try again"
 msgstr "Salvataggio non riuscito: riprova"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Add channel"
 msgstr "Aggiungi canale"
 
@@ -1448,7 +1448,7 @@ msgstr "Anteprima"
 msgid "Reject"
 msgstr "Rifiuta"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgid "Busy saving: try again"
 msgstr "Salvataggio in corso: riprova"
 
@@ -1636,7 +1636,7 @@ msgstr "Alias parlante TS2"
 msgid "TX time-out"
 msgstr "Timeout TX"
 
-#: core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c core/ui/ui_screens.c
 msgid "Scan"
 msgstr "Scansione"
 
@@ -1880,7 +1880,7 @@ msgstr "Aggiunto a "
 msgid "Add Channel"
 msgstr "Aggiungi canale"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "{OK add  0-9 find  Back|OK add  Back}"
 msgstr "{OK aggiungi  0-9 cerca  Indietro|OK aggiungi  Indietro}"
 
@@ -1892,7 +1892,7 @@ msgstr "Ogni canale c'è già"
 msgid "In"
 msgstr "Sì"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Rename"
 msgstr "Rinomina"
 
@@ -1908,7 +1908,7 @@ msgstr "Elimina zona"
 msgid "Renamed"
 msgstr "Rinominata"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Added "
 msgstr "Aggiunta "
 
@@ -1932,19 +1932,19 @@ msgstr "Contiene ogni canale: resta"
 msgid "1-4 pick  Back"
 msgstr "1-4 scegli  Indietro"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "1-3 pick  Back"
 msgstr "1-3 scegli  Indietro"
 
-#: core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgid "No, keep it"
 msgstr "No, tienila"
 
-#: core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgid "Yes, delete"
 msgstr "Sì, elimina"
 
-#: core/ui/ui_menus.c
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgid "Deleted "
 msgstr "Eliminata "
 
@@ -1960,7 +1960,7 @@ msgstr "? I canali restano."
 msgid "Delete Zone"
 msgstr "Elimina zona"
 
-#: core/ui/ui_menus.c core/ui/ui_sat.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgid "OK choose  Back cancel"
 msgstr "OK scegli  Indietro annulla"
 
@@ -3575,6 +3575,78 @@ msgstr "Orologio impostato"
 #: core/ui/ui_sat.c
 msgid "Couldn't set the clock"
 msgstr "Impossibile impostare l'orologio"
+
+#: core/ui/ui_scanlist.c
+msgid "Scan band"
+msgstr "Scansiona banda"
+
+#: core/ui/ui_scanlist.c
+msgid "Scan zone"
+msgstr "Scansiona zona"
+
+#: core/ui/ui_scanlist.c
+msgid "New scan list"
+msgstr "Nuova lista di scansione"
+
+#: core/ui/ui_scanlist.c
+msgid "ch"
+msgstr "can."
+
+#: core/ui/ui_scanlist.c
+msgid "Leave the VFO first"
+msgstr "Esci prima dal VFO"
+
+#: core/ui/ui_scanlist.c
+msgid "Add two channels first"
+msgstr "Aggiungi prima due canali"
+
+#: core/ui/ui_scanlist.c
+msgid "OK scan  # options  Back"
+msgstr "OK scansiona  # opzioni  Indietro"
+
+#: core/ui/ui_scanlist.c
+msgid "Edit channels"
+msgstr "Modifica canali"
+
+#: core/ui/ui_scanlist.c
+msgid "Renamed "
+msgstr "Rinominata "
+
+#: core/ui/ui_scanlist.c
+msgid "Scan list"
+msgstr "Lista di scansione"
+
+#: core/ui/ui_scanlist.c
+msgid "Delete this scan list? Its channels stay in their zones."
+msgstr "Eliminare questa lista di scansione? I suoi canali restano nelle loro zone."
+
+#: core/ui/ui_scanlist.c
+msgid "Missing"
+msgstr "Mancante"
+
+#: core/ui/ui_scanlist.c
+msgid "The list is full"
+msgstr "La lista è piena"
+
+#: core/ui/ui_scanlist.c
+msgid "Removed"
+msgstr "Rimosso"
+
+#: core/ui/ui_scanlist.c
+msgid "OK remove  Back"
+msgstr "OK rimuovi  Indietro"
+
+#: core/ui/ui_scanlist.c
+msgid "In list"
+msgstr "In lista"
+
+#: core/ui/ui_scanlist.c
+msgid "Add to"
+msgstr "Aggiungi a"
+
+#: core/ui/ui_scanlist.c
+msgid "Scanning "
+msgstr "Scansione di "
 
 #: core/ui/ui_screens.c
 msgid "IDLE"
