@@ -238,6 +238,10 @@ void board_early_init(void)
 // native codeplug in the last 1 MB. The factory calibration is read only, so the open-firmware CPS gets no calibration window
 // Our stored satellites (CONFIG_SAT, `sat_addr`) take the first sector of the satellite snapshots' range, which the two
 // satellite features never share: CONFIG_SATELLITE_TLE is off in a build with CONFIG_SAT
+// Stored scan lists (CONFIG_SCAN_LIST, `scan_addr`) take the second sector of that range, so they exclude the snapshots too
+#if CONFIG_SCAN_LIST && CONFIG_SATELLITE_TLE
+#error "Stored scan lists (0x71C000) are in the satellite TLE snapshots' range (0x71B000..0x71DFFF): CONFIG_SCAN_LIST and CONFIG_SATELLITE_TLE=y exclude each other on this board"
+#endif
 static const hal_flash_map_t flash_map = {
 	.settings_addr = 0x711000u,
 	.settings_size = 0x008000u,	// 8 sectors
@@ -253,6 +257,8 @@ static const hal_flash_map_t flash_map = {
 	.native_size = 0x100000u,
 	.sat_addr = 0x71B000u,		// 32 satellites (docs/spec/satellite.md 6.3)
 	.sat_size = 0x001000u,
+	.scan_addr = 0x71C000u,		// 16 scan lists (docs/spec/scan-list.md)
+	.scan_size = 0x001000u,
 };
 static const hrc_flash_cfg_t flash_cfg = {
 	.cs_pin = PIN_FLASH_CS,

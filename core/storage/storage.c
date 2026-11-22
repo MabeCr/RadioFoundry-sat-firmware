@@ -17,6 +17,7 @@
 #include "config.h"
 #include "storage/storage.h"
 #include "sat/sat_store.h"		// the satellite record's frame, which the claim keeps (satellite.md 6.4)
+#include "codeplug/scan_list.h"	// the scan list record's frame, which the claim keeps (scan-list.md 3)
 
 #define J_MAGIC		0x4C4E4A4Fu	// "OJNL"
 #define J_HDR_LEN	16u		// magic, target, data CRC, header CRC
@@ -426,22 +427,30 @@ static bool sat_record(const uint8_t *r)
 	       get32(r + SAT_STORE_RECORD - 4u) == storage_crc32(0, r, SAT_STORE_RECORD - 4u);
 }
 
-// Clear another firmware's bytes from a sector of the satellite area and keep our records: a sector whose slots are all
-// free or ours is not touched, so a claim never costs the user a stored satellite
-static bool claim_sat_sector(uint32_t a)
+// Whether a scan list slot holds one of our records (scan-list.md 3: magic, layout and CRC right)
+static bool scan_record(const uint8_t *r)
+{
+	return get32(r) == SCAN_LIST_MAGIC && r[4] == SCAN_LIST_LAYOUT &&
+	       get32(r + SCAN_LIST_RECORD - 4u) == storage_crc32(0, r, SCAN_LIST_RECORD - 4u);
+}
+
+// Clear another firmware's bytes from a sector of the satellite or the scan list area and keep our records (slots of
+// size bytes, ours says which): a sector whose slots are all free or ours is not touched, so a claim never costs the
+// user a stored satellite or scan list
+static bool claim_record_sector(uint32_t a, uint32_t size, bool (*ours)(const uint8_t *))
 {
 	uint8_t *b = storage_buffer_acquire();
 	bool ok = b != NULL && rd(a, b, STORAGE_SECTOR), other = false, kept = false;
 
-	for (uint32_t off = 0; ok && off < STORAGE_SECTOR; off += SAT_STORE_RECORD) {
+	for (uint32_t off = 0; ok && off < STORAGE_SECTOR; off += size) {
 		bool empty = true;
-		for (uint32_t i = 0; i < SAT_STORE_RECORD; i++) {
+		for (uint32_t i = 0; i < size; i++) {
 			empty = empty && b[off + i] == 0xFF;
 		}
-		if (sat_record(b + off)) {
+		if (ours(b + off)) {
 			kept = true;
 		} else if (!empty) {
-			memset(b + off, 0xFF, SAT_STORE_RECORD);
+			memset(b + off, 0xFF, size);
 			other = true;
 		}
 	}
@@ -476,7 +485,12 @@ bool storage_claim(void)
 	// the area holds the user's satellites
 	for (uint32_t a = m->sat_addr; ok && m->sat_size % STORAGE_SECTOR == 0 && a < m->sat_addr + m->sat_size;
 	     a += STORAGE_SECTOR) {
-		ok = target_ok(m, a) && claim_sat_sector(a);
+		ok = target_ok(m, a) && claim_record_sector(a, SAT_STORE_RECORD, sat_record);
+	}
+	// And the scan list area, the same way
+	for (uint32_t a = m->scan_addr; ok && m->scan_size % STORAGE_SECTOR == 0 && a < m->scan_addr + m->scan_size;
+	     a += STORAGE_SECTOR) {
+		ok = target_ok(m, a) && claim_record_sector(a, SCAN_LIST_RECORD, scan_record);
 	}
 	if (ok) {
 		region = STORAGE_REGION_OURS;
@@ -501,7 +515,8 @@ bool storage_debug_read_allowed(uint32_t addr, uint32_t len)
 	return inside(addr, len, m->settings_addr, m->settings_size) ||
 	       inside(addr, len, m->journal_addr, 2u * STORAGE_SECTOR) ||
 	       inside(addr, len, m->calibration_addr, m->calibration_size) ||
-	       inside(addr, len, m->sat_addr, m->sat_size);	// a claim erases it too: backed up first
+	       inside(addr, len, m->sat_addr, m->sat_size) ||	// a claim erases both too: backed up first
+	       inside(addr, len, m->scan_addr, m->scan_size);
 }
 
 // A write refused because the region is foreign (counted), or because there is no flash

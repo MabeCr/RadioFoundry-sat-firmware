@@ -10,6 +10,7 @@
 #include "storage/storage.h"
 #include "settings/settings.h"
 #include "sat/sat_store.h"
+#include "codeplug/scan_list.h"
 #include "sim/sim_flash.h"
 
 static int failures;
@@ -28,6 +29,7 @@ static const hal_flash_map_t map = {
 	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = FLASH_SIZE,
 	.calibration_addr = 0x10000u, .calibration_size = 0x200u,
 	.sat_addr = 0x1B000u, .sat_size = 0x2000u,
+	.scan_addr = 0x1D000u, .scan_size = 0x2000u,
 };
 
 const board_t board = { .name = "test", .flash = &sim_flash, .power_count = 5 };
@@ -384,6 +386,22 @@ static void sat_record(uint32_t addr, uint32_t norad)
 	}
 }
 
+// One of our scan list records at addr (scan-list.md 3: the frame the claim checks; the fields don't matter)
+static void scan_record(uint32_t addr, uint8_t tag)
+{
+	uint8_t *r = sim_flash_data + addr;
+	memset(r, 0, SCAN_LIST_RECORD);
+	for (unsigned k = 0; k < 4; k++) {
+		r[k] = (uint8_t)(SCAN_LIST_MAGIC >> (8 * k));
+	}
+	r[4] = SCAN_LIST_LAYOUT;
+	r[8] = tag;
+	uint32_t crc = storage_crc32(0, r, SCAN_LIST_RECORD - 4);
+	for (unsigned k = 0; k < 4; k++) {
+		r[SCAN_LIST_RECORD - 4 + k] = (uint8_t)(crc >> (8 * k));
+	}
+}
+
 // A boot that may find the region foreign (boot() checks it isn't)
 static bool boot_any(void)
 {
@@ -412,6 +430,12 @@ static void test_foreign(void)
 	sat_record(sat0 + 8 * SAT_STORE_RECORD, 25544);
 	sat_record(sat1, 43017);
 	sat_record(sat1 + 31 * SAT_STORE_RECORD, 27607);
+	// The scan list area: its bytes over the first two slots, our lists in slots 5 and 9 (second sector: only ours)
+	const uint32_t scan0 = map.scan_addr, scan1 = map.scan_addr + STORAGE_SECTOR;
+	junk(scan0, 300, 5);
+	scan_record(scan0 + 5 * SCAN_LIST_RECORD, 'A');
+	scan_record(scan0 + 9 * SCAN_LIST_RECORD, 'B');
+	scan_record(scan1 + 15 * SCAN_LIST_RECORD, 'C');
 	uint8_t *snap = malloc(FLASH_SIZE);
 	memcpy(snap, sim_flash_data, FLASH_SIZE);
 	uint32_t u0 = sim_flash_units();
@@ -442,6 +466,8 @@ static void test_foreign(void)
 	CHECK(storage_debug_read_allowed(jr, 2 * STORAGE_SECTOR));
 	CHECK(storage_debug_read_allowed(map.calibration_addr, map.calibration_size));
 	CHECK(storage_debug_read_allowed(map.sat_addr, map.sat_size));	// the claim erases it too
+	CHECK(storage_debug_read_allowed(map.scan_addr, map.scan_size));
+	CHECK(!storage_debug_read_allowed(map.scan_addr + map.scan_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(map.sat_addr + map.sat_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(ring - 1, 2));
 	CHECK(!storage_debug_read_allowed(jr + 2 * STORAGE_SECTOR - 1, 2));
@@ -453,6 +479,7 @@ static void test_foreign(void)
 	// and keeps our records (the second sector not even erased), then saves what the radio runs with
 	CHECK(storage_claim_request() && storage_claim_pending());
 	uint32_t e0 = sim_flash_erases(sat0), e1 = sim_flash_erases(sat1);
+	uint32_t se0 = sim_flash_erases(scan0), se1 = sim_flash_erases(scan1);
 	settings_poll(6000);
 	CHECK(storage_region() == STORAGE_REGION_OURS && storage_ready() && !storage_claim_pending());
 	settings_get_stats(&st);
@@ -465,6 +492,13 @@ static void test_foreign(void)
 	CHECK(memcmp(snap + sat0 + 4 * SAT_STORE_RECORD, sim_flash_data + sat0 + 4 * SAT_STORE_RECORD,
 	             2 * STORAGE_SECTOR - 4 * SAT_STORE_RECORD) == 0);	// our three records, and nothing else
 	CHECK(sim_flash_erases(sat0) == e0 + 1 && sim_flash_erases(sat1) == e1);
+	// The scan list area the same way: the other bytes gone, our three lists kept, the second sector not erased
+	for (uint32_t i = 0; i < 5 * SCAN_LIST_RECORD; i++) {
+		CHECK(sim_flash_data[scan0 + i] == 0xFF);
+	}
+	CHECK(memcmp(snap + scan0 + 5 * SCAN_LIST_RECORD, sim_flash_data + scan0 + 5 * SCAN_LIST_RECORD,
+	             2 * STORAGE_SECTOR - 5 * SCAN_LIST_RECORD) == 0);
+	CHECK(sim_flash_erases(scan0) == se0 + 1 && sim_flash_erases(scan1) == se1);
 	CHECK(memcmp(snap + 0x20000, sim_flash_data + 0x20000, FLASH_SIZE - 0x20000) == 0);	// nothing else touched
 	CHECK(storage_sector_write(0x3000u, a));
 	CHECK(boot_any());
