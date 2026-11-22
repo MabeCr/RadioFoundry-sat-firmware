@@ -15,7 +15,7 @@ Where and how it transmits, so that nothing reaches the APRS network:
 - Frequency: --aprs-test-mhz, through the custom APRS region, and one of the rig's transmit frequencies (tx_mhz); no
   default. Give an amateur simplex frequency that is not an APRS one: on an APRS frequency, digipeaters and iGates
   would repeat the test frames and gate them to APRS-IS. The regional APRS frequencies (144.390, 144.800, 145.175,
-  144.575, 144.660, 144.640) are refused even when tx_mhz lists them. A band with no APRS network nearby also keeps
+  144.575, 144.660, 144.640, and the ISS digipeater's 145.825 and 437.550) are refused even when tx_mhz lists them. A band with no APRS network nearby also keeps
   the frames away from the bench's other receivers.
 - Path: none (no WIDEn-N), so a digipeater that hears a frame does not repeat it.
 - Power: the radio's lowest level. The tests check `aprs.tx_power` (the level an APRS
@@ -76,7 +76,8 @@ from hil_config import rig, tx_allowed
 POS = (33.7490, -84.3880)
 # The APRS network's own frequencies (regional, public): digipeaters and iGates there would repeat and gate the test
 # frames. tx_mhz lists every frequency the rig may key on (DMR and FM tests too), so it can't stand in for this
-APRS_HZ = {144390000, 144800000, 145175000, 144575000, 144660000, 144640000}
+APRS_HZ = {144390000, 144800000, 145175000, 144575000, 144660000, 144640000,
+           145825000, 437550000}    # ... and the ISS digipeater's two (APRS_REGION_ISS_VHF, _UHF)
 
 
 def allowed_test_hz(hz):

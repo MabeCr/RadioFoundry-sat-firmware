@@ -79,7 +79,8 @@ static const tr_id_t pos_names[] = { TRN(VALUE_AUTO, "Auto"), TRX(WORD_GPS, "GPS
 static const tr_id_t region_names[APRS_REGION_COUNT] = { TRN(APRS_VALUE_REGION_N_AMERICA, "N America"),
 	TRN(APRS_VALUE_REGION_EUROPE, "Europe"), TRN(APRS_VALUE_REGION_AUSTRALIA, "Australia"),
 	TRN(APRS_VALUE_REGION_NEW_ZEALAND, "New Zealand"), TRN(APRS_VALUE_REGION_JAPAN, "Japan"),
-	TRN(APRS_VALUE_REGION_CHINA, "China"), TRN(APRS_VALUE_REGION_CUSTOM, "Custom") };
+	TRN(APRS_VALUE_REGION_CHINA, "China"), TRN(APRS_VALUE_REGION_CUSTOM, "Custom"),
+	TRX(APRS_VALUE_REGION_ISS_VHF, "ISS VHF"), TRX(APRS_VALUE_REGION_ISS_UHF, "ISS UHF") };
 
 // The radio can send APRS on RF (a board with an AFSK transmit path; some only receive)
 static bool rf_send(void)
@@ -263,7 +264,7 @@ static void aprs_select(uint16_t i, bool hold)
 		}
 		c.region = (uint8_t)((c.region + 1u) % APRS_REGION_COUNT);
 		if (c.region == APRS_REGION_CUSTOM && c.freq_hz == 0) {
-			c.region = 0;	// no custom frequency set (qdmr / debug link): skip it
+			c.region = APRS_REGION_ISS_VHF;	// no custom frequency set (qdmr / debug link): skip it
 		}
 		break;
 	case AP_POWER:

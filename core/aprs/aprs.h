@@ -39,7 +39,9 @@
 
 typedef enum {
 	APRS_REGION_NA, APRS_REGION_EU, APRS_REGION_AU, APRS_REGION_NZ, APRS_REGION_JP, APRS_REGION_CN,
-	APRS_REGION_CUSTOM, APRS_REGION_COUNT,
+	APRS_REGION_CUSTOM,
+	// After Custom: its value is stored, so it stays 6. The ISS digipeater's two frequencies (use with the ARISS path)
+	APRS_REGION_ISS_VHF, APRS_REGION_ISS_UHF, APRS_REGION_COUNT,
 } aprs_region_t;
 
 typedef enum {
