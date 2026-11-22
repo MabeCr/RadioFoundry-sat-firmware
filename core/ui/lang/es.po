@@ -1016,7 +1016,7 @@ msgstr "Cielo"
 msgid "Signal"
 msgstr "Señal"
 
-#: core/ui/ui_gps.c core/ui/ui_menus.c
+#: core/ui/ui_gps.c core/ui/ui_menus.c core/ui/ui_sat.c
 msgid "Grid"
 msgstr "Cuadrícula"
 
@@ -3293,6 +3293,30 @@ msgid "Dial"
 msgstr "Dial"
 
 #: core/ui/ui_sat.c
+msgid "Pass info"
+msgstr "Info del pase"
+
+#: core/ui/ui_sat.c
+msgid "Length"
+msgstr "Duración"
+
+#: core/ui/ui_sat.c
+msgid "Down"
+msgstr "Bajada"
+
+#: core/ui/ui_sat.c
+msgid "Up"
+msgstr "Subida"
+
+#: core/ui/ui_sat.c
+msgid "Elements"
+msgstr "Elementos"
+
+#: core/ui/ui_sat.c
+msgid "Back close"
+msgstr "Atrás cierra"
+
+#: core/ui/ui_sat.c
 msgid "Tracking"
 msgstr "Seguimiento"
 
@@ -3325,6 +3349,14 @@ msgid "Rng"
 msgstr "Dist"
 
 #: core/ui/ui_sat.c
+msgid "0 Squelch"
+msgstr "0 Squelch"
+
+#: core/ui/ui_sat.c
+msgid "3 Info"
+msgstr "3 Info"
+
+#: core/ui/ui_sat.c
 msgid "{0 Squelch  # Retune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  OK Freq  Back|0 Sql  # Tune  * Stop  Back|# Tune  * Stop  Back}"
 msgstr "{0 Squelch  # Resintonizar  * Parar  OK Frec  Atrás|0 Sql  # Sint  * Parar  OK Frec  Atrás|0 Sql  # Sint  * Parar  Atrás|# Sint  * Parar  Atrás}"
 
@@ -3335,6 +3367,18 @@ msgstr "{0 Squelch  # Resintonizar  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Aut
 #: core/ui/ui_sat.c
 msgid "{0 Squelch  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  OK Freq  Back|0 Sql  # Tune  * Auto  Back|# Tune  * Auto  Back}"
 msgstr "{0 Squelch  # Sintonizar  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  OK Frec  Atrás|0 Sql  # Sint  * Auto  Atrás|# Sint  * Auto  Atrás}"
+
+#: core/ui/ui_sat.c
+msgid "Next tune"
+msgstr "Próxima sintonía"
+
+#: core/ui/ui_sat.c
+msgid ": press #"
+msgstr ": pulsa #"
+
+#: core/ui/ui_sat.c
+msgid "Next tune: its own, press #"
+msgstr "Próxima sintonía: la propia, pulsa #"
 
 #: core/ui/ui_sat.c
 msgid "Listening on"
@@ -3427,10 +3471,6 @@ msgstr "El instalador web los"
 #: core/ui/ui_sat.c
 msgid "it after a full backup"
 msgstr "borra tras un respaldo"
-
-#: core/ui/ui_sat.c
-msgid "Back close"
-msgstr "Atrás cierra"
 
 #: core/ui/ui_sat.c
 msgid "Lvl"

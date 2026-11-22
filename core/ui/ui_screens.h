@@ -142,6 +142,8 @@ enum {
 uint8_t ui_quick_kind(int pos, const radio_view_t *v);
 // True when a contact name only repeats its ID ("TG 201" for talkgroup 201): Home then shows the ID once
 bool ui_name_is_id(const char *name, uint32_t id, bool private_call);
+// The signal meter of the home screen: ten segments over -120 to -60 dBm, in the box x, y, w by h
+void ui_draw_meter(int x, int y, int w, int h, int16_t dbm);
 
 // Fonts and region positions for the current display, from gfx_width() / gfx_height()
 typedef struct {
