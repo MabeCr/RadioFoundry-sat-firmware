@@ -156,6 +156,8 @@ static const flow_t flows[] = {
 	{ "P25 home: encrypted", "dlmode:p25", "p25rx:3101234,7,e", "shows=Encrypted:_not_played hides=ID_3101234", 0,
 	  false },
 	{ "P25 home: another talk group", "dlmode:p25", "p25rx:3101234,7,o", "shows=Other_TG:_not_played", 0, false },
+	// The strip keeps SCAN while a scan stops on a P25 call, with the RX pill and the mode word beside it
+	{ "P25 scan: SCAN stays while a call is heard", "dlmode:p25 scankey", "p25rx:3101234,7", "scanning=1 shows=SCAN shows=P25 shows=RX", 0, false },
 	{ "P25 home: the call ends", "dlmode:p25 p25rx:3101234,7", "p25rxend", "screen=home hides=ID_3101234", 0, false },
 	// Dual watch with A on P25: the pane names the mode, no tone or bandwidth for it
 	{ "P25 dual watch: A in P25", "dlmode:p25", "quick 7", "dual=1 sel=A shows=P25 hides=No_tone hides=12.5k", 2, false },

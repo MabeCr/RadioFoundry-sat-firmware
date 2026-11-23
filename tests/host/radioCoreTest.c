@@ -7443,6 +7443,11 @@ static void test_p25_scan(void)
 	CHECK(!scan_holds_on(3, 3000, &visits) && visits >= 2 && sm.view.scan == SCAN_ZONE);
 	radio_p25_stats(&st);
 	CHECK(st.begins >= begins0 + 2);
+	// The scan shows as on at every poll through the stops (the strip's SCAN follows it), never off for a moment
+	for (uint32_t t = 0; t < 3000; t += RADIO_POLL_MS) {
+		run(RADIO_POLL_MS);
+		CHECK(sm.view.scan == SCAN_ZONE);
+	}
 	// The channel's talk group, a call already on when the scan comes round (a late entry, its talk group from the
 	// link control): it holds there, the call playing, for as long as the call lasts
 	far_begin(0x2A0, 1001, false, 201);
