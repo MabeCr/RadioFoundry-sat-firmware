@@ -525,6 +525,11 @@ typedef struct {
 #if CONFIG_P25
 	radio_p25_view_t p25;	// P25 conventional (docs/spec/p25.md 7): the call heard, the engine's transmit state
 #endif
+#if CONFIG_AIR
+	// The name of the P25 or NXDN caller (radio_p25_view_t.src): a codeplug contact, else the DMR ID database's text
+	// cut short, "" if unknown. The radio task fills it after each engine poll
+	char air_src_name[CODEPLUG_NAME_LEN + 1];
+#endif
 #if CONFIG_NXDN
 	radio_nxdn_view_t nxdn;	// NXDN conventional (docs/spec/nxdn.md 6): the same
 #endif

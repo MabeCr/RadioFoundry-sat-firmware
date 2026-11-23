@@ -2315,6 +2315,7 @@ static void draw_dmr_call(const radio_view_t *v, const ui_state_t *s)
 typedef struct {
 	bool played, enc, unit;
 	uint32_t src, dst;
+	const char *name;	// the caller's name, "" if unknown
 } air_call_t;
 
 static bool air_call(const radio_view_t *v, air_call_t *c)
@@ -2327,6 +2328,7 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 		c->unit = (p->flags & RADIO_P25_UNIT) != 0;
 		c->src = p->src;
 		c->dst = p->dst;
+		c->name = v->air_src_name;
 		return true;
 	}
 #endif
@@ -2338,6 +2340,7 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 		c->unit = (n->flags & RADIO_NXDN_UNIT) != 0;
 		c->src = n->src;
 		c->dst = n->dst;
+		c->name = v->air_src_name;
 		return true;
 	}
 #endif
@@ -2346,7 +2349,7 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 	return false;
 }
 
-// Why the call isn't played, else who calls and where ("ID 1234 > TG 1", "ID 1234 > Private to 5678"; the ID is
+// Why the call isn't played, else who calls and where ("Ann > TG 1", "ID 1234 > Private to 5678"; the caller is
 // missing until the call's link control is read)
 static void air_call_line(const air_call_t *c, const font_t *f, int y)
 {
@@ -2365,8 +2368,12 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y)
 		if (c->enc)
 			sb_str(&b, "ENC ");
 		if (with_id) {
-			sb_str(&b, "ID ");
-			sb_u32(&b, c->src, 1);
+			if (c->name[0] != '\0') {
+				sb_str(&b, c->name);	// the name, as DMR shows its caller; the ID when none is known
+			} else {
+				sb_str(&b, "ID ");
+				sb_u32(&b, c->src, 1);
+			}
 			sb_str(&b, " " GLYPH_ARROW " ");
 		}
 		if (c->unit) {

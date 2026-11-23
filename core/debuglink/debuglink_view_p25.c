@@ -23,6 +23,7 @@ void debuglink_view_p25(const radio_view_t *v, dl_text_t *t)
 	dl_text(t, "p25.built=1\np25.on=%u\np25.rx=%u\np25.played=%u\np25.enc=%u\np25.unit=%u\np25.late=%u\n",
 		(p->flags & RADIO_P25_ON) != 0, (p->flags & RADIO_P25_RX) != 0, (p->flags & RADIO_P25_PLAYED) != 0,
 		(p->flags & RADIO_P25_ENC) != 0, (p->flags & RADIO_P25_UNIT) != 0, (p->flags & RADIO_P25_LATE) != 0);
+	dl_text_kv_str(t, "p25.src_name", v->air_src_name);
 	dl_text(t, "p25.nac=%u\np25.src=%u\np25.dst=%u\np25.tx=%u\n", p->nac, (unsigned)p->src, (unsigned)p->dst,
 		p->tx);
 	if ((p->flags & RADIO_P25_ON) != 0 && board.air != NULL && board.air->rx_load != NULL) {

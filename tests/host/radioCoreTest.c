@@ -7007,6 +7007,21 @@ static void test_p25_rx(void)
 	CHECK(v->dst == 4242 && sm.view.state == RS_IDLE);
 	radio_p25_stats(&st);
 	CHECK(st.rx_calls == 6);
+	CHECK(sm.view.air_src_name[0] == '\0');	// 1004 is in no contact list and not in the ID database
+
+	// The caller's name, as DMR gives it: a caller in the ID database is shown by name (the home screen prints it)
+	far_begin(P25_NAC_DEFAULT, 9995555, false, 5);
+	CHECK(p25_engine_tx_prepare(&far_eng) && p25_engine_tx_go(&far_eng));
+	far_tx = true;
+	run(600);
+	CHECK(v->src == 9995555 && strcmp(sm.view.air_src_name, "QD9XYZ Robert Lo") == 0);
+	p25_view_text(buf, sizeof buf);
+	CHECK(strstr(buf, "p25.src_name=QD9XYZ Robert Lo\n") != NULL);
+	p25_engine_tx_stop(&far_eng);
+	run(600);
+	far_begin(P25_NAC_DEFAULT, 1004, false, 5);	// the next caller has none: the name goes with the old one
+	far_call(600);
+	CHECK(v->src == 1004 && sm.view.air_src_name[0] == '\0');
 
 	// The counter reset clears the engine's and the voice path's counters
 	debuglink_p25_reset();

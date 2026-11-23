@@ -6753,16 +6753,35 @@ static bool air_running(void)
 	return on;
 }
 
+#if CONFIG_AIR
+// The caller's name for the screens, as DMR gives it (find_name: contact, then the ID database). True when it changed
+static bool air_name(radio_sm_t *sm, uint32_t src)
+{
+	char name[CODEPLUG_NAME_LEN + 1];
+
+	find_name(sm, src, false, name);
+	if (strcmp(name, sm->view.air_src_name) == 0) {
+		return false;
+	}
+	memcpy(sm->view.air_src_name, name, sizeof name);
+	return true;
+}
+#endif
+
 // The engine's view into the radio view. True when it changed
 static bool air_poll(radio_sm_t *sm)
 {
+	bool changed;
+
 #if CONFIG_NXDN
 	if (nxdn_now(sm)) {
-		return radio_nxdn_poll(&sm->view.nxdn);
+		changed = radio_nxdn_poll(&sm->view.nxdn);
+		return air_name(sm, sm->view.nxdn.src) || changed;
 	}
 #endif
 #if CONFIG_P25
-	return radio_p25_poll(&sm->view.p25);
+	changed = radio_p25_poll(&sm->view.p25);
+	return air_name(sm, sm->view.p25.src) || changed;
 #else
 	return false;
 #endif
