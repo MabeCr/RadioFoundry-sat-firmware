@@ -479,6 +479,9 @@ build() {
 			ok "$b $name: $(grep -E '^stack check .*: every task fits' "$dir.stack.log" | sed 's/^stack check [^:]*: //')"
 		else
 			grep -E '^  [^ ]+ +(OVER|\?) ' "$dir.stack.log"
+			# The chain that overran, in the log (the .stack.log is an artifact; CI's console is what a reviewer reads)
+			make -s BOARD="$b" BUILD="$dir" "$@" stack-check STACK_CHECK_ARGS=-v > "$dir.stack-v.log" 2>&1
+			grep -n -A30 -E '^  [^ ]+ +OVER ' "$dir.stack-v.log" | head -70
 			bad "$b $name: stack check (see $dir.stack.log)"
 		fi
 	fi
