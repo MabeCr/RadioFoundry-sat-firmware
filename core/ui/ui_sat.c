@@ -300,7 +300,10 @@ static void del_select(uint16_t i, bool hold)
 	ui_pop();
 	if (i == 0)
 		return;
-	ui_svc_sat_delete(del_norad);
+	if (!ui_svc_sat_delete(del_norad)) {
+		ui_toast(TR(TOAST_BUSY_SAVING, "Busy saving: try again"));	// another flash job is running: nothing was deleted
+		return;
+	}
 	if (del_from_passes)
 		ui_pop();	// its passes are of nothing now
 	static char t[28];

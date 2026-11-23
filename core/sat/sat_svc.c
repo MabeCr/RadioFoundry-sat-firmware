@@ -40,7 +40,7 @@ static struct {
 static volatile bool refresh_asked = true;
 static volatile uint32_t open_asked;
 static volatile uint32_t toggle_norad, toggle_aos;	// a pass the user marked or unmarked for an alert
-static volatile uint32_t delete_asked;	// a satellite the user asked to delete: the poll does it (a flash write)
+static volatile uint32_t forget_norad;	// a satellite deleted: the poll drops its alert marks (the alert state is the poll's)
 static volatile bool open_changed;
 static volatile bool open_pending;	// a satellite was asked for and the poll has not switched to it: what is held is the last one's
 static volatile uint32_t track_aos, track_los;	// the tracked pass, 0 none
@@ -104,7 +104,7 @@ void sat_svc_init(void)
 	refresh_asked = true;
 	open_asked = 0;
 	open_pending = false;
-	delete_asked = 0;
+	forget_norad = 0;
 	toggle_norad = toggle_aos = 0;
 	sat_alert_init(&alert);
 	alert_pending = false;
@@ -128,7 +128,10 @@ void sat_svc_refresh(void)
 
 void sat_svc_delete(uint32_t norad)
 {
-	delete_asked = norad;
+	sat_store_delete(norad);	// the store's generation changes with it: the next poll lists again
+	forget_norad = norad;
+	if (open_asked == norad)	// its passes are open: close them
+		sat_svc_open(0);
 }
 
 bool sat_svc_alert_take(sat_svc_alert_t *out)
@@ -729,15 +732,10 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		end_write();
 		refresh_asked = true;	// the ages were worked out without the time
 	}
-	if (delete_asked != 0) {	// the store's generation changes with it, so the list is read again below
-		uint32_t n = delete_asked;
-		delete_asked = 0;
-		sat_store_delete(n);
+	if (forget_norad != 0) {	// a delete done on the housekeeping task: its marks go with it
+		uint32_t n = forget_norad;
+		forget_norad = 0;
 		sat_alert_forget(&alert, n);
-		if (open_asked == n) {	// its passes are open: close them
-			open_asked = 0;
-			open_changed = true;
-		}
 	}
 	if (toggle_norad != 0) {
 		sat_alert_toggle(&alert, toggle_norad, toggle_aos);

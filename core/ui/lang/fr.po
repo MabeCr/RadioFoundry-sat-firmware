@@ -532,14 +532,10 @@ msgctxt "FLIP_TOAST_FLIPPED"
 msgid "Screen flipped"
 msgstr "Écran retourné"
 
-
-
 #: core/ui/ui_app.c
 msgctxt "FLIP_TOAST_UPRIGHT"
 msgid "Screen upright"
 msgstr "Écran normal"
-
-
 
 #: core/ui/ui_app.c
 msgctxt "QUICK_TOAST_VOX_OFF"
@@ -720,8 +716,6 @@ msgstr "Numéro du TG d'abord"
 msgctxt "FLIP_WHY_NOT_ON_RADIO"
 msgid "Flip screen: not on this radio"
 msgstr "Retourner l'écran : pas sur cette radio"
-
-
 
 #: core/ui/ui_app.c
 msgctxt "HOME_TOAST_VOLUME_USE_KNOB"
@@ -2013,7 +2007,7 @@ msgctxt "SHARE_ROW_REJECT"
 msgid "Reject"
 msgstr "Rejeter"
 
-#: core/ui/ui_menus.c core/ui/ui_scanlist.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgctxt "TOAST_BUSY_SAVING"
 msgid "Busy saving: try again"
 msgstr "Sauvegarde en cours"
@@ -3782,8 +3776,6 @@ msgstr "Nom / numéro TG"
 msgctxt "WORD_FLIP_SCREEN"
 msgid "Flip screen"
 msgstr "Retourner l'écran"
-
-
 
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
@@ -6254,8 +6246,6 @@ msgstr "Lumin."
 msgctxt "QUICK_LABEL_FLIP"
 msgid "Flip"
 msgstr "Retourner"
-
-
 
 #: core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TIMESLOT"

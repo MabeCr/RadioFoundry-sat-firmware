@@ -2724,12 +2724,13 @@ uint32_t ui_svc_sat_alert_eta(void)
 	return best;
 }
 
-void ui_svc_sat_delete(uint32_t norad)
+bool ui_svc_sat_delete(uint32_t norad)
 {
 	for (unsigned k = 0; k < SAT_SIM_ROWS; k++)
 		if (sim_sat_rows[k].norad == norad)
 			sat_sim.gone |= 1u << k;
 	(void)ui_svc_sat_alert_set(norad, false);
+	return true;
 }
 
 void ui_svc_sat_refresh(void) {}

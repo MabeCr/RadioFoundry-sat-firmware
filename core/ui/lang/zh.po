@@ -534,14 +534,10 @@ msgctxt "FLIP_TOAST_FLIPPED"
 msgid "Screen flipped"
 msgstr "屏幕已翻转"
 
-
-
 #: core/ui/ui_app.c
 msgctxt "FLIP_TOAST_UPRIGHT"
 msgid "Screen upright"
 msgstr "屏幕已复位"
-
-
 
 #: core/ui/ui_app.c
 msgctxt "QUICK_TOAST_VOX_OFF"
@@ -722,8 +718,6 @@ msgstr "通话组号码在前"
 msgctxt "FLIP_WHY_NOT_ON_RADIO"
 msgid "Flip screen: not on this radio"
 msgstr "翻转屏幕:此电台不支持"
-
-
 
 #: core/ui/ui_app.c
 msgctxt "HOME_TOAST_VOLUME_USE_KNOB"
@@ -2015,7 +2009,7 @@ msgctxt "SHARE_ROW_REJECT"
 msgid "Reject"
 msgstr "拒绝"
 
-#: core/ui/ui_menus.c core/ui/ui_scanlist.c
+#: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgctxt "TOAST_BUSY_SAVING"
 msgid "Busy saving: try again"
 msgstr "正在保存：请重试"
@@ -3784,8 +3778,6 @@ msgstr "TG 名称/号码"
 msgctxt "WORD_FLIP_SCREEN"
 msgid "Flip screen"
 msgstr "翻转屏幕"
-
-
 
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
@@ -6256,8 +6248,6 @@ msgstr "亮度"
 msgctxt "QUICK_LABEL_FLIP"
 msgid "Flip"
 msgstr "翻转"
-
-
 
 #: core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TIMESLOT"

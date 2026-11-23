@@ -327,7 +327,7 @@ typedef struct {
 bool ui_svc_sat_status(ui_sat_status_t *out);	// false: not in this build
 bool ui_svc_sat_get(uint8_t i, ui_sat_t *out);	// false past the last
 void ui_svc_sat_refresh(void);			// the list opened: work its passes out again from the store
-void ui_svc_sat_delete(uint32_t norad);		// remove it from the store (done by the satellite task; the list follows)
+bool ui_svc_sat_delete(uint32_t norad);		// remove it from the store (a job for the housekeeping task; the list follows). False: busy with another job
 // Pass alerts (CONFIG_SAT_ALERT): a satellite marked to alert on every pass (the settings keep up to six), and one pass of
 // one marked, which alerts once; the alert that came due (the satellite and the pass), read once a second
 bool ui_svc_sat_alert_get(uint32_t norad);

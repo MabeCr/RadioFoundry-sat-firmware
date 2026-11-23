@@ -12,6 +12,7 @@
 #include "sat/sat_clock.h"
 #include "sat/sat_store.h"
 #include "sat/sat_svc.h"
+#include "storage/storage.h"
 
 bool ui_svc_sat_status(ui_sat_status_t *out)
 {
@@ -52,10 +53,18 @@ void ui_svc_sat_refresh(void)
 	sat_svc_refresh();
 }
 
-void ui_svc_sat_delete(uint32_t norad)
+// A flash write: the housekeeping task does it, so neither the UI nor the satellite task (a small stack) waits on the flash
+static void delete_job(void *ctx)
 {
-	sat_svc_delete(norad);
+	sat_svc_delete((uint32_t)(uintptr_t)ctx);
+}
+
+bool ui_svc_sat_delete(uint32_t norad)
+{
+	if (!storage_job_post(delete_job, (void *)(uintptr_t)norad))
+		return false;
 	(void)ui_svc_sat_alert_set(norad, false);	// its mark goes with it
+	return true;
 }
 
 void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos)
