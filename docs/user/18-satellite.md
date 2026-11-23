@@ -3,6 +3,9 @@
 
 # Satellite Tracking
 
+> This page is for builds with upstream's TLE feature (`CONFIG_SATELLITE_TLE`). The satellite images of this fork have
+> `CONFIG_SAT` instead, with a different screen set: [Satellites](24-satellites.md). A build has one of the two.
+
 Satellite tracking uses TLE records installed from a computer. The radio does not download orbital data. The optional
 `CONFIG_SATELLITE_TLE` feature requires a board build with dedicated satellite storage and debug link support.
 

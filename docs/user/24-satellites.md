@@ -3,6 +3,10 @@
 
 # Satellites
 
+> This page is for the builds with `CONFIG_SAT` (the satellite images of this fork). Builds with upstream's TLE
+> feature (`CONFIG_SATELLITE_TLE`) have a different screen set: [Satellite tracking](18-satellite.md). A build has one
+> of the two.
+
 In a build with satellite tracking (`CONFIG_SAT`, off in the standard images), the radio predicts when the amateur
 satellites you store pass over you. It works the passes out itself, from each satellite's orbital elements (a TLE) and
 your position and time. Which radios can store satellites: [Feature matrix](../feature-matrix.md).
