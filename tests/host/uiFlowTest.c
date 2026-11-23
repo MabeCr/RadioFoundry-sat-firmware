@@ -152,14 +152,15 @@ static const flow_t flows[] = {
 	// P25 on Home: what PTT calls on the talk line, the NAC in the chips, the caller while a call comes in
 	{ "P25 home: talk group and NAC", "dlmode:p25", "", "screen=home shows=TG_1 shows=NAC_293", 0, false },
 	{ "P25 home: the caller", "dlmode:p25", "p25rx:3101234,7", "screen=home shows=ID_3101234 shows=TG_7", 0, false },
+	{ "P25 home: the caller's name", "dlmode:p25", "p25rx:3101234,7,g,Doug_Lambert", "screen=home shows=Doug_Lambert shows=TG_7 hides=ID_3101234", 0, false },
+	{ "P25 home: a long name is cut, the talk group stays", "dlmode:p25", "p25rx:3101234,9371,g,KF8ENC_Doug_Lamb", "screen=home shows=TG_9371 shows=KF8", 0, false },
 	{ "P25 home: a unit call", "dlmode:p25", "p25rx:3101234,3105555,u", "shows=Private_to_3105555", 0, false },
 	{ "P25 home: encrypted", "dlmode:p25", "p25rx:3101234,7,e", "shows=Encrypted:_not_played hides=ID_3101234", 0,
 	  false },
 	{ "P25 home: another talk group", "dlmode:p25", "p25rx:3101234,7,o", "shows=Other_TG:_not_played", 0, false },
-	// The strip keeps SCAN while a scan stops on a P25 call, with the RX pill and the mode word beside it
-	{ "P25 scan: SCAN stays while a call is heard", "dlmode:p25 scankey", "p25rx:3101234,7", "scanning=1 shows=SCAN shows=P25 shows=RX", 0, false },
-	// With an unread message there is no room beside the mode word on the small displays: the idle pill says SCAN
-	{ "SCAN stays on the strip when the chip has no room", "scankey gps:fix", "msg:1,hi", "scanning=1 shows=SCAN", 0, false },
+	// While a scan runs the pill says SCAN; a call heard on a stop makes it the usual RX
+	{ "P25 scan: the pill says SCAN until a call is heard", "dlmode:p25 scankey", "p25rx:3101234,7", "scanning=1 shows=P25 shows=RX hides=SCAN", 0, false },
+	{ "SCAN pill while scanning, with an unread message and a GPS fix", "scankey gps:fix", "msg:1,hi", "scanning=1 shows=SCAN hides=IDLE", 0, false },
 	{ "P25 home: the call ends", "dlmode:p25 p25rx:3101234,7", "p25rxend", "screen=home hides=ID_3101234", 0, false },
 	// Dual watch with A on P25: the pane names the mode, no tone or bandwidth for it
 	{ "P25 dual watch: A in P25", "dlmode:p25", "quick 7", "dual=1 sel=A shows=P25 hides=No_tone hides=12.5k", 2, false },
@@ -268,7 +269,7 @@ static const flow_t flows[] = {
 	{ "1 USB serial again: no word", "usbnet:on", "usbnet:off", "hides=IP", 0, false },
 	{ "1 USB network: the PC brings the link up, the arrows appear", "usbnet:on", "usbnet:up", "markafter=IP", 0, false },
 	{ "1 USB network: the link goes down, the arrows go", "usbnet:up", "usbnet:on", "shows=IP nomarkafter=IP", 0, false },
-	{ "1 USB network: SCAN wins the strip's word", "usbnet:on", "ok 6 1", "scanning=1 shows=SCAN hides=IP", 3, false },
+	{ "1 USB network: SCAN pill and IP together", "usbnet:on", "ok 6 1", "scanning=1 shows=SCAN shows=IP", 3, false },
 	{ "1 USB network from Tools: IP", "", "ok 6 4 ok", "usbnet=1 shows=IP", 4, false },
 	{ "2 zone 2 positions away", "", "ok 4 down down ok", "zone=2 screen=home", 5, false },
 	{ "3 one-shot TG, 2nd in picker", "", "tt down ptt", "txid=91 txpriv=0", 3, false },

@@ -12,7 +12,7 @@ Which radios have scan and dual watch verified is in the [Radio reference](23-ra
 | A side key set to **Scan** (Settings > Keys) | The same key again |
 
 On a channel the radio scans the current zone ("Scanning this zone"). In the VFO it sweeps the band the VFO frequency
-is in ("Scanning the band"). The status line shows SCAN, and the channel name changes as the scan moves.
+is in ("Scanning the band"). The state at the left of the status line reads SCAN instead of IDLE (RX while a signal is heard), and the channel name changes as the scan moves.
 
 A scan needs at least one other channel to go to. It doesn't run in hotspot mode or while you transmit.
 
@@ -26,7 +26,7 @@ making a zone for them. With scan lists on your radio, **OK**, **6**, **1** open
 
 | Do | To |
 |---|---|
-| **OK** on a list | Scan it. The status line shows SCAN and the radio follows each channel into its own zone |
+| **OK** on a list | Scan it. The state at the left of the status line reads SCAN instead of IDLE and the radio follows each channel into its own zone |
 | **#** on a list (long **OK** on a radio without **#**) | Edit channels, Rename or Delete it |
 | "New scan list" | Name a list (text entry, as for a zone name) |
 

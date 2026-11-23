@@ -48,7 +48,7 @@ also from the installer's [manual install kit](02-installing.md#install-from-the
 | "Not used here" | That key has no function on this screen |
 | "...: not in this build" | The feature is switched off in this build, or isn't built yet |
 | The radio is stuck on the hotspot screen | A host has the serial port open. Press **OK**, or stop the host program. Turn **Settings > Connections > Hotspot allowed** off to prevent it |
-| Zone or channel changed by itself | A scan is running (SCAN in the status line). Press **Back** on Home |
+| Zone or channel changed by itself | A scan is running (SCAN in place of IDLE in the status line). Press **Back** on Home |
 | qdmr, rfoundry or a hotspot host doesn't find the radio's serial port | USB is in network mode. Switch back in **Tools > USB network**, or turn off **Settings > Connections > USB network at start** and restart. The debug link and MMDVM also answer on UDP port 3334 ([USB network](15-usb-network.md#serial-tools-in-network-mode)) |
 | In network mode the computer gets no address | The radio goes back to serial when the computer doesn't set the adapter up within 10 s. Check that the computer shows a new network adapter, then switch again |
 

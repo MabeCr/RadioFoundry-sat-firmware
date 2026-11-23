@@ -544,11 +544,23 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 	if (st == RS_IDLE && s->dual.on && s->dual.rx != UI_DUAL_NONE)
 		st = RS_RX;	// a channel's own receiver (two receivers) hears a call the view's one doesn't show
 #endif
+	// While a scan runs and nothing is heard the pill says SCAN, in the warning color; a signal on a stop gives the
+	// usual RX (Settings > scan, docs/spec/radio-features.md). Dual watch has its own DUAL word beside the mode
+	bool scan_pill = st == RS_IDLE && s->scanning
+#if CONFIG_DUAL_WATCH
+			 && !s->dual.on
+#endif
+			 ;
 	switch (st) {
 	case RS_RX: word = "RX"; pbg = ui_col.rx; pfg = ui_col.pill_dark_fg; break;
 	case RS_TX: word = v->aprs_tx ? "TX APRS" : "TX"; pbg = ui_col.tx; break;
 	case RS_TX_DENIED: word = TR(TOP_STATE_NO_TX, "NO TX"); pbg = ui_col.warn; pfg = ui_col.pill_dark_fg; break;
 	default: break;
+	}
+	if (scan_pill) {
+		word = TR(TOP_CHIP_SCAN, "SCAN");
+		pbg = ui_col.warn;
+		pfg = ui_col.pill_dark_fg;
 	}
 	if (gfx_bpp() == 1)
 		pfg = ui_col.pill_fg;
@@ -561,7 +573,7 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		      !ui_theme_is_inverse() && !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
-	if (filled && st == RS_IDLE) {
+	if (filled && st == RS_IDLE && !scan_pill) {
 		pbg = sfg;
 		pfg = sbg;
 	}
@@ -665,26 +677,12 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_DUAL, "DUAL"), swarn);
 	else
 #endif
-	if (s->scanning && strip_fits(f, lx, rx, TR(TOP_CHIP_SCAN, "SCAN")))
-		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_SCAN, "SCAN"), swarn);
-	else if (s->scanning && st == RS_IDLE && !merged
-#if CONFIG_DUAL_WATCH
-		 && !s->dual.on
-#endif
-		 ) {
-		// No room beside the mode word (a three letter mode, the icons on the right): the idle pill says SCAN
-		// instead, in the strip's warning color. A word no wider than the pill keeps the mode word where it is
-		const char *sw = TR(TOP_CHIP_SCAN, "SCAN");
-		if (gfx_text_width(f, sw) <= gfx_text_width(f, word)) {
-			gfx_fill(0, 0, x, L->strip_h, sbg);
-			strip_pill(f, ph, L->strip_h, filled, sw, gfx_bpp() == 1 ? ui_col.pill_fg : ui_col.pill_dark_fg, swarn, sfg);
-		}
-	}
 #if CONFIG_DMR_ROAMING
-	else if (v->roam.state == RROAM_STATE_SEARCH && strip_fits(f, lx, rx, TR(TOP_CHIP_ROAM, "ROAM")))
+	if (v->roam.state == RROAM_STATE_SEARCH && strip_fits(f, lx, rx, TR(TOP_CHIP_ROAM, "ROAM")))
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_ROAM, "ROAM"), swarn);	// searching the zone's sites
+	else
 #endif
-	else if (v->monitor && !v->aprs_tx && strip_fits(f, lx, rx, "MON"))
+	if (v->monitor && !v->aprs_tx && strip_fits(f, lx, rx, "MON"))
 		lx = gfx_text(f, lx + f->w, ty, "MON", swarn);
 #if CONFIG_USB_NETWORK && CONFIG_HOSTLINK
 	// USB as a network adapter (Tools > USB network): the serial tools are off. IP, and once the PC has the link up an
@@ -2378,29 +2376,41 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y)
 		gfx_text(f, 0, y, fit, ui_col.warn);
 		return;
 	}
-	// Too wide: keep the marker and destination, then cut the destination if needed
-	for (int with_id = c->src != 0; with_id >= 0; with_id--) {
-		sb_init(&b, buf, sizeof buf);
-		if (c->enc)
-			sb_str(&b, "ENC ");
-		if (with_id) {
-			if (c->name[0] != '\0') {
-				sb_str(&b, c->name);	// the name, as DMR shows its caller; the ID when none is known
-			} else {
-				sb_str(&b, "ID ");
-				sb_u32(&b, c->src, 1);
-			}
-			sb_str(&b, " " GLYPH_ARROW " ");
-		}
-		if (c->unit) {
-			sb_str(&b, TR(CALL_VALUE_PRIVATE_TO, "Private to "));
-		} else {
-			sb_str(&b, "TG ");
-		}
-		sb_u32(&b, c->dst, 1);
-		if (gfx_text_width(f, buf) <= gfx_width())
-			break;
+	// The caller (the contact or ID database name, else the ID), then the destination. Too wide: the caller is cut
+	// short with an ellipsis, kept as long as it fits beside the destination; a caller left under four characters
+	// goes, then the destination is cut if it still doesn't fit
+	char head[40], tail[40];
+	sb_init(&b, head, sizeof head);
+	if (c->enc)
+		sb_str(&b, "ENC ");
+	if (c->src == 0) {
+		head[0] = '\0';
+	} else if (c->name[0] != '\0') {
+		sb_str(&b, c->name);
+	} else {
+		sb_str(&b, "ID ");
+		sb_u32(&b, c->src, 1);
 	}
+	sb_init(&b, tail, sizeof tail);
+	if (head[0] != '\0')
+		sb_str(&b, " " GLYPH_ARROW " ");
+	sb_str(&b, c->unit ? TR(CALL_VALUE_PRIVATE_TO, "Private to ") : "TG ");
+	sb_u32(&b, c->dst, 1);
+	int room = gfx_width() - gfx_text_width(f, tail);
+	if (head[0] != '\0' && gfx_text_width(f, head) > room) {
+		if (room >= 4 * f->w) {
+			gfx_text_fit(f, head, room, fit, sizeof fit);
+			str_copy(head, sizeof head, fit);
+		} else {
+			head[0] = '\0';
+			sb_init(&b, tail, sizeof tail);
+			sb_str(&b, c->unit ? TR(CALL_VALUE_PRIVATE_TO, "Private to ") : "TG ");
+			sb_u32(&b, c->dst, 1);
+		}
+	}
+	sb_init(&b, buf, sizeof buf);
+	sb_str(&b, head);
+	sb_str(&b, tail);
 	gfx_text_fit(f, buf, gfx_width(), fit, sizeof fit);
 	gfx_text(f, 0, y, fit, ui_col.rx);
 }
