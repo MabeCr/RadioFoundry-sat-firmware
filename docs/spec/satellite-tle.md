@@ -3,6 +3,10 @@
 
 # Satellite Tracking
 
+> This page is `CONFIG_SATELLITE_TLE`, the upstream TLE feature. A build that has our `CONFIG_SAT` (Tools >
+> Satellites, Tracking, pass alerts, receive sound; [satellite.md](satellite.md)) leaves this one off: the two are
+> alternatives (`config/features.mk`).
+
 Satellite tracking predicts a selected satellite's position and visible passes, and can continuously compensate its
 configured uplink and downlink frequencies for Doppler shift. It is an optional radio feature. It does not start a
 transmission, change the radio's supported bands, or bypass a channel's transmit restrictions.

@@ -3,6 +3,11 @@
 
 # Satellite tracking
 
+> Two satellite features exist and a build has one of them. This page is `CONFIG_SAT`: the stack in `core/sat` (Tools >
+> Satellites, the Tracking screen, pass alerts, receive sound). The other, `CONFIG_SATELLITE_TLE`, is the
+> upstream TLE feature with its own storage: [satellite-tle.md](satellite-tle.md). `config/features.mk` stops a build
+> with both on, and turns the second off when the first is on.
+
 `CONFIG_SAT` (default off). The radio predicts where an amateur satellite is from its two-line elements (TLE): when it
 rises over the radio's position, where to point the antenna, and how far Doppler moves its uplink and downlink. It
 also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
