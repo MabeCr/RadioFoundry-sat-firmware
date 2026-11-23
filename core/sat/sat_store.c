@@ -127,7 +127,7 @@ static bool area(uint32_t *addr, uint32_t *size)
 	if (overlaps(a, n, m->settings_addr, m->settings_size) || overlaps(a, n, m->journal_addr, 2u * STORAGE_SECTOR) ||
 	    overlaps(a, n, m->openfw_eeprom, 0x10000u) || overlaps(a, n, m->openfw_flash, m->openfw_end - m->openfw_flash) ||
 	    overlaps(a, n, m->native_addr, m->native_size) || overlaps(a, n, m->calibration_addr, m->calibration_size) ||
-	    overlaps(a, n, m->staging_addr, m->staging_size))
+	    overlaps(a, n, m->staging_addr, m->staging_size) || overlaps(a, n, m->scan_addr, m->scan_size))
 		return false;
 	*addr = a;
 	*size = n;

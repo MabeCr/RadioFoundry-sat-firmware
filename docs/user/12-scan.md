@@ -18,12 +18,41 @@ A scan needs at least one other channel to go to. It doesn't run in hotspot mode
 
 If dual watch is running, starting a scan stops it. The radio stays on the selected channel and scans from there.
 
+## Scan lists
+
+A scan list is a named set of channels from any of your zones, so you can scan the channels you care about without
+making a zone for them. With scan lists on your radio, **OK**, **6**, **1** opens a list of them; the first row,
+"Scan zone", scans as before.
+
+| Do | To |
+|---|---|
+| **OK** on a list | Scan it. The status line shows SCAN and the radio follows each channel into its own zone |
+| **#** on a list (long **OK** on a radio without **#**) | Edit channels, Rename or Delete it |
+| "New scan list" | Name a list (text entry, as for a zone name) |
+
+In **Edit channels**, "Add channel" shows one zone's channels: **OK** adds a channel or takes it out again, and the
+zone row at the top picks another zone, so a list can hold channels from all of them. **OK** on a channel in the list
+removes it. A list holds up to 80 channels and the radio stores 16 lists.
+
+- A list scans from a channel, not from the VFO, and needs at least two channels that are in a zone. A channel you took
+  out of every zone is skipped, but stays in the list.
+- The list's order is the scan's order. A channel the codeplug marks to skip is scanned if it is in your list.
+- Stopping the scan with **Back** leaves you where it stopped; the scan actions (**#**) work as in any scan, and
+  **Back** or a channel change ends it.
+- Editing the codeplug (or loading one) while a list scan runs ends the scan.
+- Lists are kept in the radio, not in the codeplug: the editor, a codeplug backup and qdmr do not carry them yet.
+
 ## How the scan moves
 
 - The scan visits the zone's channels in order, from the one it started on. It skips empty positions and channels
-  the codeplug marks to skip. FM and DMR channels can be mixed.
-- On each channel it listens for 150 ms. An FM channel stops the scan when the squelch opens (with the channel's tone,
-  if it needs one). A DMR channel stops it when the radio plays a call.
+  the codeplug marks to skip. FM, DMR, P25 and NXDN channels can be mixed. P25 trunked channels are skipped.
+- On each channel it listens for 150 ms, or the time in **Settings > Talk & listen > Scan dwell** (50 to 1000 ms; a
+  shorter time scans faster but can miss a short call, mostly on DMR). An FM channel stops the scan when the squelch opens (with the channel's tone,
+  if it needs one). A DMR, P25 or NXDN channel stops it when the radio plays a call. On a signal it listens up to
+  1.5 s for a call it would play.
+- Turn on [digital monitor](09-dmr.md) before you start the scan to stop on a call to any talkgroup, not only
+  the channel's talkgroup and RX group list. It stays on at every channel and on the one the scan ends on. Pressing
+  **Monitor** on a DMR channel during the scan turns it off or on for the rest of the scan.
 - On a signal the scan holds. It moves on 2 s after the signal ends, and stays if the signal comes back.
 - Holding **Monitor** pauses the scan.
 
@@ -44,7 +73,7 @@ The scan actions:
 |---|---|---|
 | 1 | Skip channel for now | Skips the channel until the scan stops ("Skipped until the scan stops") |
 | 2 | Stay here | Stops the scan on this channel |
-| 3 | Always skip | Not built yet. Edit scan lists in qdmr |
+| 3 | Always skip | Not built yet |
 
 ## Dual watch
 
@@ -61,6 +90,8 @@ VFO. It is two frequencies, not the two timeslots of one DMR frequency.
 - The radio has one receiver, so it alternates between A and B. A call on one can be missed while the radio is on the
   other. A radio with two receivers would hear both and show a call on each channel at once. No radio has that yet
   ([Radio reference](23-radios.md#dual-watch-on-each-radio)).
+- A or B can be a P25 or NXDN channel, but not a trunked P25 channel. On a radio with two receivers, the second one
+  doesn't take P25 or NXDN: the radio alternates when the channel not selected is one.
 
 ### Start it
 
@@ -157,7 +188,9 @@ step the frequency. In a zone with no other channel to go to, the radio says so 
 A channel you pick in Find, Channels or Zones becomes the selected channel; picking the other channel selects it. The
 **VFO** key puts the selected channel on a VFO, and a second press takes it back to its channel. Copy to VFO copies
 the selected channel into a VFO. A and B each get their own VFO, so both can be VFOs on different frequencies; the
-radio remembers both. Hotspot mode and a codeplug write don't stop dual watch.
+radio remembers both. To set a VFO pane's frequency, select it and type the frequency. The digits appear on that pane
+as you type; **Back** deletes a digit. Press **OK** or **#** to tune. Dual watch continues on the new frequency. With
+no frequency being typed, **#** opens the dual watch actions. Hotspot mode and a codeplug write don't stop dual watch.
 
 The zone keys (**Previous zone** and **Next zone**) move the selected channel to the
 previous or next zone, on the zone's first channel that isn't the other one ("A zone: Simplex"). Dual watch goes on.

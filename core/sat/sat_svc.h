@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "sat/sat_profile.h"
+#include "sat/sat_alert.h"
 
 #define SAT_SVC_MAX		32	// satellites listed: a store sector's worth
 #define SAT_SVC_PASSES		8	// passes listed for one satellite
@@ -74,6 +75,8 @@ typedef struct {
 	double lat, lon;	// degrees
 	double alt_m;
 	uint8_t min_el;		// the lowest pass listed, degrees
+	uint32_t alert_lead_s;	// alert this long before a marked pass rises, 0 off (sat_alert.h)
+	uint32_t alert_norad[SAT_ALERT_ALWAYS];	// the satellites marked for every pass, 0 free
 } sat_svc_in_t;
 
 typedef enum {
@@ -92,6 +95,19 @@ void sat_svc_refresh(void);
 // A flash write: from a task that may block (the housekeeping task, through storage_job_post), not the satellite task,
 // whose stack is small
 void sat_svc_delete(uint32_t norad);
+// An alert for a marked pass has come due: the satellite, its rise and how high it goes
+typedef struct {
+	uint32_t norad, aos;
+	int8_t max_el;
+} sat_svc_alert_t;
+// The alert that is due, once: false when none is. The screen's task asks about once a second
+bool sat_svc_alert_take(sat_svc_alert_t *out);
+// Mark satellite norad's pass rising at aos for an alert, or take its mark off (done by the next poll)
+void sat_svc_pass_alert_toggle(uint32_t norad, uint32_t aos);
+// Is that pass marked (a request not yet done counts)
+bool sat_svc_pass_alert_marked(uint32_t norad, uint32_t aos);
+// The rise of the soonest single pass marked that is still ahead of now (UTC seconds); false when none is
+bool sat_svc_alert_next_mark(uint32_t now, uint32_t *aos);
 // Satellite norad's passes for the passes screen; 0 closes them
 void sat_svc_open(uint32_t norad);
 // One slice of work: about budget runs of the model (a pass search may finish past it). True while work remains, so

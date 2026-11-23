@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2026 Open25-DM32 Authors -->
 
 # Troubleshooting
 
@@ -13,9 +14,11 @@ The web installer's "Select the Symptom" step covers most of these on screen. Th
 | "the bootloader is busy" | Another program has it open (a CPS, a virtual machine with USB passthrough). Close it and replug |
 | The web installer says the radio's port or USB connection is in use | Close the other program or browser tab that uses the radio (a CPS, qdmr, a hotspot host, a second installer tab), then try again. Windows: the bootloader's driver ([steps](02-installing.md#windows-the-bootloader-driver)). Linux: your user needs access to the device |
 | The web installer can't use a firmware file | It says why: another radio's file, not the manufacturer's file, a version without a recipe yet, a damaged download. [What each one means](02-installing.md#when-the-installer-cant-use-a-file) |
+| The radio stays in update mode after an interrupted backup or install, and the power switch does nothing | Choose **Radio Stuck in Update Mode** in the web installer, pick the radio (and the cable, if it asks), and it restarts the radio into normal mode or says how ([details](02-installing.md#if-something-goes-wrong)). If the loader does not answer, take the battery out for a few seconds |
 | The screen stays dark after flashing | The radio is still in its bootloader. Turn it off and on again without holding any key |
 | A white, backlit screen and a solid red LED at every power-on, and the radio never starts | The radio is stuck in its factory update mode because the application is missing or incomplete. Nothing else is damaged. Install again with the web installer ([Radio reference](23-radios.md), your radio's "Installing" section says whether this applies) |
 | "Preparing the radio failed", or the radio does not respond on its programming cable | Push the cable plug fully in and try again, or try a cable with an FTDI, CP210x or PL2303 chip. Slow cable mode is always on now: there is no separate button. If it still fails, select **Use Factory Update Mode**: hold the radio's update mode keys while you turn it on ([Radio reference](23-radios.md), your radio's "Installing" section). It needs the stock firmware file or a program memory backup for the codec ([Installing](02-installing.md#if-something-goes-wrong)) |
+| The web installer reports "Cable Problem Detected" | The programming cable itself is at fault, not the radio: it sends data nobody asked for, it dropped off the computer's USB, its adapter stopped responding, or the radio receives nothing through it. Unplug it from the computer, wait a few seconds, plug it straight into the computer (no hub), push the plug fully into the radio and select **Try Again**. If it returns, replace the cable with a better one, preferably one with an FTDI chip ([Installing](02-installing.md#if-something-goes-wrong)) |
 | Flashing stopped half way | Put the radio in its bootloader and run the same command again. rfoundry never erases the bootloader |
 
 ## Command line installs (advanced)
@@ -35,13 +38,13 @@ also from the installer's [manual install kit](02-installing.md#install-from-the
 | Problem | Cause and fix |
 |---|---|
 | DMR calls show but there is no audio, "No codec: voice off" | The radio has no usable codec. See [Installing, no codec](02-installing.md#no-codec-no-codec-voice-off) |
-| A DMR call shows "Other TG: not played" | Its talkgroup isn't the talk target, in the listen list or the reply target. Press **Monitor** (digital monitor), or add the talkgroup to the channel's RX group list in qdmr |
+| A DMR call shows "Other TG: not played" | Its talkgroup isn't the talk target, in the listen list or the reply target. Press **Monitor** (digital monitor), or add the talkgroup to the channel's RX group list in qdmr. A parrot's playback of your own call (your own ID as the source) plays like any other call |
 | "Encrypted: not played" | The call uses basic privacy and the radio has no matching key, or stronger encryption the radio can't play |
 | "No DMR ID in codeplug" when transmitting | Write a codeplug with your DMR ID ([Programming the radio](04-programming.md)) |
 | "Channel busy" | Someone is talking on the timeslot. Wait for the call to end |
 | "No repeater answered" | The repeater didn't respond. Check the frequency, the color code, the timeslot and your distance to the repeater |
 | No audio on FM | The squelch is closed or the channel needs a tone. Hold **Monitor** to open the squelch. Check the tone with **\***, **3** |
-| A key does nothing and the screen says "Keys locked" | Hold **\*** to unlock. Check **Settings > Privacy > Auto lock** |
+| A key does nothing and the screen says "Keys locked" | Hold **\*** to unlock. Check **Settings > Key lock > Auto lock** |
 | "Not used here" | That key has no function on this screen |
 | "...: not in this build" | The feature is switched off in this build, or isn't built yet |
 | The radio is stuck on the hotspot screen | A host has the serial port open. Press **OK**, or stop the host program. Turn **Settings > Connections > Hotspot allowed** off to prevent it |
@@ -72,6 +75,11 @@ Some settings are "not kept" by design today: see the Status column in [Settings
 **OK**, **6**, **7** (Tools > Diagnostics) shows raw readings for bench checks: keys, receiver levels, the DMR
 modem's state and counters, battery, the board's own lines. **\*** pages through them. **Back** leaves.
 
+On some radios the firmware reads a marker that tells hardware versions apart. When the marker suggests another
+version than the installed firmware is for, the page shows "This firmware may be for another version of this radio"
+under the title. The radio still transmits, because such a marker can be wrong. Check the label on the radio against
+the firmware version chosen at install ([Radios](23-radios.md)).
+
 <img src="../ux/screens/160x120i5/diagnostics.png" width="200" alt="The diagnostics page">
 
 Developers get the same and more over USB with `tools/rfoundry_debug.py diag` and `tools/rfoundry_debug.py view`.
@@ -90,3 +98,6 @@ screen.png` saves one over USB.
 
 If the radio restarted by itself, look at **Settings > Advanced > Crash log** ([Settings](17-settings.md#crash-log))
 and copy its lines into the issue. Developers get the whole record with `tools/rfoundry_debug.py crash`.
+
+For gaps in received digital speech, include the mode, signal strength and whether they occur throughout the call or
+only at its beginning or end.

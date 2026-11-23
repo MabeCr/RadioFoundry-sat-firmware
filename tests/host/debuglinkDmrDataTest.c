@@ -11,6 +11,7 @@
 #include "dmr/dmr_data_api.h"
 #include "dmr/dmrData.h"
 #include "dmr/ipGateway.h"
+#include "codeplug/codeplug_kv.h"
 
 static int failures, checks;
 
@@ -45,7 +46,20 @@ bool dmr_signal_radio_check(uint32_t dst) { (void)dst; return false; }
 dmr_req_state_t dmr_signal_state(uint8_t *kind, uint32_t *dst) { *kind = 0; *dst = 0; return DMR_REQ_IDLE; }
 int sms_inbox_count(void) { return 0; }
 int sms_inbox_unread(void) { return 0; }
-bool sms_inbox_get(int i, dmrDataMessage_t *out) { (void)i; (void)out; return false; }
+static int inboxFormat = -1;		// the one inbox message's format, -1 none
+bool sms_inbox_get(int i, dmrDataMessage_t *out)
+{
+	if ((i != 0) || (inboxFormat < 0)) {
+		return false;
+	}
+	memset(out, 0, sizeof *out);
+	out->src = 1234;
+	out->dst = 5678;
+	out->unread = true;
+	out->format = (uint8_t)inboxFormat;
+	strcpy(out->text, "hi");
+	return true;
+}
 void sms_inbox_mark_read(int i) { (void)i; }
 bool sms_send(uint32_t dst, bool group, const char *text, bool ack, dmr_sms_format_t f)
 {
@@ -61,6 +75,58 @@ uint8_t dmrDataServiceIpResult(void) { return DMR_REQ_OK; }
 int dmrDataServiceLrrpTriggerCount(void) { return 0; }
 const char *dmrDataServiceTxKindName(uint8_t kind) { (void)kind; return "other"; }
 void dmrDataServiceSetTxSpacing(uint16_t guardMs, bool chain) { (void)guardMs; (void)chain; }
+static uint8_t cnfRate = DMR_TYPE_RATE_3_4;
+void dmrDataServiceSetIpConfirmedRate(uint8_t dataType) { cnfRate = dataType; }
+uint8_t dmrDataServiceIpConfirmedRate(void) { return cnfRate; }
+
+// The codeplug's settings area: the gateway key, a write that can fail (a CPS session holds the flash)
+static struct {
+	bool present, fail;
+	uint32_t id;
+	int writes;
+} kv;
+int codeplug_kv_get(uint16_t key, void *buf, uint16_t max)
+{
+	if (key != CODEPLUG_KEY_IP_GATEWAY || !kv.present) {
+		return -1;
+	}
+	memcpy(buf, &kv.id, max < 4 ? max : 4);
+	return 4;
+}
+static bool kv_set_u32(uint16_t key, uint32_t value)
+{
+	if (key != CODEPLUG_KEY_IP_GATEWAY || kv.fail) {
+		return false;
+	}
+	kv.present = true;
+	kv.id = value;
+	kv.writes++;
+	return true;
+}
+bool codeplug_kv_write(const codeplug_kv_op_t *ops, uint8_t n)
+{
+	// each op a u32 set, through the one-key fake
+	for (uint8_t i = 0; i < n; i++) {
+		const uint8_t *v = ops[i].value;
+		if (ops[i].len != 4 ||
+		    !kv_set_u32(ops[i].key, v[0] | (uint32_t)v[1] << 8 | (uint32_t)v[2] << 16 | (uint32_t)v[3] << 24)) {
+			return false;
+		}
+	}
+	return true;
+}
+void codeplug_kv_begin(codeplug_kv_cursor_t *c, uint16_t lo, uint16_t hi) { (void)c; (void)lo; (void)hi; }	// no walk here
+int codeplug_kv_next(codeplug_kv_cursor_t *c, uint16_t *key, void *buf, uint16_t max)
+{
+	(void)c; (void)key; (void)buf; (void)max;
+	return -1;
+}
+codeplug_kv_state_t codeplug_kv_info(uint16_t *length, uint16_t *entries)
+{
+	*length = kv.present ? 8 : 0;
+	*entries = kv.present;
+	return kv.present ? CODEPLUG_KV_VALID : CODEPLUG_KV_EMPTY;
+}
 
 bool ipGatewayIPToAir(bool group, uint32_t dst, uint32_t srcIp, uint32_t dstIp, uint8_t ttl, uint8_t protocol,
 		      const uint8_t *l4, int length)
@@ -101,7 +167,7 @@ static void test_ip_settings(void)
 	uint8_t r[1 + 15];
 
 	memset(&settings, 0, sizeof settings);
-	settings.ipGatewayId = 3100500;
+	settings.ipGatewayId = 9990500;
 	r[0] = DL_DATA_OP_IP_SETTINGS;
 	r[1] = DMR_UDPC_AUTO;
 	r[2] = DMR_IPC_RULES;
@@ -109,16 +175,32 @@ static void test_ip_settings(void)
 	put32(r + 4, 1234);
 	put32(r + 8, 0);
 	CHECK(cmd(r, 1 + 11) == 1 && out[0] == DL_ST_OK);
-	CHECK(settings.ipGatewayId == 3100500 && settings.ipConfirmedRule[0] == 1234 &&
+	CHECK(settings.ipGatewayId == 9990500 && settings.ipConfirmedRule[0] == 1234 &&
 	      settings.ipConfirmedTries == DMR_IPC_TRIES_DEFAULT);
-	put32(r + 12, 0xFF000000u | 3101276u);
-	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && settings.ipGatewayId == 3101276u);
+	put32(r + 12, 0xFF000000u | 9996543u);
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && settings.ipGatewayId == 9996543u);
 	put32(r + 12, 0);
 	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && settings.ipGatewayId == 0);
 	// Between the two lengths: the old request, the gateway ID left alone
 	settings.ipGatewayId = 77;
 	CHECK(cmd(r, 1 + 13) == 1 && out[0] == DL_ST_OK && settings.ipGatewayId == 77);
 	CHECK(cmd(r, 1 + 10) == 1 && out[0] == DL_ST_BAD_ARG);
+	// A new gateway ID goes to the codeplug's key too (docs/spec/codeplug-settings.md 5); the same one writes nothing
+	CHECK(kv.present && kv.id == 0 && kv.writes == 2);
+	put32(r + 12, 3100600);
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && kv.id == 3100600 && kv.writes == 3);
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && kv.writes == 3);
+	// The key can't be written: busy and nothing changed, as the radio core would put the key's value back
+	kv.fail = true;
+	put32(r + 12, 3100700);
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_BUSY && settings.ipGatewayId == 3100600);
+	// ... unless the codeplug has no key: the radio's own setting, as before
+	kv.present = false;
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_OK && settings.ipGatewayId == 3100700);
+	kv.fail = false;
+	// An ID above a radio's own range would read back from the key as absent: refused, nothing written
+	put32(r + 12, CODEPLUG_DMR_ID_MAX + 1);
+	CHECK(cmd(r, 1 + 15) == 1 && out[0] == DL_ST_BAD_ARG && settings.ipGatewayId == 3100700 && kv.writes == 3);
 }
 
 // IP_SEND: the ports little endian in, big endian in the UDP header; flags bit 1 takes a u32 IPv4 destination after
@@ -149,12 +231,12 @@ static void test_ip_send(void)
 	CHECK(cmd(r, 10 + sizeof text) == 1 && out[0] == DL_ST_OK);
 	CHECK(air.calls == 2 && air.group && air.dst == 9 && air.dst_ip == dmrDataIdAddress(true, 9));
 	// With an IPv4 destination (192.168.10.5, little endian like every u32 here): the payload after it
-	put32(r + 1, 3100500);
+	put32(r + 1, 9990500);
 	r[5] = 2;
 	put32(r + 10, 0xC0A80A05u);
 	memcpy(r + 14, text, sizeof text);
 	CHECK(cmd(r, 14 + sizeof text) == 1 && out[0] == DL_ST_OK);
-	CHECK(air.calls == 3 && !air.group && air.dst == 3100500 && air.dst_ip == 0xC0A80A05u &&
+	CHECK(air.calls == 3 && !air.group && air.dst == 9990500 && air.dst_ip == 0xC0A80A05u &&
 	      air.length == 8 + (int)sizeof text && air.l4[5] == 8 + sizeof text &&
 	      memcmp(air.l4 + 8, text, sizeof text) == 0);
 	// An empty payload is a datagram of 8; flag bit 1 without the address is malformed, as is a short header
@@ -170,8 +252,42 @@ static void test_ip_send(void)
 	CHECK(cmd(r, DL_REQ_MAX) == 1 && out[0] == DL_ST_OK && air.calls == 6 && air.length == 8 + DL_REQ_MAX - 14);
 }
 
+// IP_CONFIRMED_RATE: 0 rate 3/4, 1 rate 1/2, 2 rate 1; anything else or nothing refused, the rate left
+static void test_ip_confirmed_rate(void)
+{
+	uint8_t r[2] = { DL_DATA_OP_IP_CONFIRMED_RATE, 1 };
+
+	CHECK(cmd(r, 2) == 1 && out[0] == DL_ST_OK && cnfRate == DMR_TYPE_RATE_1_2);
+	r[1] = 2;
+	CHECK(cmd(r, 2) == 1 && out[0] == DL_ST_OK && cnfRate == DMR_TYPE_RATE_1);
+	r[1] = 3;
+	CHECK(cmd(r, 2) == 1 && out[0] == DL_ST_BAD_ARG && cnfRate == DMR_TYPE_RATE_1);
+	CHECK(cmd(r, 1) == 1 && out[0] == DL_ST_BAD_ARG && cnfRate == DMR_TYPE_RATE_1);
+	r[1] = 0;
+	CHECK(cmd(r, 2) == 1 && out[0] == DL_ST_OK && cnfRate == DMR_TYPE_RATE_3_4);
+}
+
+// INBOX: the flags byte says which format the message came in, one bit each but TMS (none)
+static void test_inbox_format(void)
+{
+	static const struct { int format; uint8_t flags; } cases[] = {
+		{ DMR_SMS_FORMAT_TMS, 1 }, { DMR_SMS_FORMAT_ETSI, 3 }, { DMR_SMS_FORMAT_ETSI_IP, 5 }, { DMR_SMS_FORMAT_T3_UDT, 9 },
+	};
+	uint8_t r[2] = { DL_DATA_OP_INBOX, 0 };
+
+	inboxFormat = -1;
+	CHECK(cmd(r, 2) == 1 && out[0] == DL_ST_UNAVAILABLE);
+	for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+		inboxFormat = cases[i].format;
+		CHECK(cmd(r, 2) == 13 && out[0] == DL_ST_OK && out[10] == cases[i].flags && memcmp(out + 11, "hi", 2) == 0);
+	}
+	inboxFormat = -1;
+}
+
 int main(void)
 {
+	test_inbox_format();
+	test_ip_confirmed_rate();
 	test_ip_settings();
 	test_ip_send();
 	printf("# debuglinkDmrDataTest: %d checks, %s\n", checks, failures ? "FAILED" : "PASSED");

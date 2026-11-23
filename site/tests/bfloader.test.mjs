@@ -213,10 +213,16 @@ test("practice radio: switched on with its keys held it enters the updater, whic
 
 // ---- the route on every HR_C7000 radio
 
-test("every HR_C7000 radio has a factory update mode with steps into it, offered in Troubleshooting", () => {
-	const c7radios = RADIOS.filter((r) => r.flash.backend === "c7000-stub");
+test("every HR_C7000 radio with a factory update mode has steps into it, offered in Troubleshooting", () => {
+	const c7all = RADIOS.filter((r) => r.flash.backend === "c7000-stub");
+	const b = backendOf(c7all[0]);
+	// a radio with no vendor loader (the boot ROM's window is its only way in) offers no update mode
+	for (const r of c7all.filter((x) => !x.flash.update_mode)) {
+		assert.equal(factoryRoute(r, FB), null, r.id);
+		assert.deepEqual(b.recovery.extra(r, FB), [], r.id);
+	}
+	const c7radios = c7all.filter((r) => r.flash.update_mode);
 	assert.ok(c7radios.length >= 3);
-	const b = backendOf(c7radios[0]);
 	for (const r of c7radios) {
 		const route = factoryRoute(r, FB);
 		assert.ok(route, `${r.id}: a factory update mode`);
@@ -246,7 +252,8 @@ test("the connect step always sends ahead and offers the factory update mode to 
 	const src = readFileSync(new URL("../static/js/flasher/c7000ui.js", import.meta.url), "utf8");
 	const connects = [...src.matchAll(/(?<!function )connectPanel\(([^\n]*)\)/g)].map((m) => m[1]);
 	assert.equal(connects.filter((x) => /onUpdateMode/.test(x)).length, 2, "install and restore pass the factory way in");
-	assert.equal(connects.filter((x) => !/onUpdateMode/.test(x)).length, 1, "only the backup goes without: nothing can be read in update mode");
+	assert.equal(connects.filter((x) => !/onUpdateMode|restart:/.test(x)).length, 1, "only the backup goes without: nothing can be read in update mode");
+	assert.equal(connects.filter((x) => /restart:/.test(x)).length, 1, "and the restart task, which only leaves the loader");
 	// every wait for the boot ROM sends the answer ahead
 	const waits = [...src.matchAll(/waitForRom\(([^)]*)\)/g)].map((m) => m[1]);
 	assert.ok(waits.length >= 2 && waits.every((w) => /repeat: ROM_REPEAT/.test(w)), waits.join(" | "));

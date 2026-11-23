@@ -118,6 +118,7 @@ static void startup_task(void *arg)
 		cp->cp_flags &= (uint8_t)~SETTINGS_CP_ACCEPTED;	// "Use anyway" was for the codeplug replaced
 	}
 	codeplug_accept((cp->cp_flags & SETTINGS_CP_ACCEPTED) != 0);
+	board_rx_ext_set((cp->cp_flags & SETTINGS_CP_RX_EXT) != 0);	// before the radio core checks the stored VFO against the bands
 	settings_end(hal_millis());
 	codeplug_init();
 	board.radio->init();
@@ -154,7 +155,7 @@ static void startup_task(void *arg)
 		if (!board.power->switch_on() || radio_power_off_wanted()) {
 			power_off(true);	// the knob, or the radio core after a long critical battery (battery_off_s)
 		} else if (ui_app_power_off_due()) {
-			power_off(false);	// Settings > Power > Auto power off
+			power_off(false);	// Settings > Power saving > Auto power off
 		}
 	}
 }

@@ -13,6 +13,7 @@
 #define CMD_RASET	0x2B
 #define CMD_RAMWR	0x2C
 #define CMD_MADCTL	0x36
+#define MADCTL_FLIP	0xC0	// MY | MX: the memory is written from the other corner, a picture turned 180 degrees
 #define RESET_MS	120
 #define SLPOUT_MS	120
 
@@ -100,6 +101,16 @@ void st7789_init(const st7789_t *p)
 
 	b->begin();
 	b->cmd(CMD_DISPON);
+	b->end();
+}
+
+void st7789_set_flip(const st7789_t *p, bool flipped)
+{
+	const st7789_bus_t *b = p->bus;
+	uint8_t madctl = (uint8_t)(flipped ? p->madctl ^ MADCTL_FLIP : p->madctl);
+	b->begin();
+	b->cmd(CMD_MADCTL);
+	b->data(&madctl, 1);
 	b->end();
 }
 

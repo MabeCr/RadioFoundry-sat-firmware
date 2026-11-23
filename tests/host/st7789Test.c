@@ -203,9 +203,27 @@ static void test_misc(void)
 	CHECK(wr >= 0 && log_e[wr].n_px == 20u * 5u && log_e[wr].first_px == 0xF800);
 }
 
+// Flip: MADCTL again with MX and MY reversed (0xC0 becomes 0x00), alone inside one begin / end; unflipped, the panel's own
+static void test_flip(void)
+{
+	const st7789_t p = { &bus, 240, 320, 0xC0, true, 1 };
+	clear_log();
+	st7789_set_flip(&p, true);
+	CHECK(n_e == 1 && log_e[0].cmd == 0x36 && log_e[0].n_data == 1 && log_e[0].data[0] == 0x00 && depth == 0 && begins == 1);
+	clear_log();
+	st7789_set_flip(&p, false);
+	CHECK(n_e == 1 && log_e[0].cmd == 0x36 && log_e[0].data[0] == 0xC0 && depth == 0);
+	// A panel written the other way round flips to the one the stock firmware uses
+	const st7789_t q = { &bus, 240, 320, 0x00, true, 1 };
+	clear_log();
+	st7789_set_flip(&q, true);
+	CHECK(log_e[0].data[0] == 0xC0);
+}
+
 int main(void)
 {
 	test_init();
+	test_flip();
 	test_rows();
 	test_rows_indexed();
 	test_misc();

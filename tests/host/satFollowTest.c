@@ -20,11 +20,11 @@ static int failures;
 static void rules(void)
 {
 	sat_follow_t f = { .on = true };
-	CHECK(!sat_follow_step(&f, 1000, 437000000u, 437001400u, false));	// 1.4 kHz: inside the threshold
-	CHECK(sat_follow_step(&f, 1000, 437000000u, 437001500u, false));	// 1.5 kHz: retune
-	CHECK(!sat_follow_step(&f, 2000, 437001500u, 437004000u, false));	// 2.5 kHz behind, but 1 s since the last
-	CHECK(!sat_follow_step(&f, 5999, 437001500u, 437004000u, false));
-	CHECK(sat_follow_step(&f, 6000, 437001500u, 437004000u, false));	// 5 s
+	CHECK(!sat_follow_step(&f, 1000, 437000000u, 437000400u, false));	// 400 Hz: inside the threshold (500 Hz)
+	CHECK(sat_follow_step(&f, 1000, 437000000u, 437000500u, false));	// 500 Hz: retune
+	CHECK(!sat_follow_step(&f, 2000, 437000500u, 437004000u, false));	// 3.5 kHz behind, but 1 s since the last
+	CHECK(!sat_follow_step(&f, 3999, 437000500u, 437004000u, false));
+	CHECK(sat_follow_step(&f, 4000, 437000500u, 437004000u, false));	// 3 s
 	CHECK(sat_follow_step(&f, 20000, 437004000u, 436999000u, false));	// below the wanted one too
 	CHECK(!sat_follow_step(&f, 40000, 437004000u, 437100000u, true));	// transmitting: never
 	f.on = false;
@@ -102,11 +102,13 @@ int main(void)
 		pass(tle, tle == 0 ? 25544 : tle == 1 ? 27607 : 43017, 0, &r0, &w0);
 		// From the rise the receiver is never further than the threshold plus what a second of Doppler adds (under 100 Hz)
 		CHECK(w0 < SAT_FOLLOW_THRESHOLD_HZ + 100u);
-		CHECK(r0 >= 2 && r0 <= 40);		// a few retunes a pass, not a flood
+		CHECK(r0 >= 2 && r0 <= 60);		// a few dozen retunes a pass, not a flood
 		// The user's nudge shifts the wanted frequency, the following keeps to it just the same
 		pass(tle, tle == 0 ? 25544 : tle == 1 ? 27607 : 43017, 5000, &r1, &w1);
 		CHECK(w1 < SAT_FOLLOW_THRESHOLD_HZ + 100u);
-		CHECK(r1 >= 2 && r1 <= 40);
+		// 1.5 kHz was the old worst case: the retunes now keep the receiver well inside it
+		CHECK(w0 < 700u && w1 < 700u);
+		CHECK(r1 >= 2 && r1 <= 60);
 	}
 	printf("satFollowTest: %s\n", failures ? "FAILED" : "passed");
 	return failures != 0;

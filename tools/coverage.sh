@@ -50,9 +50,11 @@ if [ $status -ne 0 ]; then
 fi
 
 # The same source built into several tests with different switches has different functions at the same lines:
-# --merge-mode-functions=separate keeps them apart instead of stopping.
+# --merge-mode-functions=separate keeps them apart instead of stopping. --gcov-ignore-parse-errors: gcovr 7.0 can't read
+# the block lines of a source line numbered 10000 or more ("10009-block  0": UnknownLineType, exit 64), which
+# core/radio/radio_sm.c has; the coverage of those lines is left out of the report, the rest of the file counts.
 gcovr --root . --object-directory "$HOST" --gcov-executable "$GCOV" \
-	--merge-mode-functions=separate \
+	--merge-mode-functions=separate --gcov-ignore-parse-errors \
 	--filter 'core/' --filter 'drivers/' --filter 'hal/' --filter 'boards/' --filter 'platform/' \
 	--exclude '.*/gen/' --exclude 'tests/' --exclude 'third_party/' \
 	-j "${JOBS:-4}" \

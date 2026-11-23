@@ -13,6 +13,7 @@
 #include "pins.h"
 #include "hal_time.h"
 #include "display/st7735/st7735.h"
+#include "backlight_uvf.h"
 
 
 #define LCD_AF		12	// GPIO_AF12_FSMC
@@ -140,36 +141,55 @@ static st7735_t panel = {
 };
 
 static bool ready;
+static int16_t factory = -1;	// the factory panel byte (security register 3, 0x1D), -1: not read
 
-// ---- Backlight: TIM1 CC1 paces DMA2 Stream1 channel 6, which copies a 100-word table to the backlight port's BSRR ----
-// Entry 0 sets the pin, entry N clears it, the rest are 0: N % duty at about 101 Hz (72 MHz / 7100 / 100)
+// ---- Backlight: TIM1 paces two one-word DMA writes to the backlight port's BSRR (backlight_uvf.h) ----
+// The update (DMA2 Stream5 channel 6) sets the pin, the CC1 match (DMA2 Stream1 channel 6) clears it: duty = CCR1 /
+// period, two transfers per cycle at 2 kHz. 0 %, 100 % and any lit level during TX or open receive audio stop both and
+// drive the pin steady.
 
-#define BL_STEPS	100
 #define BL_MASK		PIN_MASK(PIN_LCD_BACKLIGHT)
 
-static uint32_t bl_table[BL_STEPS];	// main SRAM (.bss), reachable by DMA2
-static uint8_t bl_duty;			// table entry currently clearing the pin, 0 = none
+static uint32_t bl_set = BL_MASK;			// main SRAM, reachable by DMA2
+static uint32_t bl_clear = (uint32_t)BL_MASK << 16;
 static bool bl_running;
+static uint8_t bl_percent;	// the brightness set last
+static bool bl_tx, bl_rx_open;
+
+static void bl_stream_stop(DMA_Stream_TypeDef *st)
+{
+	st->CR &= ~DMA_SxCR_EN;
+	while (st->CR & DMA_SxCR_EN) {
+	}
+}
+
+static void bl_stream_start(DMA_Stream_TypeDef *st, uint32_t *word, uint32_t prio)
+{
+	st->PAR = (uint32_t)&PIN_PORT(PIN_LCD_BACKLIGHT)->BSRR;
+	st->M0AR = (uint32_t)word;
+	st->NDTR = 1;
+	st->FCR = 0;	// direct mode
+	st->CR = (6u << DMA_SxCR_CHSEL_Pos) | prio | DMA_SxCR_MSIZE_1 | DMA_SxCR_PSIZE_1 | DMA_SxCR_CIRC |
+		DMA_SxCR_DIR_0;
+	st->CR |= DMA_SxCR_EN;
+}
 
 static void bl_dma_stop(void)
 {
-	DMA2_Stream1->CR &= ~DMA_SxCR_EN;
-	while (DMA2_Stream1->CR & DMA_SxCR_EN) {
-	}
+	bl_stream_stop(DMA2_Stream5);
+	bl_stream_stop(DMA2_Stream1);
 	DMA2->LIFCR = DMA_LIFCR_CTCIF1 | DMA_LIFCR_CHTIF1 | DMA_LIFCR_CTEIF1 | DMA_LIFCR_CDMEIF1 | DMA_LIFCR_CFEIF1;
+	DMA2->HIFCR = DMA_HIFCR_CTCIF5 | DMA_HIFCR_CHTIF5 | DMA_HIFCR_CTEIF5 | DMA_HIFCR_CDMEIF5 | DMA_HIFCR_CFEIF5;
 	bl_running = false;
 }
 
 static void bl_dma_start(void)
 {
-	DMA2_Stream1->PAR = (uint32_t)&PIN_PORT(PIN_LCD_BACKLIGHT)->BSRR;
-	DMA_RAM_OK(bl_table);
-	DMA2_Stream1->M0AR = (uint32_t)bl_table;
-	DMA2_Stream1->NDTR = BL_STEPS;
-	DMA2_Stream1->FCR = 0;	// direct mode
-	DMA2_Stream1->CR = (6u << DMA_SxCR_CHSEL_Pos) | DMA_SxCR_PL_1 | DMA_SxCR_MSIZE_1 | DMA_SxCR_PSIZE_1 |
-		DMA_SxCR_MINC | DMA_SxCR_CIRC | DMA_SxCR_DIR_0;
-	DMA2_Stream1->CR |= DMA_SxCR_EN;
+	DMA_RAM_OK(&bl_set);
+	DMA_RAM_OK(&bl_clear);
+	// Set above clear: on a priority tie the lower stream (1, the clear) wins, which could land it first at a low duty
+	bl_stream_start(DMA2_Stream1, &bl_clear, DMA_SxCR_PL_1);
+	bl_stream_start(DMA2_Stream5, &bl_set, DMA_SxCR_PL);
 	bl_running = true;
 }
 
@@ -178,40 +198,61 @@ static void bl_init(void)
 	stm32_pin_out(PIN_PORT(PIN_LCD_BACKLIGHT), PIN_MASK(PIN_LCD_BACKLIGHT), false, false);
 	__HAL_RCC_DMA2_CLK_ENABLE();
 	__HAL_RCC_TIM1_CLK_ENABLE();
-	for (uint32_t i = 0; i < BL_STEPS; i++) {
-		bl_table[i] = 0;
-	}
-	bl_table[0] = BL_MASK;
-	bl_duty = 0;
 	bl_dma_stop();
 
 	TIM1->CR1 = 0;
 	TIM1->PSC = 0;
-	TIM1->ARR = 7100 - 1;
+	TIM1->ARR = UVF_BL_PERIOD - 1;
 	TIM1->CCR1 = 1;
-	TIM1->CCMR1 = 0;		// CC1 output compare, frozen: only the match event is used
-	TIM1->DIER = TIM_DIER_CC1DE;	// DMA request on each CC1 match
+	TIM1->CCMR1 = TIM_CCMR1_OC1PE;	// CC1 output compare, frozen, preloaded: a new duty starts at the next cycle
+	TIM1->DIER = TIM_DIER_UDE | TIM_DIER_CC1DE;	// DMA requests on update (set) and CC1 match (clear)
 	TIM1->EGR = TIM_EGR_UG;
-	TIM1->CR1 = TIM_CR1_CEN;
+	TIM1->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN;
+}
+
+// The brightness, or fully on during TX or open receive audio (uvf_backlight_rx). Interrupts off: called from the
+// backlight's task, the radio's tx and the radio task's rx_open, where the pin is steady before the PA or receive audio
+// comes on. The compare is preloaded, so a new duty starts at the next cycle.
+static void bl_apply(void)
+{
+	uint32_t primask = __get_PRIMASK();
+	__disable_irq();
+	uint16_t cmp = uvf_bl_compare(bl_percent, bl_tx || bl_rx_open);
+
+	if (!ready || cmp == 0 || cmp >= UVF_BL_PERIOD) {
+		if (bl_running) {
+			bl_dma_stop();
+		}
+		PIN_WRITE(PIN_LCD_BACKLIGHT, cmp > 0);
+	} else {
+		TIM1->CCR1 = cmp;
+		if (!bl_running) {
+			bl_dma_start();
+		}
+	}
+	__set_PRIMASK(primask);
 }
 
 // 0 = off, 100 or more = fully on, otherwise PWM duty in percent
 static void set_backlight(uint8_t percent)
 {
-	if (!ready || percent == 0 || percent >= BL_STEPS) {
-		if (bl_running) {
-			bl_dma_stop();
-		}
-		PIN_WRITE(PIN_LCD_BACKLIGHT, percent > 0);
-		return;
+	bl_percent = percent;
+	bl_apply();
+}
+
+void uvf_backlight_tx(bool tx)
+{
+	if (tx != bl_tx) {
+		bl_tx = tx;
+		bl_apply();
 	}
-	if (bl_duty != 0) {
-		bl_table[bl_duty] = 0;
-	}
-	bl_duty = percent;
-	bl_table[bl_duty] = (uint32_t)BL_MASK << 16;
-	if (!bl_running) {
-		bl_dma_start();
+}
+
+void uvf_backlight_rx(bool open)
+{
+	if (open != bl_rx_open) {
+		bl_rx_open = open;
+		bl_apply();
 	}
 }
 
@@ -230,6 +271,8 @@ static void init(void)
 
 	if (!stm32_spi_flash_read_security(3, 0x1D, &type, 1)) {
 		type = 0;
+	} else {
+		factory = type;
 	}
 	// hardware-dm1701.md 9.2: what each factory type means is the radio's (the DM-1701 runs its type 2 as type 3 in RGB
 	// order, the MD-UV380 keeps every type and is always RGB)
@@ -247,6 +290,14 @@ static void flush(const void *fb, const uint16_t *palette, uint16_t y0, uint16_t
 	st7735_write_rows_indexed(&panel, (const uint8_t *)fb, palette, y0, y1);
 }
 
+// What init chose the panel's type from (the support info): the factory byte as read, nothing from the bus
+static void panel_info(hal_display_panel_t *p)
+{
+	p->factory = factory;
+	p->type = panel.type;
+	p->source = factory >= 0 ? "factory" : "default";
+}
+
 const hal_display_t uvf_display = {
 	// Safe area from the build (the board's config.mk)
 	.inset_top = CONFIG_DISPLAY_INSET_TOP, .inset_bottom = CONFIG_DISPLAY_INSET_BOTTOM,
@@ -257,6 +308,7 @@ const hal_display_t uvf_display = {
 	.init = init,
 	.flush_indexed = flush,
 	.set_backlight = set_backlight,
+	.panel = panel_info,
 };
 
 uint8_t uvf_display_panel_type(void)

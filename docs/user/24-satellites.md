@@ -12,7 +12,7 @@ simulator. The newest options (the frequency you type and **OK** to swap to it, 
 the phone) are less tested on a radio than the rest. A quick start is in the [README](../../README.md#satellite-tracking).
 
 <img src="../ux/screens/240x320i10x5/satellites.png" width="200" alt="The satellite list">
-<img src="../ux/screens/240x320i10x5/satellite_passes.png" width="200" alt="One satellite's passes">
+<img src="../ux/screens/240x320i10x5/sat_passes.png" width="200" alt="One satellite's passes">
 
 ## What the radio needs
 
@@ -80,7 +80,16 @@ The line under the title says the lowest pass, the 24 hours and the time zone th
 (arrow and directions, "NW→SE") and how many minutes it is up. Above the list are its frequencies and tones, and the
 title says how old its TLE is. Passes of the next day follow a "Tomorrow" line.
 
-**#** (or Left or Right, on a radio that has them) on a satellite in the list, or on its passes, **deletes** it: the radio
+**Pass alerts.** The radio can tell you before a pass rises. On a satellite in the list, press **Left** or **Right** (or **\***
+on a radio without them) to mark it: a **\*** appears after its name, and every pass of it alerts. On a pass in its
+passes list, the same keys mark just that pass, once (the marks of single passes are forgotten when the radio is turned
+off). On the Tracking screen, **Left** or **Right** marks the pass you are looking at before it rises. A few minutes before
+a marked pass rises the radio beeps and shows a banner on whatever screen you are on ("SO-50: Rises in 5 min, 71°"):
+**#** opens the pass, **Back** hides the banner. While an alert is coming, a small satellite shows in the status bar at the top of the Home screen: in the normal color while the pass is further off than the alert time, and in the warning color once the alert is due. It is gone when no marked pass is ahead, or when **Pass alert** is 0. It never beeps while you transmit. Set the time
+before the rise with **Pass alert** in Settings > Location (0 turns alerts off; the default is 5 minutes), and
+**Silent pass alerts** keeps the banner but drops the tone. The radio has to be on, with the time and your position set.
+
+**#** on a satellite in the list, or on its passes, **deletes** it: the radio
 asks first ("Delete ISS?"), and **Yes, delete** removes its elements and profile from the radio. Load them again over
 the cable or by sound to get it back. The "Receive sound" row has nothing to delete.
 
@@ -96,8 +105,8 @@ Keys on the Tracking screen:
 
 | Key | Does |
 |---|---|
-| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves (it keeps your dial setting); hold **#** to clear the dial setting and retune to the computed frequency alone. The receive line shows how far the downlink is from the satellite's own ("+3.4k") and turns the warning color when the radio is 1.5 kHz or more behind. Back puts the channel you were on back |
-| **\*** | The radio follows the Doppler by itself: **AUTO** shows, and the receiver is retuned whenever it is 1.5 kHz or more off, at most every 5 seconds. It tunes to the shift for the rise about two minutes before the satellite comes up, keeps your dial setting, and never retunes while you transmit. The first press tunes the receiver too, if **#** has not. **\*** again stops it. Back ends it. This screen uses **\*** itself, not the quick menu |
+| **#** | Tunes the receiver to the satellite's downlink, corrected for Doppler. The first press puts the radio in the VFO with the satellite's settings: FM, 25 kHz, no receive tone, and its uplink as the transmit frequency (a split, with its tone). Press **#** again to retune as the Doppler moves (it keeps your dial setting); hold **#** to clear the dial setting and retune to the computed frequency alone. The receive line shows how far the downlink is from the satellite's own ("+3.4k") and turns the warning color when the radio is 1 kHz or more behind. Back puts the channel you were on back |
+| **\*** | The radio follows the Doppler by itself: **AUTO** shows, and the receiver is retuned whenever it is 500 Hz or more off, at most every 3 seconds. It tunes to the shift for the rise about two minutes before the satellite comes up, keeps your dial setting, and never retunes while you transmit. The first press tunes the receiver too, if **#** has not. **\*** again stops it. Back ends it. This screen uses **\*** itself, not the quick menu |
 | **OK** | Swaps between the satellite's own downlink and the one you saved for it, for example for a special event or a beacon on another frequency, so you can go back and forth during a pass without typing it again. The "OK" line shows the frequency it will swap to. If you have not tuned yet (**#** or **\***), the swap only chooses the frequency the next tune uses ("Next tune 437.550: press #"); once tuned, it retunes at once ("Listening on 437.550"). With none saved, **OK** opens the **Frequency** screen to type one |
 | **1** | Opens the **Frequency** screen to type a downlink of your own or change the saved one: type the frequency in MHz as on the VFO (**Back** takes a digit back), **OK** saves it for this satellite and listens on it. The Doppler shift, the dial and **\*** work on it as on the satellite's own. It is **receive only**: the TX line says "RX only" and the radio refuses PTT, since a typed frequency is a downlink. Saved in the radio's settings, so it is there at the next pass and after a power cycle; one frequency is kept, for the satellite you typed it for |
 | **2** | Opens the **Signal** chart: the signal level the receiver heard over the pass, against time, with the satellite's elevation drawn faintly behind it. Lines mark the rise (**AOS**), the highest point (**MAX**), the set (**LOS**) and now; a box marks the best reading, and under the chart are the best level with its time, the lowest, and the present one. A gap is time you spent on another screen; readings are taken whichever of the Tracking views is showing, and only on an FM channel. The chart starts over when you track another pass. Use it to see how far the signal swings and where to aim. **2** or Back returns to the Tracking screen |
@@ -106,7 +115,7 @@ Keys on the Tracking screen:
 | The dial (or **Up** and **Down**) | Nudges the downlink up or down by 1 kHz a click, up to 10 kHz, for a satellite whose own transmitter is slightly off. The nudge is added to every retune, manual or automatic |
 
 Opening the screen changes nothing: the radio keeps what it was playing until you press **#** or **\***. A retune takes
-about 10 ms, and on a real pass the automatic retunes could not be heard. Following retunes about once a minute on 70 cm, less often on 2 m. The transmit
+about 10 ms, and on a real pass the automatic retunes could not be heard. Following retunes every few seconds on 70 cm at the fastest part of a pass, less often on 2 m. The transmit
 frequency is the satellite's own uplink: the radio does not shift it. A satellite with no uplink in its profile, and a
 frequency you type, are receive only.
 

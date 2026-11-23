@@ -31,6 +31,7 @@ void hal_delay_ms(uint32_t ms) { now_ms += ms; }
 // ---- pcap ----
 static FILE *pcap;
 bool net_capture = true;
+uint32_t net_test_radio_ip = RADIO_IP;
 static void pcap_write(const uint8_t *f, int len)
 {
 	if (!net_capture) {
@@ -112,7 +113,7 @@ static void peer_segment(peer_t *p, uint8_t flags, const void *data, int len)
 	ip[8] = 64;
 	ip[9] = 6;
 	put32(ip + 12, p->ip);
-	put32(ip + 16, RADIO_IP);
+	put32(ip + 16, net_test_radio_ip);
 	uint32_t sum = 0;
 	for (int k = 0; k < 20; k += 2) {
 		sum += get16(ip + k);
@@ -134,10 +135,44 @@ static void peer_segment(peer_t *p, uint8_t flags, const void *data, int len)
 	if (len > 0) {
 		memcpy(t + 20, data, (size_t)len);
 	}
-	put16(t + 16, tcp_checksum(p->ip, RADIO_IP, t, 20 + len));
+	put16(t + 16, tcp_checksum(p->ip, net_test_radio_ip, t, 20 + len));
 	pcap_write(f, 54 + len);
 	p->snd_nxt += (uint32_t)len + ((flags & 0x03) ? 1u : 0u);
 	ipGatewayEthernetIn(f, 54 + len);
+}
+
+// A UDP datagram from ip:sport on the host's side to the radio's port dport (checksum 0: none, as IPv4 allows)
+void udp_to_radio(uint32_t ip, uint16_t sport, uint16_t dport, const char *text)
+{
+	uint8_t f[14 + 20 + 8 + 512];
+	int len = (int)strlen(text);
+	memcpy(f, RADIO_MAC, 6);
+	memcpy(f + 6, HOST_MAC, 6);
+	put16(f + 12, 0x0800);
+	uint8_t *ip4 = f + 14;
+	memset(ip4, 0, 28);
+	ip4[0] = 0x45;
+	put16(ip4 + 2, (uint16_t)(28 + len));
+	ip4[8] = 64;
+	ip4[9] = 17;
+	put32(ip4 + 12, ip);
+	put32(ip4 + 16, net_test_radio_ip);
+	uint32_t sum = 0;
+	for (int k = 0; k < 20; k += 2) {
+		sum += get16(ip4 + k);
+	}
+	while (sum >> 16) {
+		sum = (sum & 0xFFFF) + (sum >> 16);
+	}
+	put16(ip4 + 10, (uint16_t)~sum);
+	uint8_t *u = ip4 + 20;
+	put16(u, sport);
+	put16(u + 2, dport);
+	put16(u + 4, (uint16_t)(8 + len));
+	put16(u + 6, 0);
+	memcpy(u + 8, text, (size_t)len);
+	pcap_write(f, 42 + len);
+	ipGatewayEthernetIn(f, 42 + len);
 }
 
 static peer_t *peers[32];
@@ -166,7 +201,8 @@ static bool peer_take(const uint8_t *f, int len)
 	int hdr = (t[12] >> 4) * 4;
 	int dlen = get16(ip + 2) - 20 - hdr;
 	uint8_t flags = t[13];
-	CHECK(tcp_checksum(RADIO_IP, dst, t, hdr + dlen) == 0);
+	CHECK(get32(ip + 12) == net_test_radio_ip);	// the radio answers from the address it was spoken to at
+	CHECK(tcp_checksum(net_test_radio_ip, dst, t, hdr + dlen) == 0);
 	for (int i = 0; i < npeers; i++) {
 		peer_t *p = peers[i];
 		if (p->ip != dst || p->port != get16(t + 2)) {
@@ -228,6 +264,27 @@ static bool peer_take(const uint8_t *f, int len)
 	return false;
 }
 
+udp_catch_t udp_catch;
+
+// A datagram to the host's udp_catch.port: kept as text, its checksum checked
+static void udp_take(const uint8_t *f, int len)
+{
+	if (len < 42 || get16(f + 12) != 0x0800 || f[14 + 9] != 17 || udp_catch.port == 0) {
+		return;
+	}
+	const uint8_t *ip = f + 14, *u = ip + 20;
+	int dlen = get16(u + 4) - 8;
+	if (get16(u + 2) != udp_catch.port || dlen < 0 || dlen >= (int)sizeof(udp_catch.last)) {
+		return;
+	}
+	CHECK(get32(ip + 16) == net_test_host_ip());
+	udp_catch.count++;
+	udp_catch.from_port = get16(u);
+	memcpy(udp_catch.last, u + 8, (size_t)dlen);
+	udp_catch.last[dlen] = 0;
+	udp_catch.len = dlen;
+}
+
 // Deliver the radio's queued frames to the peers until nothing more comes, polling the services in between
 void pump(void)
 {
@@ -243,7 +300,9 @@ void pump(void)
 		memcpy(fl, qlen, sizeof(int) * (size_t)n);
 		qn = 0;
 		for (int i = 0; i < n; i++) {
-			peer_take(f[i], fl[i]);
+			if (!peer_take(f[i], fl[i])) {
+				udp_take(f[i], fl[i]);
+			}
 		}
 	}
 }

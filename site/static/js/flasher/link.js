@@ -3,23 +3,47 @@
 // Talking to a radio that runs RadioFoundry, over its USB serial port (WebSerial): the debug link (docs/spec/debuglink.md:
 // VERSION, INFO_CHIP, READ_MEM) and the open-firmware CPS reads (docs/spec/open-firmware-cps.md 2.1 and 3: area 1 the
 // SPI flash, 5 the MCU flash, 9 the radio info, 10 the flash security registers). Read only, apart from the CPS
-// codeplug writes restore uses (X 1-3), which the radio limits to the codeplug areas.
+// codeplug writes restore uses (X 1-3), which the radio limits to the codeplug areas, and HWOPT SET for a hardware
+// option an install learned (origversion.js).
 
 import { be32, concat, le32, sleep, u16be, u16le, u32le, toHex } from "./bytes.js";
 import { wire, note } from "../diag.js";
+import { serialApi, usbSerialNeeded, UsbSerialPort } from "./usbserial.js";
+import { usbSerialChip } from "./adapter.js";
+
+export { serialApi };
 
 export const RFOUNDRY_USB = { usbVendorId: 0x1FC9, usbProductId: 0x0094 };
+// USB-serial chips found in programming cables (tools/serial_loader.py USB_SERIAL), for the port chooser on radios
+// that talk over their programming cable
+export const CABLES = [0x0403, 0x1A86, 0x10C4, 0x067B].map((usbVendorId) => ({ usbVendorId }));
 // The same radio as a USB network adapter (CDC-NCM, docs/spec/usb-network.md 1): no serial port, and the OS network
-// driver owns the interfaces, so a page can only see that it is there (WebUSB lists it without claiming it)
+// driver owns the interfaces, so a page can only see that it is there (WebUSB lists it without claiming it) and ask
+// it for the serial port (netmode.js)
 export const RFOUNDRY_NET = { vendorId: 0x1FC9, productId: 0x0096 };
 const SOF1 = 0xA5, SOF2 = 0x5A;
-export const CMD = { PING: 0x01, VERSION: 0x02, GET_VIEW: 0x09, INFO_CHIP: 0x0B, READ_MEM: 0x0C, STORAGE: 0x0F, SAT: 0x20 };
-// GET_VIEW's satellite section (debuglink.md 3.7), and SAT CLEAR with its token, 'SATC' (3.24)
-const VIEW_SAT = 28, SAT_CLEAR = 12, SAT_CLEAR_TOKEN = 0x43544153;
+export const CMD = { PING: 0x01, VERSION: 0x02, GET_VIEW: 0x09, INFO_CHIP: 0x0B, READ_MEM: 0x0C, STORAGE: 0x0F, HWOPT: 0x21, SUPPORT: 0x25, SATELLITE: 0x26, SAT: 0x30 };
+// GET_VIEW's satellite section (debuglink.md 3.7), and SAT CLEAR with its token, 'SATC' (3.31)
+const VIEW_SAT = 39, SAT_CLEAR = 12, SAT_CLEAR_TOKEN = 0x43544153;
 // The status a command not built in, or with nothing to act on, answers (debuglink.md 2)
 const DL_UNAVAILABLE = 4;
 
 export class LinkError extends Error {}
+
+// A fault of the programming cable itself (its USB-serial adapter, its driver, its wiring), told from a radio that
+// doesn't answer, so the page can say what to do about the cable. code: "stalled" (the adapter or its driver stopped
+// taking data, or never opened), "noise" (data keeps coming that nothing asked for), "dropped" (the cable left the
+// computer's USB)
+export class CableError extends Error {
+	constructor(code, message) {
+		super(message);
+		this.name = "CableError";
+		this.code = code;
+	}
+}
+
+// The browser's chooser closed with no device picked (Cancel): nothing was tried, so nothing failed
+export const noDeviceChosen = (e) => browserErrorKey(e) === "flash.err.no_device";
 
 // The flash.err.* text for one of the browser's own USB or serial errors (a DOMException, by name), or null. The
 // browser's words ("Failed to open serial port.") say little; every tool shows what to do, with them after it
@@ -35,11 +59,14 @@ export function browserErrorKey(e) {
 	case "NotAllowedError": return "flash.err.not_allowed";
 	case "NetworkError": return /open serial port/i.test(raw) ? "flash.err.port_busy" : /claim|access denied/i.test(raw) ? "flash.err.usb_busy" : "flash.err.connection_lost";
 	case "BufferOverrunError": case "BreakError": case "FramingError": case "ParityError": return "flash.err.connection_lost";
+	// usbserial.js on a USB-serial chip it has no driver for (CH340, CP210x, PL2303)
+	case "NotSupportedError": return /serial device this page/i.test(raw) ? "flash.err.usb_chip" : null;
 	default: return null;
 	}
 }
 
-export const serialSupported = () => typeof navigator !== "undefined" && "serial" in navigator;
+// Web Serial, or WebUSB standing in for it where Web Serial reaches no USB device (usbserial.js)
+export const serialSupported = () => typeof navigator !== "undefined" && ("serial" in navigator || usbSerialNeeded());
 
 // CRC-16/CCITT-FALSE
 export function crc16(data, crc = 0xFFFF) {
@@ -92,6 +119,38 @@ export function parseKv(text) {
 // error goes to the log.
 const SOFT_READ_ERRORS = new Set(["FramingError", "ParityError", "BreakError", "BufferOverrunError"]);
 const GLITCH_BURST = 20, GLITCH_PAUSE = 20, GLITCH_NOTE = 100;
+// How long the port may take to open, and to take a write (plus the write's time on the line), in ms. A healthy
+// adapter does both at once; one whose driver hangs never does, and the page would wait on it forever. A tab the
+// browser froze meanwhile gets LATE_GRACE more, so its timer can't win against a write that did finish.
+export const limits = { open: 10000, write: 5000, sendCheck: 1500 };
+// The send check a programming cable gets as it opens (sendsData): this many bytes of 0xFF, through a port opened with a
+// buffer of SEND_CHECK_CHUNK, must leave within their time on the line plus limits.sendCheck. An adapter whose sending
+// side hung takes about 1-3 KB into the system's queue and then nothing more, while its receiving side still works, so
+// the radio's greeting arrives and none of the answers leave. The page opens its port with a 64 KB buffer, where every
+// write the page makes is taken at once, so only a write larger than all the queues together shows it. 0xFF holds the
+// line low for its start bit only: the least a radio that senses PTT on that line can see
+const SEND_CHECK_BYTES = 8192, SEND_CHECK_CHUNK = 256;
+// A port is closed only once what was written to it has had its time on the line, plus OUT_SETTLE ms for the adapter's
+// own FIFO, and never later than OUT_WAIT_MAX ms. A Prolific adapter on macOS whose port was closed with data still
+// going out took no data at all from then on, through every later open, until it was unplugged (that is how a cable
+// "got stuck" after the boot ROM wait, which keeps answers going out). No drain call does this: see sendsData
+const OUT_SETTLE = 150, OUT_WAIT_MAX = 3000;
+// ms the bytes take on the line at baudRate (8N1: 10 bits a byte)
+const lineMs = (bytes, baudRate) => Math.ceil((bytes * 10 * 1000) / (baudRate || 115200));
+const LATE_GRACE = 500;
+const LATE = Symbol("late");
+// p's result, or LATE when it takes longer than ms; p is never left as an unhandled rejection
+async function within(p, ms) {
+	let timer;
+	p.catch(() => {});
+	const late = new Promise((r) => { timer = setTimeout(() => r(LATE), ms); });
+	try {
+		const first = await Promise.race([p, late]);
+		return first !== LATE ? first : await Promise.race([p, sleep(LATE_GRACE).then(() => LATE)]);
+	} finally {
+		clearTimeout(timer);
+	}
+}
 
 export class SerialStream {
 	constructor(port) {
@@ -99,36 +158,63 @@ export class SerialStream {
 		this.buf = new Uint8Array(0);
 		this.closed = false;
 		this.lost = false;	// the pump ended without close(): the device is gone
+		this.fault = null;	// a CableError that ended the writing: every later write fails with it at once
+		this.lineErrors = 0;	// framing, parity and overrun errors and breaks since the port opened
 		// what came in since the port opened, for a report when nothing answered as expected (silence())
 		this.received = 0;
 		this.first = new Uint8Array(0);
+		this.outUntil = 0;	// Date.now() by which everything written so far has left (close waits for it)
 	}
 
 	static async request() {
-		const port = await navigator.serial.requestPort({ filters: [RFOUNDRY_USB] });
+		const port = await serialApi().requestPort({ filters: [RFOUNDRY_USB] });
 		return SerialStream.open(port);
 	}
 
 	// Any serial port (USB-serial programming cables on radios without USB)
 	static async requestAny() {
-		return SerialStream.open(await navigator.serial.requestPort());
+		return SerialStream.open(await serialApi().requestPort());
 	}
 
 	// Chrome's default 255 byte buffer stops the USB reads whenever the page is busy for a moment; the radio gives up
 	// on a reply the host doesn't take for a while (drivers/usb/usb_device.c), so a 2 KB read could lose its tail
+	// A USB-serial programming cable gets the send check first (sendsData): one whose adapter takes no data fails here,
+	// as a cable fault, instead of in a later step as a radio that never answers
 	static async open(port, baudRate = 115200) {
-		const opts = { baudRate, bufferSize: 65536 };
-		try {
-			await port.open(opts);
-		} catch (e) {
-			// still open from an earlier connection of this page (the user picked the same radio again): closed and
-			// opened afresh, so its settings are these
-			if (e?.name !== "InvalidStateError") throw e;
-			// a port another stream of this page is reading stays as it is: close() refuses it, and the error stands
-			try { await port.close(); } catch { throw e; }
-			note("serial port was still open: closed and opened again");
-			await port.open(opts);
+		const opening = (p) => within(p, limits.open).then((r) => {
+			if (r !== LATE) return;
+			note("serial port did not open", `${limits.open} ms`);
+			throw new CableError("stalled", `the port did not open within ${Math.round(limits.open / 1000)} s`);
+		});
+		const openFresh = async (opts) => {
+			try {
+				await opening(port.open(opts));
+			} catch (e) {
+				// still open from an earlier connection of this page (the user picked the same radio again): closed and
+				// opened afresh, so its settings are these
+				if (e?.name !== "InvalidStateError") throw e;
+				// a port another stream of this page is reading stays as it is: close() refuses it, and the error stands
+				try { await port.close(); } catch { throw e; }
+				note("serial port was still open: closed and opened again");
+				await opening(port.open(opts));
+			}
+		};
+		if (usbSerialChip(port.getInfo?.()) && !(port instanceof UsbSerialPort)) {
+			await openFresh({ baudRate, bufferSize: SEND_CHECK_CHUNK });
+			let sent;
+			try {
+				sent = await sendsData(port, baudRate);
+			} finally {
+				try {
+					if ((await within(port.close(), limits.write)) === LATE) note("serial port did not close after the send check", `${limits.write} ms`);
+				} catch (e) { note("serial port did not close after the send check", String(e?.message || e)); }
+			}
+			if (!sent.ok) {
+				note("serial send check failed", `${sent.bytes} of ${SEND_CHECK_BYTES} bytes taken in ${sent.ms} ms`);
+				throw new CableError("stalled", `the cable took ${sent.bytes} of ${SEND_CHECK_BYTES} bytes and then nothing more`);
+			}
 		}
+		await openFresh({ baudRate, bufferSize: 65536 });
 		const s = new SerialStream(port);
 		s.baud = baudRate;
 		s.pumping = s.pump();
@@ -154,6 +240,7 @@ export class SerialStream {
 				// reply unread ("nothing received"). A lost device has no readable, which ends the loop.
 				const soft = SOFT_READ_ERRORS.has(e?.name);
 				if (soft) glitches++;
+				if (soft) this.lineErrors++;
 				if (!this.closed && (!soft || glitches <= GLITCH_BURST || glitches % GLITCH_NOTE === 0))
 					note(soft ? `serial read error${glitches > 1 ? ` (${glitches} in a row)` : ""}, reading on` : "serial read stopped", String(e?.message || e));
 				if (!soft) break;
@@ -166,11 +253,26 @@ export class SerialStream {
 		if (!this.closed) this.lost = true;
 	}
 
-	// A port whose device went away has no writable: that is a lost connection (errorKey), not a TypeError
+	// A port whose device went away has no writable: that is a lost connection (errorKey), not a TypeError. A write
+	// the adapter never takes (its driver hung, its USB endpoint stalled) ends as a cable fault after limits.write
+	// and its time on the line, instead of holding the page for good; what is still queued is dropped, and the
+	// stream takes no more writes: the cable is opened afresh
 	async write(data) {
+		if (this.fault) throw this.fault;
 		if (!this.port.writable) throw new DOMException("The device has been lost.", "NetworkError");
 		const w = this.port.writable.getWriter();
-		try { await w.write(data); } finally { w.releaseLock(); }
+		this.outUntil = Math.max(Date.now(), this.outUntil) + lineMs(data.length, this.baud);
+		try {
+			const ms = limits.write + lineMs(data.length, this.baud);
+			if ((await within(w.write(data), ms)) === LATE) {
+				this.fault = new CableError("stalled", `the cable took no data for ${Math.round(ms / 1000)} s`);
+				note("serial write stalled", `${data.length} bytes, ${ms} ms`);
+				Promise.resolve(w.abort?.()).catch(() => {});
+				throw this.fault;
+			}
+		} finally {
+			try { w.releaseLock(); } catch (e) { /* a writer the abort already let go */ }
+		}
 	}
 
 	clear() { this.buf = new Uint8Array(0); }
@@ -183,14 +285,45 @@ export class SerialStream {
 
 	// The port closes only once the pump has let go of its reader: WebSerial refuses to close a port whose stream is
 	// still locked, and a port left open fails the next connection with "The port is already open"
+	// What was written leaves first (OUT_SETTLE): a port closed with data going out can stop a cable for good. Not after
+	// a stalled write: nothing leaves then
 	async close() {
 		this.closed = true;
+		const wait = Math.min(this.outUntil + OUT_SETTLE - Date.now(), OUT_WAIT_MAX);
+		if (!this.fault && wait > 0) await sleep(wait);
 		try { await this.reader?.cancel(); } catch (e) { /* gone */ }
 		// a pump that never ends (a browser that doesn't settle the read) must not hang the page's close
 		await Promise.race([this.pumping, sleep(2000)]);
 		try { await this.port.close(); } catch (e) { note("serial port did not close", String(e?.message || e)); }
 	}
 }
+
+// The send check on a port just opened with a SEND_CHECK_CHUNK buffer: {ok, bytes taken, ms}. Never closes or drains
+// the writer: Chromium drains on the browser's main thread, and on an adapter that sends nothing that froze the whole
+// browser. A write left pending is aborted instead, which drops it at once.
+export async function sendsData(port, baudRate = 115200) {
+	const w = port.writable.getWriter();
+	const chunk = new Uint8Array(SEND_CHECK_CHUNK).fill(0xFF);
+	const t0 = Date.now();
+	const until = t0 + lineMs(SEND_CHECK_BYTES, baudRate) + limits.sendCheck;
+	let bytes = 0;
+	try {
+		while (bytes < SEND_CHECK_BYTES) {
+			if ((await within(w.write(chunk), Math.max(1, until - Date.now()))) === LATE) break;
+			bytes += chunk.length;
+		}
+	} finally {
+		if (bytes < SEND_CHECK_BYTES) await within(Promise.resolve(w.abort?.()), 1000);
+		try { w.releaseLock(); } catch (e) { /* a writer the abort already let go */ }
+	}
+	const ms = Date.now() - t0;
+	// a cable that sends gets the burst out before its port is closed (OUT_SETTLE): the queues still hold up to a few KB
+	if (bytes >= SEND_CHECK_BYTES) await sleep(Math.max(0, lineMs(SEND_CHECK_BYTES, baudRate) - ms) + OUT_SETTLE);
+	return { ok: bytes >= SEND_CHECK_BYTES, bytes, ms };
+}
+
+// Between the tries of a codeplug read, in ms: about 13 s of silence in all before it gives up
+const CPS_RETRY_WAIT = [300, 1000, 2000, 3000];
 
 export class Link {
 	constructor(stream, { timeout = 1500 } = {}) {
@@ -224,13 +357,64 @@ export class Link {
 		this.s.take(reply.end);
 		wire(`cmd 0x${cmd.toString(16)} seq ${seq} len ${payload.length}: status ${reply.payload[0]} len ${reply.payload.length}`);
 		if (!reply.payload.length || reply.payload[0] !== 0) {
-			throw Object.assign(new LinkError(`command 0x${cmd.toString(16)}: status ${reply.payload[0]}`), { status: reply.payload[0] });
+			const satelliteOperation = cmd === CMD.SATELLITE && payload.length ? payload[0] : undefined;
+			const operation = satelliteOperation === undefined ? "" :
+				` operation 0x${satelliteOperation.toString(16).padStart(2, "0")}` +
+				(satelliteOperation === 12 && payload.length >= 6 ?
+					` profiles ${payload[4] + 1}-${payload[4] + payload[5]} of ${payload[3]}` : "");
+			throw Object.assign(new LinkError(`command 0x${cmd.toString(16)}${operation}: status ${reply.payload[0]}`),
+				{ status: reply.payload[0], operation: cmd === CMD.SATELLITE ? payload[0] : undefined });
 		}
 		return reply.payload.subarray(1);
 	}
 
 	async version() {
 		return parseKv(new TextDecoder().decode(await this.request(CMD.VERSION)));
+	}
+
+	// HWOPT LIST (debuglink.md 3.25): [{name, value (-1: none stored), restart, choices, state}]; state ok, ask,
+	// restart or hidden (a firmware without the key: ask while nothing is stored, else ok)
+	async hwopts() {
+		const kv = parseKv(new TextDecoder().decode(await this.request(CMD.HWOPT, new Uint8Array([0]))));
+		return Array.from({ length: Number(kv["hwopt.count"] || 0) }, (_, i) => {
+			const value = Number(kv[`hwopt.${i}.value`] ?? -1);
+			return { name: kv[`hwopt.${i}.name`] || "", value, restart: kv[`hwopt.${i}.restart`] === "1",
+				choices: (kv[`hwopt.${i}.choices`] || "").split("|"), state: kv[`hwopt.${i}.state`] || (value < 0 ? "ask" : "ok") };
+		});
+	}
+
+	// HWOPT SET: store a choice (LinkError status 7 when the radio refuses: transmitting, or the board can't store it)
+	async hwoptSet(option, choice) {
+		await this.request(CMD.HWOPT, new Uint8Array([1, option, choice]));
+	}
+
+	// SUPPORT INFO (debuglink.md 3.29): {source, repo, hw.<part>, image.addr, image.size}; null from firmware without
+	// the command (status 1 unknown, 4 not built in)
+	async support() {
+		try {
+			return parseKv(new TextDecoder().decode(await this.request(CMD.SUPPORT, new Uint8Array([0]))));
+		} catch (e) {
+			if (e instanceof LinkError && (e.status === 1 || e.status === 4)) return null;
+			throw e;
+		}
+	}
+
+	// SUPPORT HASH: the firmware image's SHA-256 (hex), at most 32 KB a request so the radio carries on between them;
+	// progress(done, size) after each step. null when the radio has no image span or no SUPPORT command
+	async imageHash(progress = () => {}) {
+		for (let i = 0; i < 4096; i++) {
+			let kv;
+			try {
+				kv = parseKv(new TextDecoder().decode(await this.request(CMD.SUPPORT, new Uint8Array([1]))));
+			} catch (e) {
+				if (e instanceof LinkError && (e.status === 1 || e.status === 4)) return null;
+				throw e;
+			}
+			if (kv["image.state"] === "done") return kv["image.sha256"] || null;
+			if (kv["image.state"] !== "pending") return null;
+			progress(Number(kv["image.done"] || 0), Number(kv["image.size"] || 0));
+		}
+		throw new LinkError("image hash: no end");
 	}
 
 	// INFO_CHIP (debuglink.md 3.9), offsets after the status byte
@@ -315,10 +499,11 @@ export class Link {
 	// ---- open-firmware CPS
 
 	// R area addr len: the reply is "R" + length (BE) + data, or "-" when refused. A read changes nothing, so one
-	// that went unanswered or came back short is asked again, after the rest of a broken reply has drained.
-	async cpsRead(area, addr, len, tries = 3) {
+	// that went unanswered or came back short is asked again, after the rest of a broken reply has drained. The waits
+	// grow: a radio busy for a few seconds (a memory chip erase) must not end a minute-long backup halfway
+	async cpsRead(area, addr, len, tries = 5) {
 		for (let i = 0; i < tries; i++) {
-			if (i) await sleep(300);
+			if (i) await sleep(CPS_RETRY_WAIT[Math.min(i, CPS_RETRY_WAIT.length) - 1]);
 			this.s.clear();
 			await this.s.write(concat(new Uint8Array([0x52, area]), be32(addr), new Uint8Array([len >> 8, len & 0xFF])));
 			const got = await this.waitFor((buf) => {
@@ -328,7 +513,11 @@ export class Link {
 			});
 			this.s.clear();
 			wire(`R ${area} 0x${addr.toString(16)} ${len}: ${got === undefined ? "no answer" : got === null ? "refused" : `${got.length} bytes`}`);
-			if (got !== undefined) return got;	// null: refused (out of range, not offered)
+			if (got !== undefined) {
+				// a radio that went quiet and came back: the trail keeps it, for the report of a later failure
+				if (i) note("codeplug read answered after retries", { addr: `0x${addr.toString(16)}`, tries: i + 1 });
+				return got;	// null: refused (out of range, not offered)
+			}
 		}
 		throw new LinkError(`no answer to a codeplug read at 0x${addr.toString(16)}`);
 	}
@@ -414,8 +603,8 @@ export async function probe(link) {
 // Ports this site was granted before and that are plugged in now (the browser's chooser marks them paired), as a
 // chooser with these filters would list them
 export async function grantedPorts(filters) {
-	if (!navigator.serial?.getPorts) return [];
-	return (await navigator.serial.getPorts()).filter((p) => {
+	if (!serialSupported()) return [];
+	return (await serialApi().getPorts()).filter((p) => {
 		const i = p.getInfo();
 		return filters.some((f) => i.usbVendorId === f.usbVendorId && (f.usbProductId === undefined || i.usbProductId === f.usbProductId));
 	});
@@ -424,18 +613,23 @@ export async function grantedPorts(filters) {
 // A granted port (grantedPorts) whose radio answers, so the page needs no chooser: want(probe) says whether it's the
 // radio expected. {stream, port, probe}, or null (none answered, the page shows the chooser). The probe is short: the
 // chooser opens only within a few seconds of the click that asked for it
+// A cable that fails its send check (SerialStream.open) is the answer when no other port is: its CableError is thrown,
+// so the page says what to do instead of opening it once more
 export async function knownRadioPort(filters, want = () => true) {
+	let stuck = null;
 	for (const port of await grantedPorts(filters)) {
 		let stream;
 		try {
 			stream = await SerialStream.open(port);
-		} catch {
-			continue;	// held by another tab or program
+		} catch (e) {
+			if (e instanceof CableError) stuck = e;
+			continue;	// held by another tab or program, or a cable that sends nothing
 		}
 		const p = await probe(new Link(stream, { timeout: 700 }));
 		if (p && want(p)) return { stream, port, probe: p };
 		try { await stream.close(); } catch { /* gone */ }
 	}
+	if (stuck) throw stuck;
 	return null;
 }
 

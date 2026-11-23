@@ -10,6 +10,7 @@
 #include "storage/storage.h"
 #include "settings/settings.h"
 #include "sat/sat_store.h"
+#include "codeplug/scan_list.h"
 #include "sim/sim_flash.h"
 
 static int failures;
@@ -28,9 +29,10 @@ static const hal_flash_map_t map = {
 	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = FLASH_SIZE,
 	.calibration_addr = 0x10000u, .calibration_size = 0x200u,
 	.sat_addr = 0x1B000u, .sat_size = 0x2000u,
+	.scan_addr = 0x1D000u, .scan_size = 0x2000u,
 };
 
-const board_t board = { .name = "test", .flash = &sim_flash };
+const board_t board = { .name = "test", .flash = &sim_flash, .power_count = 5 };
 
 static void boot(void)
 {
@@ -137,6 +139,7 @@ static void test_settings_basic(void)
 	CHECK(st.load == SETTINGS_DEFAULTS && st.seq == 0);
 	settings_read(&s);
 	CHECK(s.brightness == 100 && s.squelch == SETTINGS_UNSET8 && s.beeps == 1);
+	CHECK(s.satellite_index == SETTINGS_UNSET8);
 	CHECK((s.accent & SETTINGS_AUDIO_MASK) == 0);	// noise reduction on, AGC off (a record from before them: also 0)
 	// Zone shares accepted by default, and by a record that stored the old Off (0) or Ask (1); only 2 turns them off
 	CHECK(s.zs_offers == 0 && settings_zs_accept(&s));
@@ -148,7 +151,7 @@ static void test_settings_basic(void)
 	settings_t *w = settings_begin();
 	w->vfo_rx_hz = 146520000;
 	w->squelch = 3;
-	strcpy(w->radio_name, "N0CALL");
+	strcpy(w->radio_name, "Q0TEST");
 	w->accent = SETTINGS_AUDIO_NO_NOISE_REDUCTION | SETTINGS_AUDIO_AGC | 3u;	// beside a highlight color
 	settings_end(1000);
 	settings_poll(1500);			// not rested yet
@@ -174,7 +177,7 @@ static void test_settings_basic(void)
 	settings_get_stats(&st);
 	settings_read(&s);
 	CHECK(st.load == SETTINGS_LOADED && st.seq == 2);
-	CHECK(s.vfo_rx_hz == 146520000 && s.squelch == 4 && strcmp(s.radio_name, "N0CALL") == 0);
+	CHECK(s.vfo_rx_hz == 146520000 && s.squelch == 4 && strcmp(s.radio_name, "Q0TEST") == 0);
 	CHECK(s.accent == (SETTINGS_AUDIO_NO_NOISE_REDUCTION | SETTINGS_AUDIO_AGC | 3u));
 
 	// A change undone before the save: nothing written
@@ -383,6 +386,22 @@ static void sat_record(uint32_t addr, uint32_t norad)
 	}
 }
 
+// One of our scan list records at addr (scan-list.md 3: the frame the claim checks; the fields don't matter)
+static void scan_record(uint32_t addr, uint8_t tag)
+{
+	uint8_t *r = sim_flash_data + addr;
+	memset(r, 0, SCAN_LIST_RECORD);
+	for (unsigned k = 0; k < 4; k++) {
+		r[k] = (uint8_t)(SCAN_LIST_MAGIC >> (8 * k));
+	}
+	r[4] = SCAN_LIST_LAYOUT;
+	r[8] = tag;
+	uint32_t crc = storage_crc32(0, r, SCAN_LIST_RECORD - 4);
+	for (unsigned k = 0; k < 4; k++) {
+		r[SCAN_LIST_RECORD - 4 + k] = (uint8_t)(crc >> (8 * k));
+	}
+}
+
 // A boot that may find the region foreign (boot() checks it isn't)
 static bool boot_any(void)
 {
@@ -411,6 +430,12 @@ static void test_foreign(void)
 	sat_record(sat0 + 8 * SAT_STORE_RECORD, 25544);
 	sat_record(sat1, 43017);
 	sat_record(sat1 + 31 * SAT_STORE_RECORD, 27607);
+	// The scan list area: its bytes over the first two slots, our lists in slots 5 and 9 (second sector: only ours)
+	const uint32_t scan0 = map.scan_addr, scan1 = map.scan_addr + STORAGE_SECTOR;
+	junk(scan0, 300, 5);
+	scan_record(scan0 + 5 * SCAN_LIST_RECORD, 'A');
+	scan_record(scan0 + 9 * SCAN_LIST_RECORD, 'B');
+	scan_record(scan1 + 15 * SCAN_LIST_RECORD, 'C');
 	uint8_t *snap = malloc(FLASH_SIZE);
 	memcpy(snap, sim_flash_data, FLASH_SIZE);
 	uint32_t u0 = sim_flash_units();
@@ -441,6 +466,8 @@ static void test_foreign(void)
 	CHECK(storage_debug_read_allowed(jr, 2 * STORAGE_SECTOR));
 	CHECK(storage_debug_read_allowed(map.calibration_addr, map.calibration_size));
 	CHECK(storage_debug_read_allowed(map.sat_addr, map.sat_size));	// the claim erases it too
+	CHECK(storage_debug_read_allowed(map.scan_addr, map.scan_size));
+	CHECK(!storage_debug_read_allowed(map.scan_addr + map.scan_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(map.sat_addr + map.sat_size - 1, 2));
 	CHECK(!storage_debug_read_allowed(ring - 1, 2));
 	CHECK(!storage_debug_read_allowed(jr + 2 * STORAGE_SECTOR - 1, 2));
@@ -452,6 +479,7 @@ static void test_foreign(void)
 	// and keeps our records (the second sector not even erased), then saves what the radio runs with
 	CHECK(storage_claim_request() && storage_claim_pending());
 	uint32_t e0 = sim_flash_erases(sat0), e1 = sim_flash_erases(sat1);
+	uint32_t se0 = sim_flash_erases(scan0), se1 = sim_flash_erases(scan1);
 	settings_poll(6000);
 	CHECK(storage_region() == STORAGE_REGION_OURS && storage_ready() && !storage_claim_pending());
 	settings_get_stats(&st);
@@ -464,6 +492,13 @@ static void test_foreign(void)
 	CHECK(memcmp(snap + sat0 + 4 * SAT_STORE_RECORD, sim_flash_data + sat0 + 4 * SAT_STORE_RECORD,
 	             2 * STORAGE_SECTOR - 4 * SAT_STORE_RECORD) == 0);	// our three records, and nothing else
 	CHECK(sim_flash_erases(sat0) == e0 + 1 && sim_flash_erases(sat1) == e1);
+	// The scan list area the same way: the other bytes gone, our three lists kept, the second sector not erased
+	for (uint32_t i = 0; i < 5 * SCAN_LIST_RECORD; i++) {
+		CHECK(sim_flash_data[scan0 + i] == 0xFF);
+	}
+	CHECK(memcmp(snap + scan0 + 5 * SCAN_LIST_RECORD, sim_flash_data + scan0 + 5 * SCAN_LIST_RECORD,
+	             2 * STORAGE_SECTOR - 5 * SCAN_LIST_RECORD) == 0);
+	CHECK(sim_flash_erases(scan0) == se0 + 1 && sim_flash_erases(scan1) == se1);
 	CHECK(memcmp(snap + 0x20000, sim_flash_data + 0x20000, FLASH_SIZE - 0x20000) == 0);	// nothing else touched
 	CHECK(storage_sector_write(0x3000u, a));
 	CHECK(boot_any());
@@ -565,10 +600,11 @@ static void test_native_and_jobs(void)
 	sim_flash_power_on();
 	CHECK(memcmp(&sim_flash_data[na], magic, 4) == 0 && sim_flash_data[na + 0x6000u] == 0xFF);
 	CHECK(storage_native_erase() == STORAGE_NATIVE_ERASED && sim_flash_data[na + 0x1000u] == 0xFF);
-	// No native area in the map: refused
+	// No native area in the map (a small chip's): nothing to empty, so a factory reset doesn't stop on it
 	sim_flash_create(FLASH_SIZE, &map);
 	boot();
-	CHECK(storage_native_erase() == STORAGE_NATIVE_FAILED);
+	e0 = sim_flash_units();
+	CHECK(storage_native_erase() == STORAGE_NATIVE_BLANK && sim_flash_units() == e0);
 
 	// Jobs: one at a time, run by the poll, then the next may come
 	int one = 1;
@@ -630,13 +666,111 @@ static void test_settings_gateway_upgrade(void)
 	CHECK(st.load == SETTINGS_UPGRADED && st.seq == 2 && s.squelch == 4 && s.ds_stored == 1 &&
 	      s.vfo2_rx_hz == 446006250u && s.ds_ip_gateway == 0);
 	// The next save stores it, and it loads whole
-	settings_begin()->ds_ip_gateway = 3101276u;
+	settings_begin()->ds_ip_gateway = 9996543u;
 	settings_end(1);
 	CHECK(settings_flush());
 	boot();
 	settings_read(&s);
 	settings_get_stats(&st);
-	CHECK(st.load == SETTINGS_LOADED && s.ds_ip_gateway == 3101276u && s.vfo2_rx_hz == 446006250u);
+	CHECK(st.load == SETTINGS_LOADED && s.ds_ip_gateway == 9996543u && s.vfo2_rx_hz == 446006250u);
+}
+
+// Stored power levels count against the board's level count (power_levels): a record from before it (0), or from a
+// build whose board had another count, loads with the levels back to the defaults, since the same index may name a
+// higher power now; a record of this count keeps them
+static void power_record(uint32_t seq, uint8_t levels)
+{
+	settings_t old;
+	settings_defaults(&old);
+	old.squelch = 3;
+	old.vfo_power = 4;
+	old.master_power = 4;
+	old.aprs_power = 5;
+	old.vfo2_power = 3;
+	old.power_levels = levels;
+	sim_flash_create(FLASH_SIZE, &map);
+	put_record(&map, 0, 0, seq, SETTINGS_LAYOUT | (1u << SETTINGS_PAGE_SHIFT),
+		   (uint16_t)(sizeof(settings_t) - SETTINGS_PAGE_BYTES), (const uint8_t *)&old + SETTINGS_PAGE_BYTES, true,
+		   true);
+	put_record(&map, 0, 1, seq + 1u, SETTINGS_LAYOUT, SETTINGS_PAGE_BYTES, &old, true, true);
+	boot();
+}
+
+static void test_settings_power_levels(void)
+{
+	settings_t s;
+	settings_stats_t st;
+
+	CHECK(board.power_count == 5);
+	settings_defaults(&s);
+	CHECK(s.power_levels == 5);
+	static const uint8_t other[] = { 0, 2, 9 };	// an older record, then other counts
+	for (unsigned i = 0; i < sizeof(other); i++) {
+		power_record(1, other[i]);
+		settings_read(&s);
+		settings_get_stats(&st);
+		CHECK(st.load == SETTINGS_LOADED && s.squelch == 3);
+		CHECK(s.vfo_power == SETTINGS_UNSET8 && s.vfo2_power == SETTINGS_UNSET8 &&
+		      s.master_power == SETTINGS_UNSET8 && s.aprs_power == 0 && s.power_levels == 5);
+	}
+	power_record(1, 5);
+	settings_read(&s);
+	CHECK(s.vfo_power == 4 && s.vfo2_power == 3 && s.master_power == 4 && s.aprs_power == 5 && s.power_levels == 5);
+	// A level chosen after the reset is saved with the count, and kept
+	power_record(1, 0);
+	settings_begin()->master_power = 1;
+	settings_end(1);
+	CHECK(settings_flush());
+	boot();
+	settings_read(&s);
+	CHECK(s.master_power == 1 && s.vfo_power == SETTINGS_UNSET8 && s.power_levels == 5);
+}
+
+// hal_flash_map_end: where a map's highest area ends, so a driver can refuse a map its chip is too small for
+static void test_map_end(void)
+{
+	hal_flash_map_t m = { .settings_addr = 0x711000u, .settings_size = 0x8000u, .journal_addr = 0x719000u,
+			      .openfw_eeprom = 0x700000u, .openfw_flash = 0x720000u, .openfw_end = 0xF00000u,
+			      .native_addr = 0xF00000u, .native_size = 0x100000u };
+	CHECK(hal_flash_map_end(&m, 4096) == 0x1000000u);	// a 16 MB chip holds it, an 8 MB one doesn't
+	m.native_size = 0;
+	CHECK(hal_flash_map_end(&m, 4096) == 0xF00000u);
+	m.staging_addr = 0xF40000u;
+	m.staging_size = 0x40000u;
+	CHECK(hal_flash_map_end(&m, 4096) == 0xF80000u);
+	m.staging_size = 0x3D000u;
+	m.satellite_addr = 0xF7D000u;
+	m.satellite_size = 0x3000u;
+	CHECK(hal_flash_map_end(&m, 4096) == 0xF80000u);
+	hal_flash_map_t low = { .settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
+				.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = 0x10000u };
+	CHECK(hal_flash_map_end(&low, 4096) == 0x1B000u);		// the journal's 2 erase units end it
+	CHECK(hal_flash_map_end(&low, 0x10000u) == 0x39000u);
+	low.calibration_addr = 0x40000u;
+	low.calibration_size = 0x1000u;
+	CHECK(hal_flash_map_end(&low, 4096) == 0x41000u);
+	low.calibration_size = 0;			// an area of size 0 is none, wherever its address points
+	low.staging_addr = 0x80000u;
+	CHECK(hal_flash_map_end(&low, 4096) == 0x1B000u);
+}
+
+// hal_flash_map_for: a board with two chip sizes (a 16 MB map and a 1 MB one) gets the map its chip holds, and a chip
+// smaller than both gets none. Before the small map, a 1 MB part stored nothing and lost its settings at every restart
+static void test_map_for(void)
+{
+	const hal_flash_map_t big = { .settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
+				      .openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = 0xE00000u,
+				      .native_addr = 0xE00000u, .native_size = 0x100000u,
+				      .staging_addr = 0xF00000u, .staging_size = 0x40000u };
+	const hal_flash_map_t small = { .settings_addr = 0x11000u, .settings_size = 0x8000u, .journal_addr = 0x19000u,
+					.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = 0x100000u };
+	CHECK(hal_flash_map_for(&big, &small, 0x1000000u, 4096) == &big);
+	CHECK(hal_flash_map_for(&big, &small, 0x800000u, 4096) == &small);
+	CHECK(hal_flash_map_for(&big, &small, 0x100000u, 4096) == &small);
+	CHECK(hal_flash_map_for(&big, &small, 0x80000u, 4096) == NULL);
+	CHECK(hal_flash_map_for(&big, NULL, 0x100000u, 4096) == NULL);		// a board with one map: as before
+	CHECK(hal_flash_map_for(&big, NULL, 0x1000000u, 4096) == &big);
+	CHECK(hal_flash_map_for(NULL, NULL, 0x1000000u, 4096) == NULL);
 }
 
 // The crash report's mode and target live in spare bits of accent, theme and updown_home (settings.h): each field
@@ -665,28 +799,41 @@ static void test_crash_bits(void)
 	}
 	settings_set_crash_mode(&s, 1);
 	CHECK(settings_crash_mode(&s) == 1 && (s.accent & 0x0F) == (5 | SETTINGS_ACCENT_PLAIN) && !(s.accent & 0xC0));
-	CHECK(!(s.updown_home & 0x80));		// bit 7 stays free until the fifth theme takes it
-	s.theme = 3;				// night, the last value bits 0-1 can hold
+	CHECK(!(s.updown_home & 0x80));		// bit 7 stays free
+	s.theme = 0xFF;				// bits 0-1 have no out-of-range value: 3 is the night theme
 	CHECK(settings_theme(&s) == 3);
-	// The fifth theme, terminal: its bit 2 is updown_home bit 7, and every other field keeps its value
+#if CONFIG_SAT
+	// The phosphor themes of a satellite build (4..7): the theme's bit 2 is sat_flags bit 2, every other field keeps its value
 	s.theme = 2;
 	s.updown_home = 1;
 	settings_set_crash_contact(&s, 1234);
 	settings_set_theme(&s, 4);
-	CHECK(settings_theme(&s) == 4 && (s.theme & 3u) == 0 && (s.updown_home & 0x80u) && settings_updown_home(&s) == 1);
+	CHECK(settings_theme(&s) == 4 && (s.theme & 3u) == 0 && (s.sat_flags & SETTINGS_SAT_THEME_HIGH) && settings_updown_home(&s) == 1);
 	CHECK(settings_crash_contact(&s) == 1234 && settings_crash_mode(&s) == 1);
-	settings_set_theme(&s, 3);
-	CHECK(settings_theme(&s) == 3 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 1234);
-	settings_set_theme(&s, 4);
-	settings_set_crash_contact(&s, 7);	// setting the target leaves the theme's bit
-	CHECK(settings_theme(&s) == 4 && settings_crash_contact(&s) == 7 && settings_updown_home(&s) == 1);
-	settings_set_theme(&s, 0);
-	CHECK(settings_theme(&s) == 0 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 7);
-	// Orange and the two inverse themes fill the eight values: each reads back with the other fields intact
 	for (uint8_t th = 0; th <= 7; th++) {
 		settings_set_theme(&s, th);
-		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 7);
+		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 1234);
 	}
+#endif
+}
+
+// The Settings > Sound tones share sound_flags with the knob lock: each keeps its bits, and firmware from before the
+// tones (which only sets and clears SETTINGS_KNOB_LOCK) leaves them as they are
+static void test_sound_flags(void)
+{
+	settings_t s;
+	memset(&s, 0, sizeof s);
+	CHECK(settings_tones_off(&s) == 0);		// an older record: every tone on
+	s.sound_flags = SETTINGS_KNOB_LOCK;
+	settings_set_tones_off(&s, 0x0A);
+	CHECK(settings_tones_off(&s) == 0x0A && (s.sound_flags & SETTINGS_KNOB_LOCK));
+	settings_set_tones_off(&s, 0xFF);		// only four bits are kept
+	CHECK(settings_tones_off(&s) == 0x0F && (s.sound_flags & 0x0Eu) == 0);
+	s.sound_flags &= (uint8_t)~SETTINGS_KNOB_LOCK;	// an older firmware's knob change
+	CHECK(settings_tones_off(&s) == 0x0F);
+	s.sound_flags |= SETTINGS_KNOB_LOCK;
+	settings_set_tones_off(&s, 0);
+	CHECK(settings_tones_off(&s) == 0 && s.sound_flags == SETTINGS_KNOB_LOCK);
 }
 
 // The last dual watch B in beeps bits 1-7 and mic_gain bits 4-7: every code reads back, beeps and the mic gain stay
@@ -705,7 +852,7 @@ static void test_settings_pages(void)
 	w->dual_b = 1026;
 	w->dual_state = SETTINGS_DUAL_ON | SETTINGS_DUAL_B_SEL;
 	w->vfo2_rx_hz = 446006250u;
-	w->vfo2_talk = 0x80000000u | 3101276u;
+	w->vfo2_talk = 0x80000000u | 9996543u;
 	settings_end(1);
 	CHECK(settings_flush());
 	boot();
@@ -713,7 +860,7 @@ static void test_settings_pages(void)
 	settings_get_stats(&st);
 	CHECK(st.load == SETTINGS_LOADED && s.squelch == 6 && s.dual_b == 1026 &&
 	      s.dual_state == (SETTINGS_DUAL_ON | SETTINGS_DUAL_B_SEL) && s.vfo2_rx_hz == 446006250u &&
-	      s.vfo2_talk == (0x80000000u | 3101276u));
+	      s.vfo2_talk == (0x80000000u | 9996543u));
 
 	// An older firmware saves page 0 only (seq 3, after this firmware's 1 and 2)
 	pl = s;
@@ -857,7 +1004,15 @@ static void test_settings_layout(void)
 		{ offsetof(settings_t, zone_jrn_index), 272 },
 		{ offsetof(settings_t, zone_jrn_count), 274 },
 		{ offsetof(settings_t, zone_jrn_kind), 276 },
+		{ offsetof(settings_t, t3_stun), 396 },
+		{ offsetof(settings_t, t3_kill), 397 },
+		{ offsetof(settings_t, satellite_index), 398 },
+		{ offsetof(settings_t, reserved10), 399 },
+		{ offsetof(settings_t, sig_dmr), 400 },
+		{ offsetof(settings_t, sig_fm), 403 },
+		{ offsetof(settings_t, reserved11), 406 },
 	};
+	CHECK(sizeof(settings_t) == 408);
 	for (unsigned i = 0; i < sizeof(offs) / sizeof(offs[0]); i++) {
 		if (offs[i].got != offs[i].want) {
 			printf("FAIL settings_t field %u at %zu, layout 1 has it at %zu\n", i, offs[i].got, offs[i].want);
@@ -899,9 +1054,9 @@ static void test_settings_layout(void)
 	      settings_vfo_talk_private(&s));
 	settings_set_vfo_mode_bw(&s, 1, 1);
 	CHECK(settings_vfo_mode(&s) == 1 && settings_vfo_bw(&s) == 1 && settings_vfo_talk_id(&s) == 0xABCDEFu);
-	settings_set_vfo_talk(&s, 3101276, false);
-	CHECK(settings_vfo_cc(&s) == 15 && settings_vfo_ts(&s) == 1 && settings_vfo_talk_id(&s) == 3101276 &&
-	      !settings_vfo_talk_private(&s) && s.vfo_talk_lo == (3101276 & 0xFF) && settings_vfo_mode(&s) == 1 &&
+	settings_set_vfo_talk(&s, 9996543, false);
+	CHECK(settings_vfo_cc(&s) == 15 && settings_vfo_ts(&s) == 1 && settings_vfo_talk_id(&s) == 9996543 &&
+	      !settings_vfo_talk_private(&s) && s.vfo_talk_lo == (9996543 & 0xFF) && settings_vfo_mode(&s) == 1 &&
 	      settings_vfo_bw(&s) == 1);
 }
 
@@ -1151,8 +1306,12 @@ int main(void)
 	test_native_and_jobs();
 	test_settings_layout();
 	test_crash_bits();
+	test_sound_flags();
+	test_map_end();
+	test_map_for();
 	test_settings_pages();
 	test_settings_gateway_upgrade();
+	test_settings_power_levels();
 	test_settings_bad_records();
 	test_settings_worn_sector();
 	test_write_across_sectors();

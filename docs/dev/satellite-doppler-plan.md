@@ -97,7 +97,8 @@ What it means:
   least nothing was heard), so the interval below is set from the level only.
 
 Proposed numbers for phase 2, to adjust after a real pass: retune when the needed frequency differs from the tuned one by
-1.5 kHz or more; at most once every 5 seconds; no wait for a gap.
+1.5 kHz or more; at most once every 5 seconds; no wait for a gap. (After the first SO-50 pass on the radio, 2026-11-15, a signal
+1.5 kHz off was too far: the numbers are now 500 Hz and 3 seconds.)
 
 ## Open items
 

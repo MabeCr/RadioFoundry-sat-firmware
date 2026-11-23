@@ -32,7 +32,25 @@ typedef struct {
 	// bpp 4 instead of flush: the same with the palette, 16 RGB565 colors the indexes stand for
 	void (*flush_indexed)(const void *fb, const uint16_t *palette, uint16_t y0, uint16_t y1);
 	void (*set_backlight)(uint8_t percent);
-	// Optional, for the debug link
+	// Optional: turn the picture 180 degrees (Settings > Display > Flip screen, for a radio worn upside down) by the
+	// controller's scan direction, so it costs nothing per frame. The next flush must send every row: the rows already
+	// in the panel keep the old orientation until they are written again. The safe area above must be the same on
+	// opposite edges (top and bottom, left and right), as the flip doesn't swap it. A board without it has no setting
+	void (*set_flip)(bool flipped);
+	// Optional, for the backlight tests (Settings > Advanced > Backlight tests, CONFIG_BACKLIGHT_TEST): the PWM compare value straight, 0
+	// (off) .. backlight_raw_max (on through the whole period), and the one in force. A board without them has the
+	// brightness page alone
+	uint16_t backlight_raw_max;
+	void (*set_backlight_raw)(uint16_t value);
+	uint16_t (*backlight_raw)(void);
+	// Optional, with the above: the PWM rates the board can run, fastest first, backlight_rate_std its standard one.
+	// Selects rate i (< backlight_rates) and returns its frequency in Hz; the compare value keeps its meaning at every
+	// rate. Without them (or with one rate) there is no rate page
+	uint8_t backlight_rates;
+	uint8_t backlight_rate_std;
+	uint32_t (*set_backlight_rate)(uint8_t i);
+	// Optional, for the debug link and the support info. Fills only what the board knows: the caller clears the
+	// struct first (factory -1)
 	void (*panel)(hal_display_panel_t *p);
 } hal_display_t;
 

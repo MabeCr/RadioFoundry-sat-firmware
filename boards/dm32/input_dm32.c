@@ -108,9 +108,10 @@ static uint32_t scan(void)
 {
 	hrc_gpio_watch_scan();
 	uint32_t raw = scan_matrix();
-	uint32_t rx_ms;
-	bool rx_seen = hrc_host_uart_last_rx(&rx_ms);
-	if (shared_ptt_pressed(&ptt_gate, !hrc_pin_read(PIN_PTT), rx_seen, rx_ms, hal_millis())) {
+	shared_ptt_line_t line = { .flagged = hrc_host_uart_line_errors(), .keyed = dm32_radio_transmitting() };
+	line.rx_seen = hrc_host_uart_last_rx(&line.rx_ms);
+	line.tx_seen = hrc_host_uart_last_tx(&line.tx_ms);
+	if (shared_ptt_pressed(&ptt_gate, !hrc_pin_read(PIN_PTT), &line, hal_millis())) {
 		raw |= 1u << KEY_PTT;
 	}
 	if (raw == last_raw) {
@@ -135,7 +136,13 @@ static void encoder_stats(hal_encoder_stats_t *st)
 	hrc_gpio_watch_stats(st);
 }
 
+static bool ptt_line_stuck(void)
+{
+	return shared_ptt_stuck(&ptt_gate, hal_millis());
+}
+
 const hal_input_t dm32_input = {
+	.ptt_line_stuck = ptt_line_stuck,
 	.init = init,
 	.scan = scan,
 	.encoder = encoder,

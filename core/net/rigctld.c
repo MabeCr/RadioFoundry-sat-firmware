@@ -190,7 +190,7 @@ static void dump_state(void)
 {
 	dl_text(&ot, "0\n2\n2\n");	// protocol version 0, rig model 2 (NET rigctl), ITU region 2
 	for (int tx = 0; tx < 2; tx++) {
-		for (uint8_t i = 0; i < board.band_count; i++) {
+		for (uint8_t i = 0; i < board_band_count(); i++) {
 			const band_t *b = &board.bands[i];
 
 			if (!tx || b->tx) {
@@ -357,11 +357,16 @@ static void r_recv(int c, const uint8_t *d, int n)
 			continue;
 		}
 		r->line[r->ln] = '\0';
+		bool http = net_http_request((const uint8_t *)r->line, r->ln);
+
 		r->ln = 0;
 		dl_text_init(&ot, out, sizeof(out));
 		bool more = true;
 
-		if (r->too_long) {
+		if (http) {
+			st.errors++;
+			more = false;	// a web page's request: none of it, nor what follows, is a command
+		} else if (r->too_long) {
 			r->too_long = false;	// never run cut short (a digit less is another frequency)
 			st.errors++;
 			dl_text(&ot, "RPRT -%d\n", RIG_EINVAL);

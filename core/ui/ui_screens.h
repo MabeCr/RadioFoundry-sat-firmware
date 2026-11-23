@@ -11,6 +11,7 @@
 #include "font.h"
 #include "gfx.h"
 #include "config.h"
+#include "fmt.h"
 #if CONFIG_HOTSPOT
 #include "hotspot/hotspot.h"
 #endif
@@ -30,6 +31,7 @@ typedef enum {
 	UI_BANNER_RESULT,	// result of something we sent (radio check answered, message delivered, ...)
 	UI_BANNER_INFO,		// anything else ("Hotspot started by host. Back to stop.")
 	UI_BANNER_ZONE_OFFER,	// another radio offers a zone or channel: CONTEXT opens the offer
+	UI_BANNER_SAT_PASS,	// a marked satellite pass is about to rise (CONFIG_SAT_ALERT): CONTEXT tracks it
 } ui_banner_kind_t;
 
 typedef struct {
@@ -52,6 +54,7 @@ typedef struct {
 	bool vfo;		// the VFO, not a channel
 	uint16_t number;	// codeplug channel number (0: the VFO)
 	uint8_t mode;		// radio_mode_t
+	bool am;		// an FM channel (or the VFO) received in AM: the air band (radio_am_channel)
 	uint32_t rx_hz;
 	char name[CODEPLUG_NAME_LEN + 1];
 	char zone[CODEPLUG_NAME_LEN + 1];	// the zone's name, "VFO" for the VFO
@@ -108,10 +111,14 @@ typedef struct {
 	bool locked;		// keys locked (long QUICK)
 	bool scanning;
 	uint8_t usb_net;	// UI_USB_NET_*: the status strip's USB network word and link arrows
+	uint8_t gps;		// UI_GPS_*: the status strip's GPS icon
 	bool hints;		// the hint row is shown (Settings > Display)
 	bool large_text;	// Home shows only the channel and the talk target (Settings > Display)
 	bool privacy;		// the next DMR transmission is encrypted
 	bool hear_all;		// hear all latched (quick tile 5 on DMR); follows the radio view where the radio has it
+	// Here, in the byte before auto_lock_s that was padding: the radio with the least RAM has none to spare in its
+	// maximal build
+	bool label_first;	// Home's talk line: the talkgroup's name before its number (Settings > Display, a side key)
 	uint16_t auto_lock_s;	// lock the keys after this long without a key press, 0 = never (Settings > Keys)
 	bool alias_show;	// show received talker aliases (Settings > Talk & listen)
 	bool ptt_locked;	// PTT works while the keys are locked (Settings > Privacy)
@@ -119,9 +126,11 @@ typedef struct {
 	bool message_tone;	// a tone when a message arrives (Settings > Sound)
 	bool vibrate;		// vibrate for messages, calls to us, emergencies (Settings > Sound, CONFIG_VIBRATE)
 	uint8_t updown;		// what Up / Down change on Home: 0 channel, 1 zone, 2 talk target (Settings > Keys)
-	uint8_t low_batt_pct;	// warn at this battery percent, 0 = never (Settings > Power)
+	uint8_t low_batt_pct;	// warn at this battery percent, 0 = never (Settings > Power saving)
 	uint8_t volume;		// speaker volume step 0..RADIO_VOLUME_MAX of a radio without a knob (the volume screen, Settings > Sound)
-	uint16_t auto_off_min;	// switch off after this long without use, 0 = never (Settings > Power)
+	int8_t volbar;		// the knob was turned: its step in the bar over the screen (ui_draw_volume_bar), -1 = none
+	bool knob_lock;		// the volume knob does nothing while the keys are locked (Knob when locked Off)
+	uint16_t auto_off_min;	// switch off after this long without use, 0 = never (Settings > Power saving)
 	uint16_t unread;	// unread messages
 	const char *home_hint;	// the hint for Home's idle state, built from the board's keys ("OK Menu *Quick #Joe")
 	ui_banner_t banner;
@@ -136,11 +145,11 @@ enum {
 	QT_TIMESLOT, QT_CC, QT_HEAR_ALL, QT_PRIVACY, QT_TALK_TO,
 	QT_TO_VFO,		// on a channel, in place of QT_MODE: copy the channel to the VFO
 	QT_SPLIT,		// in the VFO, in place of QT_MONITOR (FM) / QT_PRIVACY (DMR): the TX frequency or offset
-
+	QT_FLIP,		// tile 9, in place of QT_BRIGHTNESS (which is in Settings) on a display that can turn: the screen upside down
 };
 // The tile kind at position 0..8 (keys 1..9) for this channel or the VFO
 uint8_t ui_quick_kind(int pos, const radio_view_t *v);
-// True when a contact name only repeats its ID ("TG 201" for talkgroup 201): Home then shows the ID once
+// True when a contact name only repeats its ID ("TG 123" for talkgroup 123): Home then shows the ID once
 bool ui_name_is_id(const char *name, uint32_t id, bool private_call);
 // The signal meter of the home screen: ten segments over -120 to -60 dBm, in the box x, y, w by h
 void ui_draw_meter(int x, int y, int w, int h, int16_t dbm);
@@ -163,18 +172,31 @@ extern ui_layout_t ui_layout;
 // the computer has brought up, so IP over DMR can flow ("IP" and the up and down arrows, usb-network.md 1)
 enum { UI_USB_NET_OFF, UI_USB_NET_WAIT, UI_USB_NET_UP };
 
+// ui_state_t.gps: the status strip's GPS icon, a satellite dish. None on a radio without a GPS (board_has_gps: a module
+// detected after start-up gets it then); hollow while Settings > Location > GPS is off; solid while it is on without a
+// fix, silent included; with a fix, solid with its feed arm and two waves
+enum { UI_GPS_NONE, UI_GPS_OFF, UI_GPS_SEARCH, UI_GPS_FIX };
+
 // Colors carry meaning only (P5); every color cue also has a word. On 1 bpp panels everything is ink on paper and
 // pills are inverse video
 typedef struct {
 	color_t bg, fg, dim, line, tx, rx, warn, idle, pill_fg, pill_dark_fg, focus, hint_bg, priv;
+	color_t idle_fg;		// the idle pill's word (pill_fg is the word on the TX color)
 	color_t focus_fg;		// text on the focus highlight
 	color_t chnum;			// Home's channel number
 	color_t strip_bg;		// the filled status strip's background (its text is pill_dark_fg)
 	color_t strip_warn;		// warnings on it
 } ui_colors_t;
 extern ui_colors_t ui_col;
-// Color theme on color displays (Settings > Display): 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal. After ui_layout_init
+// Color theme on color displays (Settings > Display), the values of settings_t.theme (and, with CONFIG_SAT, sat_flags for
+// the bit 2). Night is shades of pure red on black, for eyes adapted to the dark: it has no highlight color of its own
+// choosing. The four after it are the phosphor themes of a satellite build (docs/spec/ui.md)
+enum { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT, UI_THEME_TERMINAL, UI_THEME_ORANGE,
+       UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE, UI_THEME_ALL };
+#define UI_THEME_COUNT	(CONFIG_SAT ? UI_THEME_ALL : UI_THEME_NIGHT + 1)
+// After ui_layout_init; a value out of range is the dark theme
 void ui_theme_set(uint8_t theme);
+uint8_t ui_theme_get(void);
 bool ui_theme_is_night(void);
 bool ui_theme_is_terminal(void);	// terminal or orange: a phosphor theme that takes a highlight color
 bool ui_theme_is_inverse(void);		// terminal inverse or orange inverse
@@ -191,6 +213,8 @@ void ui_layout_init(void);
 // Shared pieces for every screen. ui_draw_top draws the status strip (or the title row that carries the state pill)
 // and counts how often it ran, so tests can check every screen draws it (P2)
 extern uint32_t ui_strip_draws;
+// Hint rows drawn (keys or a toast): a frame that drew one left the row free of the screen's own content
+extern uint32_t ui_hint_draws;
 int ui_draw_top(const radio_view_t *v, const ui_state_t *s, const char *prefix, const char *name);
 void ui_draw_title(const font_t *f, int x, int y, int max_w, const char *prefix, const char *name, color_t c);
 void ui_draw_hint(const char *text, bool toast);
@@ -230,12 +254,15 @@ typedef struct {
 } ui_list_t;
 
 void ui_draw_list(const radio_view_t *v, const ui_state_t *s, const ui_list_t *l);
-// A page of text (About) in the smallest font, word-wrapped, never shortened: lines from *first on (clamped so the
-// last page is full). The status strip only while the radio isn't idle. Returns the largest *first (0: all fits)
+// A page of text (About, a message) in the smallest font, word-wrapped, never shortened: lines from *first on (clamped
+// so the last page is full). labels: a line's "Label:" is dim (not in a message, whose sender wrote the colons). The
+// status strip only while the radio isn't idle. Returns the largest *first (0: all fits)
 int ui_draw_text_page(const radio_view_t *v, const ui_state_t *s, const char *title, const char *text,
-	uint16_t *first);
+	uint16_t *first, bool labels);
 // Rows that fit below the title (and header) on this display, for paging
 int ui_list_rows(const ui_list_t *l);
+// The list's body fits above its rows as ui_draw_list draws it, without being shortened
+bool ui_list_body_fits(const ui_state_t *s, const ui_list_t *l);
 
 // The boot screen: the mark, the name, the owner's two boot text lines (empty: left out), board and version
 void ui_draw_splash(const char *board_name, const char *version, const char *line1, const char *line2);
@@ -250,10 +277,19 @@ void ui_draw_quick(const radio_view_t *v, const ui_state_t *s);
 // Hotspot mode (hostlink in MMDVM mode): frequencies, color code, TX / RX, last call, how to leave
 void ui_draw_hotspot(const radio_view_t *v, const hotspot_view_t *h, const ui_state_t *s);
 #endif
+#if CONFIG_DMR_TRUNK
+// Incoming private call: the caller and how to answer.
+void ui_draw_incoming_call(const radio_view_t *v, const ui_state_t *s, const char *name);
+#endif
 // Received emergency: full screen, the caller, how to acknowledge
 void ui_draw_emergency(const radio_view_t *v, const ui_state_t *s, uint32_t id, const char *name);
 // Volume (the VOL key, a radio without a knob): the step 0 (mute) .. RADIO_VOLUME_MAX as a bar and a number
 void ui_draw_volume(const radio_view_t *v, const ui_state_t *s);
+#if CONFIG_VOLUME_BAR
+// The knob's volume (s->volbar) over whatever screen is drawn: the label, the same bar as the volume screen and the
+// step, in the hint row's place, or the status strip's (top) on a screen that uses the bottom row for itself
+void ui_draw_volume_bar(const ui_state_t *s, bool top);
+#endif
 // Diagnostics: raw key bits, encoder total, radio readings and the board's own lines
 void ui_draw_diag(const radio_view_t *v, uint32_t keys, int32_t enc_total, uint8_t first_line);
 // The first board line of the page after the one starting at first_line (wraps to 0)
@@ -271,9 +307,17 @@ bool ui_freq_entry_digit(char *digits, uint8_t *len, char d);
 uint32_t ui_freq_entry_hz(const char *digits, uint8_t len);
 // The same without a toast: 0 for too few or too many digits, or outside the receive bands (Find's Tune VFO row)
 uint32_t ui_freq_parse(const char *digits, uint8_t len);
-// Text for the board's bands ("136-174 400-480"), for hints
-void ui_bands_text(char *out, size_t len);
+// Text for the board's bands ("136-174 400-480"), for hints; only the ones that may transmit when tx
+void ui_bands_text(char *out, size_t len, bool tx);
 // The board's power level name
-const char *ui_power_name(uint8_t level);
+const char *ui_power_name(uint8_t level, uint32_t tx_hz);
+// A call from a dialing gateway on the trunked system in use (CONFIG_DMR_TRUNK_GW): the caller's number it gave
+// (dmr-trunking.md 7.6), else "Phone line"; false (nothing written) for any other source
+bool ui_sb_gw_caller(sbuf_t *b, uint32_t src);
+
+#if CONFIG_SAT_ALERT
+// The Tracking screen for satellite norad's next pass (the banner's #); false when it has none to track
+bool ui_sat_track_pass(uint32_t norad);
+#endif
 
 #endif
