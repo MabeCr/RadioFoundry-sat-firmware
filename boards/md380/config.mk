@@ -71,3 +71,5 @@ BOARD_NOT_WRITTEN += NXDN	# receive isn't written (hardware-md380.md 4.11)
 BOARD_NOT_WRITTEN += NXDN_SCRAMBLER	# needs NXDN
 # Satellite tracking (about 20 KB, docs/spec/satellite.md 7) doesn't fit beside the rest here; it builds on the other boards
 MAXIMAL_SKIP += SAT SAT_SOUND SAT_CHART SAT_ALERT SAT_SPLASH
+
+BOARD_NOT_WRITTEN += SCAN_LIST	# no scan list area in this radio's flash map yet (docs/spec/scan-list.md)

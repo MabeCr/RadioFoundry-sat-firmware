@@ -50,7 +50,8 @@
 #        fm-minimal         FM only: no DMR, USB, VFO, diagnostics, sub-audio tones
 #        maximal            every switch on, except those the board lists as unsupported (BOARD_UNSUPPORTED: the
 #                           hardware can't), not written yet (BOARD_NOT_WRITTEN) or not needed (the board's MAXIMAL_SKIP: NET_PPP on the radios with the USB network adapter)
-#                           and the bench diagnostics (MAXIMAL_SKIP here: AUDIO_PROBE), with the board's MAXIMAL_VARS
+#                           and the bench diagnostics (MAXIMAL_SKIP here: AUDIO_PROBE, and SATELLITE_TLE: the satellite tracking of core/sat
+#                           stands in for it), with the board's MAXIMAL_VARS
 #                           (the DM-1701: LTO=1). A switch that needs one of those is off too (config/features.mk's
 #                           checks: all of DMR's family where DMR isn't written)
 #        <value>            each build option value but the first (board.toml [[build_options]], e.g. a band),
@@ -69,7 +70,8 @@
 # Build trees: build/ci/<board>-<config>/ (logs next to them). The exit status is 0 only when nothing failed.
 set -u
 # Switches the maximal configuration leaves off on every board: bench diagnostics, never in a release
-MAXIMAL_SKIP="AUDIO_PROBE AIR_RAW"
+# SATELLITE_TLE: upstream's satellite feature and our core/sat stack are alternatives (config/features.mk), so maximal takes ours
+MAXIMAL_SKIP="AUDIO_PROBE AIR_RAW SATELLITE_TLE"
 cd "$(dirname "$0")/.." || exit 2
 
 QUICK=0
@@ -560,9 +562,13 @@ for bm in boards/*/board.mk boards/*/; do
 		builds "$b"
 	fi
 	features=$(make -s BOARD="$b" print-config 2>/dev/null)
+	all_on=""
+	unsupported=" $(make -s BOARD="$b" print-unsupported 2>/dev/null) $(make -s BOARD="$b" print-not-written 2>/dev/null)"
+	unsupported="$unsupported $(make -s BOARD="$b" print-maximal-skip 2>/dev/null) $MAXIMAL_SKIP "
 	required=" $(make -s BOARD="$b" print-required 2>/dev/null) "
 	for kv in $features; do
 		f=${kv%%=*}
+		case "$unsupported" in *" $f "*) ;; *) all_on="$all_on CONFIG_$f=y" ;; esac
 		[ "$QUICK" = 1 ] && continue
 		case "$required" in *" $f "*) continue ;; esac
 		[ "${kv#*=}" = y ] && build "$b" "no-$f" "CONFIG_$f=n"

@@ -14,8 +14,10 @@ CONFIG_APRS_IGATE ?= n
 MAXIMAL_VARS := LTO=1
 # Left out of tools/ci.sh's maximal configuration: PPP stands in for the USB network adapter on UART-only radios
 # (docs/spec/ppp.md), and this one has the adapter; the APRS iGate is off by default (above); French, off by
-# default, so that the maximal build keeps satellite tracking and still fits the app region
-MAXIMAL_SKIP := NET_PPP APRS_IGATE LANG_FR
+# default, and Italian (the other boards build it); the satellite tracking of core/sat (and its sound, chart, alert and splash) is left out too: with P25 and NXDN
+# beside it the image overflows the flash and the RAM, which is why SATELLITE_VARS below builds it without them; ci builds
+# that as its own "satellite" configuration
+MAXIMAL_SKIP := NET_PPP APRS_IGATE LANG_FR LANG_IT LANG_DEFAULT_IT SAT SAT_SOUND SAT_CHART SAT_ALERT SAT_SPLASH
 # The satellite build to flash (tools/satellite.sh, the cloud image): the radio's own defaults plus satellite tracking and
 # element sets by sound, without P25 and NXDN (about 6.6 KB of RAM and 43 KB of flash each, which this radio's RAM can't
 # spare beside them)
@@ -38,3 +40,5 @@ BOARD_UNSUPPORTED += FAULT_TRACE	# needs a host UART: the host port is USB, and 
 # there is no room for a 16 px line, and the CJK face must not be built in (docs/build-config.md)
 BOARD_UNSUPPORTED += LANG_ZH	# a Chinese line needs 16 px; this layout draws its words in a smaller font
 BOARD_UNSUPPORTED += LANG_DEFAULT_ZH	# needs LANG_ZH
+
+BOARD_NOT_WRITTEN += SCAN_LIST	# no scan list area in this radio's flash map yet (docs/spec/scan-list.md)

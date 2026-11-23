@@ -11,7 +11,8 @@
 set -eu
 cd "$(dirname "$0")/.."
 # Switches the maximal configuration leaves off on every board: bench diagnostics, never in a release
-MAXIMAL_SKIP="AUDIO_PROBE"
+# SATELLITE_TLE: the two satellite features are alternatives (config/features.mk); maximal takes core/sat
+MAXIMAL_SKIP="AUDIO_PROBE AIR_RAW SATELLITE_TLE"
 
 args() {
 	board=$1
