@@ -416,6 +416,31 @@ static const char *dual_mode_word(const ui_dual_pane_t *p)
 }
 #endif
 
+// The strip's state pill at the left edge; returns where the next word starts
+static int strip_pill(const font_t *f, int ph, int h, bool filled, const char *word, color_t pfg, color_t pbg, color_t sfg)
+{
+	if (!filled)
+		return gfx_pill(f, 0, 0, ph, word, pfg, pbg) + f->w / 2;
+	// On the filled strip the pill is the strip's full height (a one-cell pill leaves a line of the
+	// strip's color under it) against the bezel, its corners rounded by two pixels. Left of its middle the
+	// strip is the screen's background, so no strip color shows beside the left end. On the right a black
+	// edge follows the curve: RX, TX and NO TX are close in lightness to every strip color (NO TX on orange
+	// nearly equal)
+	int pad = f->w >= 8 ? 4 : 3;
+	int pw = gfx_text_width(f, word) + 2 * pad;
+	gfx_fill(0, 0, pw / 2, h, ui_col.bg);
+	gfx_fill(2, 0, pw - 4, h, pbg);
+	for (int e = 0; e < 2; e++) {	// the rounded ends, and the edge: the two corner steps and the end
+		gfx_vline(1 - e, 1 + e, h - 2 - 2 * e, pbg);
+		gfx_vline(pw - 2 + e, 1 + e, h - 2 - 2 * e, pbg);
+		gfx_pixel(pw - 2 + e, e, sfg);
+		gfx_pixel(pw - 2 + e, h - 1 - e, sfg);
+	}
+	gfx_vline(pw, 2, h - 4, sfg);
+	gfx_text(f, pad, (ph - f->h + 1) / 2, word, pfg);
+	return pw + 1 + f->w / 2;
+}
+
 // Status strip (P2): state pill, mode, monitor, lock, unread messages, signal, battery.
 // A titled screen (prefix and / or name) on a display under UI_TALL_PX high merges its title into the strip
 // (wireframes 160x128 and 128x64): the pill shows only while not idle, the signal bars and the battery give way to the
@@ -542,30 +567,8 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 	}
 	gfx_fill(0, 0, w, L->strip_h, sbg);
 	int x = 0;
-	if (!merged || st != RS_IDLE) {
-		if (filled) {
-			// On the filled strip the pill is the strip's full height (a one-cell pill leaves a line of the
-			// strip's color under it) against the bezel, its corners rounded by two pixels. Left of its middle the
-			// strip is the screen's background, so no strip color shows beside the left end. On the right a black
-			// edge follows the curve: RX, TX and NO TX are close in lightness to every strip color (NO TX on orange
-			// nearly equal)
-			int pad = f->w >= 8 ? 4 : 3, h = L->strip_h;
-			int pw = gfx_text_width(f, word) + 2 * pad;
-			gfx_fill(0, 0, pw / 2, h, ui_col.bg);
-			gfx_fill(2, 0, pw - 4, h, pbg);
-			for (int e = 0; e < 2; e++) {	// the rounded ends, and the edge: the two corner steps and the end
-				gfx_vline(1 - e, 1 + e, h - 2 - 2 * e, pbg);
-				gfx_vline(pw - 2 + e, 1 + e, h - 2 - 2 * e, pbg);
-				gfx_pixel(pw - 2 + e, e, sfg);
-				gfx_pixel(pw - 2 + e, h - 1 - e, sfg);
-			}
-			gfx_vline(pw, 2, h - 4, sfg);
-			gfx_text(f, pad, (ph - f->h + 1) / 2, word, pfg);
-			x = pw + 1 + f->w / 2;
-		} else {
-			x = gfx_pill(f, 0, 0, ph, word, pfg, pbg) + f->w / 2;
-		}
-	}
+	if (!merged || st != RS_IDLE)
+		x = strip_pill(f, ph, L->strip_h, filled, word, pfg, pbg, sfg);
 	int ty = (ph - f->h + 1) / 2;
 
 	// Right side, right to left: battery %, battery icon, signal bars, unread messages, lock
@@ -664,6 +667,19 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 #endif
 	if (s->scanning && strip_fits(f, lx, rx, TR(TOP_CHIP_SCAN, "SCAN")))
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_SCAN, "SCAN"), swarn);
+	else if (s->scanning && st == RS_IDLE && !merged
+#if CONFIG_DUAL_WATCH
+		 && !s->dual.on
+#endif
+		 ) {
+		// No room beside the mode word (a three letter mode, the icons on the right): the idle pill says SCAN
+		// instead, in the strip's warning color. A word no wider than the pill keeps the mode word where it is
+		const char *sw = TR(TOP_CHIP_SCAN, "SCAN");
+		if (gfx_text_width(f, sw) <= gfx_text_width(f, word)) {
+			gfx_fill(0, 0, x, L->strip_h, sbg);
+			strip_pill(f, ph, L->strip_h, filled, sw, gfx_bpp() == 1 ? ui_col.pill_fg : ui_col.pill_dark_fg, swarn, sfg);
+		}
+	}
 #if CONFIG_DMR_ROAMING
 	else if (v->roam.state == RROAM_STATE_SEARCH && strip_fits(f, lx, rx, TR(TOP_CHIP_ROAM, "ROAM")))
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_ROAM, "ROAM"), swarn);	// searching the zone's sites
