@@ -24,6 +24,9 @@ void ui_app_draw(void);
 // Backlight percent the user chose (Quick settings / Settings > Display); the dim and off times are the radio's
 // settings (ui_svc_apply)
 uint8_t ui_app_brightness(void);
+// The picture is to be shown turned 180 degrees (Settings > Display > Flip screen) and the display can: the UI task
+// sets the panel to it, and Up / Down and Left / Right swap in ui_app_key
+bool ui_app_flip(void);
 // CONFIG_BACKLIGHT_TEST: the percent the backlight tests hold the light at (the task writes no other), -1 when not held
 int16_t ui_app_backlight_hold(void);
 // The hold ended since the last call (then cleared): the task writes its own level again

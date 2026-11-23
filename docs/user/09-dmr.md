@@ -213,7 +213,7 @@ On a DMR channel, **\*** opens these tiles:
 | **6** | Privacy | Privacy on or off. In the VFO this tile is TX freq ([Split](07-channels-zones-vfo.md#split-repeater-offset)) |
 | **7** | Dual | Dual watch on or off |
 | **8** | Talk to | Opens the talk target picker |
-| **9** | Bright | Opens the brightness editor |
+| **9** | Bright | Opens the brightness editor. On a radio whose display can turn this tile is **Flip**: the screen upside down, on or off ([Flip screen](17-settings.md#display-key-2)); brightness is in Settings > Display |
 | **0** | | Opens Settings |
 
 To change the color code, press **\***, **3**. Press **Up** or **Down**, or type the code (0 to 15). Press **OK** to

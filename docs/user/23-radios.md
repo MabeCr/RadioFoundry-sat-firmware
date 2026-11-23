@@ -391,6 +391,7 @@ A 160 x 128 color screen, every row visible.
 
 A handheld for 136-174 and 400-480 MHz with a keypad, left and right arrow keys, a channel knob and a color screen.
 FM and DMR voice both ways, CTCSS and DCS, APRS, GPS data, the hotspot and the battery saver work on the radio.
+Its screen can be turned upside down for wearing it on a belt ([Flip screen](17-settings.md#display-key-2); not yet tried on the radio).
 As a [standalone SFR](14-hotspot.md#standalone-sfr) repeater it repeats calls on air 90 ms later and sends its CW ID; its repeated voice carries more bit errors than the original, though it plays.
 Installing: [Moving from stock DM-32UV firmware](19-moving-from-stock-dm32.md).
 

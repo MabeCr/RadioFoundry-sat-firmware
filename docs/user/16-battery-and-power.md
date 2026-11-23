@@ -47,7 +47,7 @@ Power levels use the radio's factory calibration. Use the lowest power that reac
 
 ## Backlight
 
-**Settings > Display > Brightness** sets the backlight level. Quick settings has it too (**\***, **9**).
+**Settings > Display > Brightness** sets the backlight level. Quick settings has it too (**\***, **9**), except on a radio whose display can turn: tile 9 is Flip screen there.
 On some radios a dimmed screen goes to full brightness while transmitting or receiving a signal, to keep the
 backlight out of the audio, and returns to its set level when idle. Key beeps leave the brightness as set.
 

@@ -528,6 +528,20 @@ msgid "FM only in the broadcast band"
 msgstr "Solo FM en banda comercial"
 
 #: core/ui/ui_app.c
+msgctxt "FLIP_TOAST_FLIPPED"
+msgid "Screen flipped"
+msgstr "Pantalla girada"
+
+
+
+#: core/ui/ui_app.c
+msgctxt "FLIP_TOAST_UPRIGHT"
+msgid "Screen upright"
+msgstr "Pantalla normal"
+
+
+
+#: core/ui/ui_app.c
 msgctxt "QUICK_TOAST_VOX_OFF"
 msgid "VOX off"
 msgstr "VOX off"
@@ -701,6 +715,13 @@ msgstr "Nombre del grupo primero"
 msgctxt "HOME_TOAST_TG_NUMBER_FIRST"
 msgid "Talkgroup number first"
 msgstr "Número del grupo primero"
+
+#: core/ui/ui_app.c
+msgctxt "FLIP_WHY_NOT_ON_RADIO"
+msgid "Flip screen: not on this radio"
+msgstr "Girar pantalla: no en esta radio"
+
+
 
 #: core/ui/ui_app.c
 msgctxt "HOME_TOAST_VOLUME_USE_KNOB"
@@ -3757,6 +3778,13 @@ msgctxt "KEYFN_VALUE_TG_NAME_NUMBER"
 msgid "TG name / number"
 msgstr "Nombre / número TG"
 
+#: core/ui/ui_menus.c
+msgctxt "WORD_FLIP_SCREEN"
+msgid "Flip screen"
+msgstr "Girar pantalla"
+
+
+
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
 msgid "Emergency"
@@ -6221,6 +6249,13 @@ msgstr "Ancho"
 msgctxt "QUICK_LABEL_BRIGHT"
 msgid "Bright"
 msgstr "Brillo"
+
+#: core/ui/ui_screens.c
+msgctxt "QUICK_LABEL_FLIP"
+msgid "Flip"
+msgstr "Girar"
+
+
 
 #: core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TIMESLOT"

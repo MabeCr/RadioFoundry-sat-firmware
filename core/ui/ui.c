@@ -47,6 +47,7 @@
 
 static radio_view_t view;	// static: too large for a modest task stack
 static uint8_t backlight_now = 0xFF;
+static bool flip_now;		// the panel's scan direction in force (it starts as the board's own)
 static uint32_t radio_active_ms;
 static ui_app_status_t status;
 
@@ -66,6 +67,19 @@ static void set_backlight(uint8_t pct)
 		backlight_now = pct;
 		board.display->set_backlight(pct);
 	}
+}
+
+// Turn the panel when the setting says so. Rows already in it keep the old orientation until written again, so the
+// next flush sends all of them. True when it turned
+static bool apply_flip(void)
+{
+	bool flip = ui_app_flip();
+	if (flip == flip_now)
+		return false;
+	flip_now = flip;
+	board.display->set_flip(flip);
+	gfx_invalidate();
+	return true;
 }
 
 static uint8_t backlight_target(uint32_t now)
@@ -109,6 +123,7 @@ static void ui_task(void *arg)
 	input_event_t ev;
 
 	if (have_fb) {
+		apply_flip();	// before the splash, so a radio worn upside down starts upright
 		ui_layout_init();
 		char line1[17], line2[17];
 		ui_svc_boot_text(line1, line2);
@@ -132,6 +147,8 @@ static void ui_task(void *arg)
 	radio_active_ms = hal_millis();
 	for (;;) {
 		uint32_t now = hal_millis();
+		if (have_fb && apply_flip())
+			dirty = true;
 		uint32_t wait = gfx_pass_wait_ms(dirty, gfx_held(now), now - last_draw, FRAME_MIN_MS, 100);
 		if (now - rested >= BUSY_MAX_MS) {
 			vTaskDelay(1);

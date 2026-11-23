@@ -1486,7 +1486,9 @@ static const flow_t flows_k[] = {
 	  "set47=17 shows=VFO/Channel", 1, false },
 	{ "K top key hold: call back last", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=12 shows=Call_back",
 	  1, false },
-	{ "K top key hold wraps to default", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=0", 1,
+	{ "K top key hold: Flip screen is the last", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
+	  "set47=20 shows=Flip_screen", 1, false },
+	{ "K top key hold wraps to default", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=0", 1,
 	  false },
 	{ "K top key hold: TG name / number after call back", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
 	  "set47=19 shows=TG_name", 1, false },
@@ -1652,6 +1654,26 @@ static const flow_t flows_s[] = {
 	{ "S auto lock without an unlock key", "autolock:30", "wait:31000", "locked=0", 0, false },
 	{ "S a side key set to key lock", "autolock:30", "lockkey", "locked=1", 1, false },
 	{ "S the side key unlocks", "lockkey", "lockkey", "locked=0", 1, false },
+};
+
+// Flip screen (hal_display_t.set_flip): the quick tile, the side key, the Display row; Up / Down swap on Home
+#if CONFIG_UI_COLOR
+#define FLIP_ROW_DOWNS	"down down down down down down down down"
+#else
+#define FLIP_ROW_DOWNS	"down down down down down"
+#endif
+static const flow_t flip_flows[] = {
+	{ "Flip: the quick settings tile turns the screen", "", "quick 9", "flip=1 toast=Screen_flipped", 2, false },
+	{ "Flip: the tile turns it back", "quick 9", "9", "flip=0 toast=Screen_upright", 1, false },
+	{ "Flip: a side key turns it", "", "flipkey", "flip=1 toast=Screen_flipped", 1, false },
+	// Settings > Display: Brightness, Backlight, (Theme, Highlight color, Filled status bar,) Large text, Hint row,
+	// Talkgroup name first, Flip screen
+	{ "Flip: the Display row", "ok 7 2 " FLIP_ROW_DOWNS, "ok", "flip=1", 1, false },
+	{ "Flip: upright, Up is the next channel", "", "up", "pos=4", 1, false },
+	{ "Flip: upright, Down is the previous", "", "down", "pos=2", 1, false },
+	{ "Flip: turned, Up is the previous channel", "flipkey", "up", "pos=2", 1, false },
+	{ "Flip: turned, Down is the next channel", "flipkey", "down", "pos=4", 1, false },
+	{ "Flip: turned, OK still opens the menu", "flipkey", "ok", "screen=hub", 1, false },
 };
 
 static void run_flow(const flow_t *f, const sim_geom_t *g, sim_map_t map, const char *mapname)
@@ -2632,6 +2654,10 @@ int main(void)
 		const sim_geom_t *g = sim_geom_find(runs[r].geom);
 		for (size_t i = 0; i < sizeof flows / sizeof flows[0]; i++)
 			run_flow(&flows[i], g, runs[r].map, runs[r].name);
+		// A panel that can turn (the 240x320 class): the screen upside down, and the arrows with it
+		if (strcmp(runs[r].geom, "240x320") == 0)
+			for (size_t i = 0; i < sizeof flip_flows / sizeof flip_flows[0]; i++)
+				run_flow(&flip_flows[i], g, runs[r].map, runs[r].name);
 #if CONFIG_SAT
 		// The grid locator on the Tracking screen, on the tall panel; beside the plot it shares the countdown's row only
 		// when it fits, and none of the test displays is wide enough

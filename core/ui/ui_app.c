@@ -1480,6 +1480,10 @@ static void quick_activate(int tile)
 		if (!ui_svc_monitor(!view->monitor))
 			quick_unavailable(kind);
 		break;
+	case QT_FLIP:
+		ui_svc_setting_set(UI_SET_FLIP, !ui_app_flip());	// the UI task turns the panel
+		ui_toast(ui_app_flip() ? TR(FLIP_TOAST_FLIPPED, "Screen flipped") : TR(FLIP_TOAST_UPRIGHT, "Screen upright"));
+		break;
 	case QT_VOX:
 		if (ui_svc_vox(!view->vox_on))
 			ui_toast(view->vox_on ? TR(QUICK_TOAST_VOX_OFF, "VOX off") :
@@ -1984,6 +1988,11 @@ void ui_app_init(void)
 
 uint8_t ui_app_brightness(void) { return ui_st.brightness; }
 
+bool ui_app_flip(void)
+{
+	return board.display != NULL && board.display->set_flip != NULL && ui_svc_setting_get(UI_SET_FLIP) != 0;
+}
+
 #if CONFIG_BACKLIGHT_TEST
 // The backlight tests hold the light: the UI task's dim and off times and key wake-ups leave it alone while held
 static int16_t backlight_hold = -1;
@@ -2121,13 +2130,21 @@ void ui_app_key(const input_event_t *ev)
 {
 	// A programmed home key (P1, P2: board.home_keys): its function on Home, its arrow everywhere else. Home is the
 	// bottom of the stack, not while a frequency is typed there
-	input_event_t home_ev;
+	input_event_t alt_ev;	// the event as changed here: a home key's function, or a flipped arrow (one copy: this frame is on the deepest path)
 	if (ev->action >= ACT_HOME_KEY_1 && ev->action <= ACT_HOME_KEY_4) {
-		home_ev = *ev;
-		home_ev.action = ui_svc_home_key(ev->action, ev->gesture, sp == 0 && !ui_st.entry);
-		if (home_ev.action == ACT_NONE)
+		alt_ev = *ev;
+		alt_ev.action = ui_svc_home_key(ev->action, ev->gesture, sp == 0 && !ui_st.entry);
+		if (alt_ev.action == ACT_NONE)
 			return;
-		ev = &home_ev;
+		ev = &alt_ev;
+	}
+	// The picture turned 180 degrees: the key at the top of the screen is now the one marked for down, so Up and Down
+	// swap, and Left and Right. Its own actions stay as they are (OK, Back, PTT, the digits: their labels turned with the radio)
+	if (ev->action >= ACT_NAV_UP && ev->action <= ACT_NAV_RIGHT && ui_app_flip()) {
+		alt_ev = *ev;
+		alt_ev.action = (uint8_t)(ev->action == ACT_NAV_UP ? ACT_NAV_DOWN : ev->action == ACT_NAV_DOWN ? ACT_NAV_UP :
+					  ev->action == ACT_NAV_LEFT ? ACT_NAV_RIGHT : ACT_NAV_LEFT);
+		ev = &alt_ev;
 	}
 	dirty = true;
 	last_key_ms = now;
@@ -2258,6 +2275,14 @@ void ui_app_key(const input_event_t *ev)
 				TR(HOME_TOAST_TG_NUMBER_FIRST, "Talkgroup number first"));
 			return;
 #endif
+		case ACT_FLIP_SCREEN:
+			if (board.display == NULL || board.display->set_flip == NULL) {
+				ui_toast(TR(FLIP_WHY_NOT_ON_RADIO, "Flip screen: not on this radio"));
+				return;
+			}
+			ui_svc_setting_set(UI_SET_FLIP, !ui_app_flip());	// the UI task turns the panel
+			ui_toast(ui_app_flip() ? TR(FLIP_TOAST_FLIPPED, "Screen flipped") : TR(FLIP_TOAST_UPRIGHT, "Screen upright"));
+			return;
 		case ACT_VOLUME:
 			if (!(ui_svc_features() & UI_FEAT_VOLUME))
 				ui_toast(TR(HOME_TOAST_VOLUME_USE_KNOB, "Volume: use the knob"));

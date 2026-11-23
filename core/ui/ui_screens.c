@@ -3820,6 +3820,8 @@ uint8_t ui_quick_kind(int pos, const radio_view_t *v)
 	};
 	if (pos < 0 || pos >= UI_QUICK_TILES)
 		return QT_POWER;
+	if (pos == 8 && board.display != NULL && board.display->set_flip != NULL)
+		return QT_FLIP;		// the screen's brightness is in Settings > Display
 	if (!v->vfo && pos == 3)
 		return QT_TO_VFO;	// a channel's tile 4 copies it to the VFO; the VFO's stays Mode
 	uint8_t kind = v->ch.mode == RADIO_MODE_DMR ? dmr[pos] : fm[pos];
@@ -3851,6 +3853,7 @@ bool ui_quick_tile(int tile, const radio_view_t *v, const ui_state_t *s, char *l
 		[QT_SCAN] = TRN(WORD_SCAN, "Scan"),
 #endif
 		[QT_BANDWIDTH] = TRN(QUICK_LABEL_WIDTH, "Width"), [QT_BRIGHTNESS] = TRN(QUICK_LABEL_BRIGHT, "Bright"),
+		[QT_FLIP] = TRN(QUICK_LABEL_FLIP, "Flip"),
 		[QT_TIMESLOT] = TRN(QUICK_LABEL_TIMESLOT, TEXT_ALT_OPEN "Timeslot" TEXT_ALT_NEXT "Slot" TEXT_ALT_CLOSE),
 		[QT_CC] = TRN(QUICK_LABEL_COLOR, "Color"),
 		[QT_HEAR_ALL] = TRN(QUICK_LABEL_DMON, TEXT_ALT_OPEN "Digital monitor"
@@ -3944,6 +3947,9 @@ bool ui_quick_tile(int tile, const radio_view_t *v, const ui_state_t *s, char *l
 	case QT_BRIGHTNESS:
 		sb_u32(&b, s->brightness, 1);
 		sb_chr(&b, '%');
+		return true;
+	case QT_FLIP:
+		sb_str(&b, ui_svc_setting_get(UI_SET_FLIP) != 0 ? TR(VALUE_ON, "On") : TR(VALUE_OFF, "Off"));
 		return true;
 #if CONFIG_DMR
 	case QT_TIMESLOT:

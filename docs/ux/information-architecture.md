@@ -138,7 +138,7 @@ Contacts, Recent and Messages are the "people" side, Zones, Channels and Tools t
 | 6 | Privacy on/off (TX freq in the VFO) | VOX on/off |
 | 7 | Dual watch (On / Off; a zone scan is in Tools > Scan) | Dual watch (On / Off; a zone scan is in Tools > Scan) |
 | 8 | Talk target | Bandwidth 12.5/25 kHz |
-| 9 | Brightness | Brightness |
+| 9 | Brightness (Flip screen on a display that can turn; brightness stays in Settings) | Brightness (Flip screen on a display that can turn) |
 | 0 | All settings | All settings |
 
 - Toggle tiles change on one press; cycle tiles (power, timeslot, bandwidth) advance one value per press; value tiles (CC, squelch, tone, brightness) open an inline editor (`NAV_UP`/`NAV_DOWN` or digits, `SELECT` or `QUICK` to close).
@@ -160,7 +160,7 @@ Settings has a search field on top (T9). Groups, in this order:
 | Group | Contents |
 |---|---|
 | **Sound** | Key tones, tone volume, talk permit tone, voice prompts (on/off, speed, verbosity), message tone, call alert tone, vibrate (radios with a motor) |
-| **Display** | Brightness, backlight timeout, theme (light/dark/high contrast/night), highlight color, filled status bar, large text, orientation (240x320 boards), hint row, Home secondary fields |
+| **Display** | Brightness, backlight timeout, theme (light/dark/high contrast/night), highlight color, filled status bar, large text, flip screen (a display that can turn), orientation (240x320 boards), hint row, Home secondary fields |
 | **Talk & listen** | Reply window, TX timeout, default squelch, VOX sensitivity and delay, mic gain, mic AGC, mic noise reduction, hear all default, talker alias show/send, name source (contacts, ID database, alias) |
 | **Privacy** | Basic Privacy keys (per channel and per contact), lock behavior (auto-lock, what stays active when locked: PTT, side keys), PIN for settings |
 | **Location** | GPS on/off, position format, send position (UDT, LRRP, APRS) and interval, reply to position requests |

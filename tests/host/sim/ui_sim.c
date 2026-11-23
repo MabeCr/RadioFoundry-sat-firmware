@@ -436,6 +436,8 @@ static hal_display_t disp = { .width = 160, .height = 120, .bpp = 16, .init = d_
 			      .backlight_raw_max = 4096, .set_backlight_raw = d_backlight_raw,
 			      .backlight_raw = d_backlight_raw_get, .backlight_rates = 3, .backlight_rate_std = 1,
 			      .set_backlight_rate = d_backlight_rate };
+// A 240x320 panel (the ST7789 class) can turn: the flip setting is all the host has of it
+static void d_set_flip(bool flipped) { (void)flipped; }
 static uint8_t battery = 84;
 static uint8_t p_battery(void) { return battery; }
 static uint16_t p_supply(void) { return 13800; }	// the sim's view carries the reading (supply:<mv>)
@@ -2963,6 +2965,8 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	disp.bpp = g->bpp;
 	disp.inset_left = disp.inset_right = g->inset;
 	disp.inset_top = disp.inset_bottom = g->inset_tb;
+	disp.set_flip = g->w == 240 && g->h == 320 ? d_set_flip : NULL;
+	ui_svc_setting_set(UI_SET_FLIP, 0);
 	font_aa_on = g->aa;
 	font_big_on = g->big;
 	worst = false;
@@ -3163,6 +3167,7 @@ static const struct { const char *name; uint8_t action; } keys[] = {
 	{ "dualkey", ACT_DUAL_WATCH }, { "abkey", ACT_AB },	// dual watch's side key functions
 	{ "vfokey", ACT_VFO_TOGGLE },		// a VFO/MR key in the board's key map, or a side key set to VFO/Channel
 	{ "labelkey", ACT_TALK_LABEL },
+	{ "flipkey", ACT_FLIP_SCREEN },		// a side key set to Flip screen
 	{ "volkey", ACT_VOLUME },
 	{ "0", ACT_DIGIT_0 }, { "1", ACT_DIGIT_1 }, { "2", ACT_DIGIT_2 }, { "3", ACT_DIGIT_3 }, { "4", ACT_DIGIT_4 },
 	{ "5", ACT_DIGIT_5 }, { "6", ACT_DIGIT_6 }, { "7", ACT_DIGIT_7 }, { "8", ACT_DIGIT_8 }, { "9", ACT_DIGIT_9 },
@@ -3171,7 +3176,7 @@ static const struct { const char *name; uint8_t action; } keys[] = {
 static bool on_map(uint8_t action, bool lng)
 {
 	if ((action >= ACT_POWER && action <= ACT_VOLUME) || action == ACT_VFO_TOGGLE || action == ACT_DUAL_WATCH ||
-	    action == ACT_AB || action == ACT_TALK_TARGET || action == ACT_TALK_LABEL)
+	    action == ACT_AB || action == ACT_TALK_TARGET || action == ACT_TALK_LABEL || action == ACT_FLIP_SCREEN)
 		// any side key can be set to send these; the few-key map has none, but a radio with side keys and no QUICK key
 		// is the case the key lock needs on it
 		return board.side_key_count != 0 || cur_map == SIM_MAP_F;
@@ -3435,6 +3440,7 @@ static bool check(const char *kv, char *err, size_t len)
 	else if (strcmp(key, "pos_source") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_POS_SOURCE));
 	else if (strcmp(key, "aprs_power") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.power);
 	else if (strcmp(key, "aprs_path") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.path);
+	else if (strcmp(key, "flip") == 0) snprintf(got, sizeof got, "%u", ui_app_flip());
 	else if (strcmp(key, "aprs_ssid") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.ssid);
 	else if (strcmp(key, "pos_lat") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_POS_FIXED_LAT));
 	else if (strcmp(key, "pos_lon") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_POS_FIXED_LON));

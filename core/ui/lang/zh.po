@@ -530,6 +530,20 @@ msgid "FM only in the broadcast band"
 msgstr "广播波段仅 FM"
 
 #: core/ui/ui_app.c
+msgctxt "FLIP_TOAST_FLIPPED"
+msgid "Screen flipped"
+msgstr "屏幕已翻转"
+
+
+
+#: core/ui/ui_app.c
+msgctxt "FLIP_TOAST_UPRIGHT"
+msgid "Screen upright"
+msgstr "屏幕已复位"
+
+
+
+#: core/ui/ui_app.c
 msgctxt "QUICK_TOAST_VOX_OFF"
 msgid "VOX off"
 msgstr "VOX 关"
@@ -703,6 +717,13 @@ msgstr "通话组名称在前"
 msgctxt "HOME_TOAST_TG_NUMBER_FIRST"
 msgid "Talkgroup number first"
 msgstr "通话组号码在前"
+
+#: core/ui/ui_app.c
+msgctxt "FLIP_WHY_NOT_ON_RADIO"
+msgid "Flip screen: not on this radio"
+msgstr "翻转屏幕:此电台不支持"
+
+
 
 #: core/ui/ui_app.c
 msgctxt "HOME_TOAST_VOLUME_USE_KNOB"
@@ -3759,6 +3780,13 @@ msgctxt "KEYFN_VALUE_TG_NAME_NUMBER"
 msgid "TG name / number"
 msgstr "TG 名称/号码"
 
+#: core/ui/ui_menus.c
+msgctxt "WORD_FLIP_SCREEN"
+msgid "Flip screen"
+msgstr "翻转屏幕"
+
+
+
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
 msgid "Emergency"
@@ -6223,6 +6251,13 @@ msgstr "宽度"
 msgctxt "QUICK_LABEL_BRIGHT"
 msgid "Bright"
 msgstr "亮度"
+
+#: core/ui/ui_screens.c
+msgctxt "QUICK_LABEL_FLIP"
+msgid "Flip"
+msgstr "翻转"
+
+
 
 #: core/ui/ui_screens.c
 msgctxt "QUICK_LABEL_TIMESLOT"

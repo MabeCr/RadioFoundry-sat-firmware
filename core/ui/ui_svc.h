@@ -565,6 +565,10 @@ typedef enum {
 	// How long a scan listens on each channel with nothing heard, ms (Settings > Talk & listen, CONFIG_SCAN;
 	// radio_settings_t.scan_dwell_ms): RADIO_SCAN_DWELL_MIN_MS..RADIO_SCAN_DWELL_MAX_MS, the radio core clamps
 	UI_SET_SCAN_DWELL_MS,
+	// The picture turned 180 degrees, 0 / 1 (Settings > Display, a side key, the quick tile; hal_display_t.set_flip;
+	// settings_t.sound_flags SETTINGS_SCREEN_FLIP). Up / Down and Left / Right swap with it. Only on a board whose
+	// display has set_flip
+	UI_SET_FLIP,
 	UI_SET_COUNT
 } ui_setting_t;
 

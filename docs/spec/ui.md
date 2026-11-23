@@ -540,6 +540,26 @@ a battery, `CAP_NO_BATTERY`, the battery is drawn nowhere, and Settings > Power 
 warning are left out of their lists. The Battery tool is not present; tools retain their assigned numbers. Only the name part of the title is
 shortened with a middle ellipsis (the prefix stays whole: "Quick COUNTY DMR", not "Quick ..tions").
 
+### 2.8 Flip screen
+
+For a radio worn upside down on a belt (`hal_display_t.set_flip`, optional: a display without it has no setting, no tile
+and no row). The setting is `UI_SET_FLIP`, the bit `SETTINGS_SCREEN_FLIP` in `settings_t.sound_flags` (reserved
+bits; the struct has no spare byte and its copies sit on tight stacks). Three ways to change it: Settings > Display >
+Flip screen (hidden without `set_flip`), a side key function (`KEYFN_FLIP_SCREEN`, `ACT_FLIP_SCREEN`), and quick
+settings tile 9 (`QT_FLIP`), which takes the place of Brightness on such a display; brightness stays in Settings.
+
+- **The picture.** The UI task (`ui.c`, `apply_flip`) sets the display's scan direction at start-up before the splash,
+  and whenever the setting changes, then invalidates the frame: rows already in the panel keep the old orientation
+  until written again. The display driver does it in hardware (the ST7789's MADCTL with MX and MY reversed,
+  `st7789_set_flip`), so it costs nothing per frame. The safe area must be the same on opposite edges, as the flip doesn't
+  swap it.
+- **The keys.** In `ui_app_key`, with the flip on, Up and Down swap and Left and Right swap (after a home key's
+  function is worked out, so P1 and P2 where they stand for left and right swap in the menus too). The key at the top of
+  the turned screen is the one marked for down, whose arrow reads upright as up. OK, Back, PTT, the digits, the
+  knob, and the functions of the home keys (Previous zone, Next zone) are as they were.
+- **Tests.** `st7789Test` (the command), `uiFlowTest` (the tile, the side key, the Display row, Up / Down on Home, OK).
+  The host simulator gives its 240x320 panels `set_flip`.
+
 ### 3.1 Key assignment
 
 Switch: `CONFIG_KEY_ASSIGN`. The board lists the keys a user may reassign (`board.side_keys`, `side_key_count` of them,
@@ -567,8 +587,9 @@ position in the list is its role. Each role has a press and a long press, and ea
 | VFO/Channel (17) | VFO_TOGGLE: between the channel and the VFO, as a VFO / MR key does ("VFO", "Back to channels"; in dual watch, the selected side). Offered in builds with a VFO | yes | yes |
 | Tone burst (18) | TONE_BURST raw edges: FM repeater access, at least 1 s; offered with `CONFIG_FM_TX_TONES` | yes | no |
 | TG name / number (19) | TALK_LABEL: Home's talk line puts the talkgroup's name first, or back to its number first; the same as Settings > Display > Talkgroup name first, and saved. Toast "Talkgroup name first" / "Talkgroup number first". Offered in builds with DMR | yes | yes |
+| Flip screen (20) | FLIP_SCREEN: the picture turned 180 degrees, on or off; the same as Settings > Display > Flip screen, and saved. Toast "Screen flipped" / "Screen upright". Offered in every build; on a display with no `set_flip` it toasts "Flip screen: not on this radio" | yes | yes |
 
-POWER, ZONE_UP, ZONE_DOWN, SCAN, CALL_BACK, HOME_ZONE, COPY_VFO, VFO_TOGGLE and TALK_LABEL do the same on a press and a long
+POWER, ZONE_UP, ZONE_DOWN, SCAN, CALL_BACK, HOME_ZONE, COPY_VFO, VFO_TOGGLE, TALK_LABEL and FLIP_SCREEN do the same on a press and a long
 press and work on any screen. LOCK also gets through while the keys are locked, to unlock them. TALK_TARGET opens the picker on
 a long press too. A monitor key given a press of its own loses its hold: its long press is nothing until set. A Monitor press with a hold
 function: the input engine sends DOWN, the LONG (value 1) at the threshold and UP (value 1 when the LONG ran); the

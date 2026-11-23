@@ -32,6 +32,11 @@ typedef struct {
 	// bpp 4 instead of flush: the same with the palette, 16 RGB565 colors the indexes stand for
 	void (*flush_indexed)(const void *fb, const uint16_t *palette, uint16_t y0, uint16_t y1);
 	void (*set_backlight)(uint8_t percent);
+	// Optional: turn the picture 180 degrees (Settings > Display > Flip screen, for a radio worn upside down) by the
+	// controller's scan direction, so it costs nothing per frame. The next flush must send every row: the rows already
+	// in the panel keep the old orientation until they are written again. The safe area above must be the same on
+	// opposite edges (top and bottom, left and right), as the flip doesn't swap it. A board without it has no setting
+	void (*set_flip)(bool flipped);
 	// Optional, for the backlight tests (Settings > Advanced > Backlight tests, CONFIG_BACKLIGHT_TEST): the PWM compare value straight, 0
 	// (off) .. backlight_raw_max (on through the whole period), and the one in force. A board without them has the
 	// brightness page alone

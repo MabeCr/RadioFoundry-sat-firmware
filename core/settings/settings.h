@@ -405,8 +405,11 @@ static inline void settings_set_crash_contact(settings_t *s, uint16_t num)
 	s->updown_home = (uint8_t)((s->updown_home & 0x83u) | (((num >> 6) & 0x1Fu) << 2));
 }
 
-// settings_t.sound_flags (bits 1..3 reserved, 0)
+// settings_t.sound_flags (bit 2 and 3 reserved, 0)
 #define SETTINGS_KNOB_LOCK		0x01u	// the volume knob does nothing while the keys are locked (Settings > Key lock > Knob when locked Off)
+// The picture turned 180 degrees (Settings > Display > Flip screen, hal_display_t.set_flip). Not a sound: a reserved bit
+// of a byte that was free, as settings_t has no spare byte and its copies sit on stacks with none to spare either
+#define SETTINGS_SCREEN_FLIP		0x02u
 #define SETTINGS_TONES_OFF_SHIFT	4	// radio_settings_t.tones_off, the radio's own copy of the codeplug's tone keys
 #define SETTINGS_TONES_OFF_MASK		0xF0u
 

@@ -115,6 +115,13 @@ static void set_backlight(uint8_t percent)
 	hrc_backlight(percent);
 }
 
+// Turned 180 degrees for a radio worn upside down. Before the first flush, init() sets it up as the panel is
+static void set_flip(bool flipped)
+{
+	if (ready)
+		st7789_set_flip(&panel, flipped);
+}
+
 static void init(void)
 {
 	lcdc_init();
@@ -139,4 +146,5 @@ const hal_display_t dm32_display = {
 	.init = init,
 	.flush_indexed = flush,
 	.set_backlight = set_backlight,
+	.set_flip = set_flip,
 };
