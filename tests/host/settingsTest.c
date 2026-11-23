@@ -640,7 +640,7 @@ static void test_settings_gateway_upgrade(void)
 }
 
 // The crash report's mode and target live in spare bits of accent, theme and updown_home (settings.h): each field
-// keeps its own bits whatever the other one does
+// keeps its own bits whatever the other one does; satellite builds also store theme bit 3 in theme_ext
 static void test_crash_bits(void)
 {
 	settings_t s;
@@ -682,8 +682,8 @@ static void test_crash_bits(void)
 	CHECK(settings_theme(&s) == 4 && settings_crash_contact(&s) == 7 && settings_updown_home(&s) == 1);
 	settings_set_theme(&s, 0);
 	CHECK(settings_theme(&s) == 0 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 7);
-	// Orange and the two inverse themes fill the eight values: each reads back with the other fields intact
-	for (uint8_t th = 0; th <= 7; th++) {
+	// The existing themes and satellite-only Orbit, Aurora and Vice City read back with the other fields intact
+	for (uint8_t th = 0; th <= SETTINGS_THEME_MAX; th++) {
 		settings_set_theme(&s, th);
 		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 7);
 	}
@@ -857,6 +857,9 @@ static void test_settings_layout(void)
 		{ offsetof(settings_t, zone_jrn_index), 272 },
 		{ offsetof(settings_t, zone_jrn_count), 274 },
 		{ offsetof(settings_t, zone_jrn_kind), 276 },
+#if CONFIG_SAT
+		{ offsetof(settings_t, theme_ext), 404 },
+#endif
 	};
 	for (unsigned i = 0; i < sizeof(offs) / sizeof(offs[0]); i++) {
 		if (offs[i].got != offs[i].want) {

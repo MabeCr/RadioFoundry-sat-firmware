@@ -131,7 +131,7 @@ typedef struct {
 	uint16_t roam_check_s;		// beacon check interval, 0 = off
 	uint8_t roam_zones[SETTINGS_ROAM_ZONE_BYTES];	// bit z % 8 of byte z / 8: zone z is a roaming zone
 	// More of the UI's settings (docs/spec/ui.md 4; appended for uifix)
-	uint8_t theme;			// 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal (color displays; settings_theme)
+	uint8_t theme;			// low two theme bits (color displays; settings_theme); high bits share storage with other settings
 	uint8_t ui_flags;		// SETTINGS_UI_* bits
 	uint8_t updown_home;		// what Up / Down change on Home: 0 channel, 1 zone, 2 talk target
 	uint8_t low_batt_pct;		// warn at this battery percent (5-30), 0 = only the board's low voltage
@@ -237,6 +237,7 @@ typedef struct {
 	// next pass: the satellite's catalog number and the frequency in Hz, 0 = none
 	uint32_t sat_alt_norad;
 	uint32_t sat_alt_hz;
+	uint8_t theme_ext;		// theme number bit 3 for Orbit, Aurora and Vice City (themes 8-10)
 #endif
 } settings_t;
 
@@ -304,21 +305,34 @@ static inline void settings_set_vfo_talk(settings_t *s, uint32_t id, bool privat
 #define SETTINGS_ACCENT_COLOR	0x07u
 #define SETTINGS_ACCENT_PLAIN	0x08u
 
-// theme holds 0..3 and updown_home 0..2 in bits 0-1; their upper bits hold the crash report's target (below). The fifth
-// theme (4, terminal) has its bit 2 in updown_home bit 7, the one spare bit: a firmware from before reads the low bits,
-// 0, and shows the dark theme
+// Theme bits 0-1 live in theme and bit 2 in updown_home bit 7, the one spare bit. Theme bit 3 is appended as
+// theme_ext in satellite builds, so ordinary builds keep their existing settings layout. The crash report's target
+// uses the other high bits of theme and updown_home (below); older firmware shows dark, light or high contrast for themes 8-10.
 #define SETTINGS_SMALL_MASK	0x03u
 #define SETTINGS_SAT_UTC	0x01u	// sat_flags: the satellite screens show times in UTC, not local time (Pass times in UTC)
 #define SETTINGS_THEME_HIGH	0x80u	// in updown_home: the theme number's bit 2
+#if CONFIG_SAT
+#define SETTINGS_THEME_MAX	10u
+#else
 #define SETTINGS_THEME_MAX	7u
+#endif
 static inline uint8_t settings_theme(const settings_t *s)
 {
-	return (uint8_t)((s->theme & 3u) | ((s->updown_home & SETTINGS_THEME_HIGH) ? 4u : 0u));
+	uint8_t theme = (uint8_t)((s->theme & 3u) | ((s->updown_home & SETTINGS_THEME_HIGH) ? 4u : 0u));
+#if CONFIG_SAT
+	theme |= (uint8_t)((s->theme_ext & 1u) << 3);
+#endif
+	return theme <= SETTINGS_THEME_MAX ? theme : 0;
 }
 static inline void settings_set_theme(settings_t *s, uint8_t theme)
 {
+	if (theme > SETTINGS_THEME_MAX)
+		theme = 0;
 	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
 	s->updown_home = (uint8_t)((s->updown_home & ~SETTINGS_THEME_HIGH) | ((theme & 4u) ? SETTINGS_THEME_HIGH : 0u));
+#if CONFIG_SAT
+	s->theme_ext = (uint8_t)((theme & 8u) ? 1u : 0u);
+#endif
 }
 static inline uint8_t settings_updown_home(const settings_t *s)
 {

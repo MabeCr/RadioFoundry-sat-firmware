@@ -2585,6 +2585,18 @@ msgid "Orange Inverse"
 msgstr "Naranja invertido"
 
 #: core/ui/ui_menus.c
+msgid "Orbit"
+msgstr "Órbita"
+
+#: core/ui/ui_menus.c
+msgid "Aurora"
+msgstr "Aurora"
+
+#: core/ui/ui_menus.c
+msgid "Vice City"
+msgstr "Vice City"
+
+#: core/ui/ui_menus.c
 msgid "Default"
 msgstr "Predet."
 

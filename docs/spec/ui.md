@@ -578,7 +578,7 @@ The gallery draws a color page (Home with its filled status bar, the Channels li
 differ in color (`home_plain`) are left out at 128x64. The list is set in
 `.github/workflows/ui-gallery.yml` (`docs/dev/ci.md`), and `make ui-gallery` reads it from there. Home (filled and plain
 status bar), RX, TX, the Channels list and Settings > Display are also drawn in the light, high-contrast and night themes, as
-`<screen>__light.png`, `<screen>__high_contrast.png`, `<screen>__night.png`, `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png` and `<screen>__orange_inverse.png` (color displays).
+`<screen>__light.png`, `<screen>__high_contrast.png`, `<screen>__night.png`, `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png`, `<screen>__orange_inverse.png`, `<screen>__orbit.png`, `<screen>__aurora.png` and `<screen>__vice_city.png` (the last three in satellite builds; color displays).
 
 
 Geometries: `160x120i5` (160x120 visible, 5 px inset left and right), `160x128` (both 160 px classes render through the 4 bpp frame buffer, as the boards do),
@@ -645,7 +645,7 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
 - Freq trim (Advanced, the last row: Up from the top) is shown only on a radio whose board has `hal_radio_t.ref_trim`
   (`UI_FEAT_REF_TRIM`). The row shows the trim in ppm and opens the Freq Trim page (`freq-trim`, section 2).
 - Voice prompts are dimmed ("Voice prompts aren't built yet: no recorded speech").
-- Theme switches the color palette (dark, light, high contrast, night, terminal, orange, terminal inverse, orange inverse). Highlight color (Default, Red, Orange, Yellow, Teal,
+- Theme switches the color palette (dark, light, high contrast, night, terminal, orange, terminal inverse, orange inverse; Orbit, Aurora and Vice City in satellite builds). Highlight color (Default, Red, Orange, Yellow, Teal,
   Light blue, Purple, Pink) and Filled status bar (Settings > Display, `settings_t.accent`) are for color displays
   too. On a 1 bpp display the three rows are dimmed ("Colors are for color screens"); a build without
   `CONFIG_UI_COLOR` (section 5) has no such rows. A color other than
@@ -678,6 +678,11 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
   focus is a black bar with background-colored text, and a toast and an edited row or tile are the normal reverse
   video: a light screen has no night vision to protect. Like Night they ignore Highlight color and Filled status bar
   (`ui_theme_is_inverse()`; their rows are dimmed with "This theme uses its own colors"). The sky plot uses dark shades.
+- Orbit (`ui_theme_set` 8), Aurora (9) and Vice City (10) are available only with `CONFIG_SAT`. Orbit uses deep navy with
+  cool blue details; Aurora uses dark teal with mint details. Vice City follows the supplied palette: deep violet
+  background, purple focus, magenta idle, coral TX, orange private-call details and warm yellow text and warnings. All
+  three keep green RX and accept the user's Highlight color and Filled status bar. Theme bit 3 is appended after the
+  satellite settings, so non-satellite builds keep their existing settings layout.
 - Night theme (`ui_theme_set` 3) protects night vision: a black background, pure reds for text and lines, dim green
   only for receive, dim amber only for warnings, nothing blue or white. TX is the brightest red, in a pill with black
   text. Highlight color and Filled status bar don't apply: their rows are dimmed ("Night uses its own colors") and

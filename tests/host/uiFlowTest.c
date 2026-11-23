@@ -906,7 +906,11 @@ static const flow_t flows_k[] = {
 	  "toast=This_theme_uses set61=0", 13, false },
 	{ "S theme orange inverse: the filled status bar doesn't apply", "", "ok 7 2 down down ok ok ok ok ok ok ok down down ok",
 	  "toast=This_theme_uses set62=1", 15, false },
+#if CONFIG_SAT
+	{ "S theme wraps from Vice City to dark", "", "ok 7 2 down down ok ok ok ok ok ok ok ok ok ok ok", "set7=0", 16, false },
+#else
 	{ "S theme wraps from orange inverse to dark", "", "ok 7 2 down down ok ok ok ok ok ok ok ok", "set7=0", 13, false },
+#endif
 	{ "S highlight color red (the first after Default)", "", "ok 7 2 down down down ok", "set61=1", 7, false },
 	{ "S filled status bar off (on by default)", "", "ok 7 2 down down down down ok", "set62=0", 8, false },
 #else

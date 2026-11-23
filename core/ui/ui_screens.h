@@ -173,7 +173,8 @@ typedef struct {
 	color_t strip_warn;		// warnings on it
 } ui_colors_t;
 extern ui_colors_t ui_col;
-// Color theme on color displays (Settings > Display): 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal. After ui_layout_init
+// Color theme on color displays (Settings > Display): 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal, 5 orange,
+// 6 terminal inverse, 7 orange inverse; 8 Orbit, 9 Aurora and 10 Vice City are available with CONFIG_SAT. After ui_layout_init
 void ui_theme_set(uint8_t theme);
 bool ui_theme_is_night(void);
 bool ui_theme_is_terminal(void);	// terminal or orange: a phosphor theme that takes a highlight color
