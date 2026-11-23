@@ -2708,6 +2708,15 @@ bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
 
 bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
 
+// A P25 caller's text as p25rx gave it: a space in it makes it an ID database text (callsign, then the name)
+static char sim_caller_text[49];
+const char *ui_svc_caller_text(uint32_t id, bool *from_db)
+{
+	(void)id;
+	*from_db = strchr(sim_caller_text, ' ') != NULL;
+	return sim_caller_text;
+}
+
 uint32_t ui_svc_sat_alert_eta(void)
 {
 	ui_sat_status_t st;
@@ -3858,8 +3867,8 @@ static bool run_token(char *t, char *err, size_t len)
 #if CONFIG_NXDN
 	if (strcmp(t, "nxdnrx") == 0) {
 		unsigned src = 0, dst = 0;
-		char kind = 'g', who[CODEPLUG_NAME_LEN + 1] = "";
-		if (arg == NULL || sscanf(arg, "%u,%u,%c,%16s", &src, &dst, &kind, who) < 2) {
+		char kind = 'g';
+		if (arg == NULL || sscanf(arg, "%u,%u,%c", &src, &dst, &kind) < 2) {
 			snprintf(err, len, "bad %s", t);
 			return false;
 		}
@@ -3878,8 +3887,8 @@ static bool run_token(char *t, char *err, size_t len)
 #if CONFIG_P25
 	if (strcmp(t, "p25rx") == 0) {		// a P25 call: src,dst[,u|e|o] (unit call, encrypted, other talk group)
 		unsigned src = 0, dst = 0;
-		char kind = 'g', who[CODEPLUG_NAME_LEN + 1] = "";
-		if (arg == NULL || sscanf(arg, "%u,%u,%c,%16s", &src, &dst, &kind, who) < 2) {
+		char kind = 'g', who[49] = "";
+		if (arg == NULL || sscanf(arg, "%u,%u,%c,%48s", &src, &dst, &kind, who) < 2) {
 			snprintf(err, len, "bad %s", t);
 			return false;
 		}
@@ -3891,7 +3900,7 @@ static bool run_token(char *t, char *err, size_t len)
 		for (char *u = who; *u != '\0'; u++)
 			if (*u == '_')
 				*u = ' ';
-		strcpy(view.air_src_name, who);
+		strcpy(sim_caller_text, who);
 		view.state = RS_RX;
 		view.rssi_dbm = -84;
 		changed();

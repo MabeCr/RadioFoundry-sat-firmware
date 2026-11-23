@@ -164,6 +164,13 @@ bool ui_svc_dual_rx(uint8_t pane, ui_dual_rx_t *out);
 // VFO `index`'s settings (0 or 1) while something else is on view (a dual watch pane). False: not known
 bool ui_svc_vfo_get(uint8_t index, channel_t *out);
 
+#if CONFIG_AIR
+// Who a P25 or NXDN caller is: a codeplug contact's name (one line, *from_db false), else the DMR ID database's text
+// "callsign first-name more ..." (*from_db true), "" if neither knows the ID. The text is the service's own, good
+// until the next call (the UI task reads it while it draws, so a redraw doesn't read flash again for the same ID)
+const char *ui_svc_caller_text(uint32_t id, bool *from_db);
+#endif
+
 // --- DMR repeater roaming (the radio core, docs/spec/dmr-roaming.md). Its state is radio_view_t.roam ---
 bool ui_svc_roam(uint8_t cmd);			// radio_roam_cmd_t: zone on / off, roam now, lock / unlock
 

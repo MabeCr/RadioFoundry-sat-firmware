@@ -152,8 +152,8 @@ static const flow_t flows[] = {
 	// P25 on Home: what PTT calls on the talk line, the NAC in the chips, the caller while a call comes in
 	{ "P25 home: talk group and NAC", "dlmode:p25", "", "screen=home shows=TG_1 shows=NAC_293", 0, false },
 	{ "P25 home: the caller", "dlmode:p25", "p25rx:3101234,7", "screen=home shows=ID_3101234 shows=TG_7", 0, false },
-	{ "P25 home: the caller's name", "dlmode:p25", "p25rx:3101234,7,g,Doug_Lambert", "screen=home shows=Doug_Lambert shows=TG_7 hides=ID_3101234", 0, false },
-	{ "P25 home: a long name is cut, the talk group stays", "dlmode:p25", "p25rx:3101234,9371,g,KF8ENC_Doug_Lamb", "screen=home shows=TG_9371 shows=KF8", 0, false },
+	{ "P25 home: the caller's name", "dlmode:p25", "p25rx:3101234,7,g,KF8ENC_Doug_Lambert", "screen=home shows=KF8ENC shows=TG_7 hides=ID_3101234", 0, false },
+	{ "P25 home: a long database text", "dlmode:p25", "p25rx:3101234,9371,g,KF8ENC_Douglas_Lambertson_Dayton_OH_United_States", "screen=home shows=KF8ENC shows=TG_9371", 0, false },
 	{ "P25 home: a unit call", "dlmode:p25", "p25rx:3101234,3105555,u", "shows=Private_to_3105555", 0, false },
 	{ "P25 home: encrypted", "dlmode:p25", "p25rx:3101234,7,e", "shows=Encrypted:_not_played hides=ID_3101234", 0,
 	  false },

@@ -2329,7 +2329,6 @@ static void draw_dmr_call(const radio_view_t *v, const ui_state_t *s)
 typedef struct {
 	bool played, enc, unit;
 	uint32_t src, dst;
-	const char *name;	// the caller's name, "" if unknown
 } air_call_t;
 
 static bool air_call(const radio_view_t *v, air_call_t *c)
@@ -2342,7 +2341,6 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 		c->unit = (p->flags & RADIO_P25_UNIT) != 0;
 		c->src = p->src;
 		c->dst = p->dst;
-		c->name = v->air_src_name;
 		return true;
 	}
 #endif
@@ -2354,7 +2352,6 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 		c->unit = (n->flags & RADIO_NXDN_UNIT) != 0;
 		c->src = n->src;
 		c->dst = n->dst;
-		c->name = v->air_src_name;
 		return true;
 	}
 #endif
@@ -2363,9 +2360,12 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 	return false;
 }
 
-// Why the call isn't played, else who calls and where ("Ann > TG 1", "ID 1234 > Private to 5678"; the caller is
-// missing until the call's link control is read)
-static void air_call_line(const air_call_t *c, const font_t *f, int y)
+// Why the call isn't played, else who calls and where ("KF8ENC > TG 7", "ID 1234 > Private to 5678"; the caller is
+// missing until the call's link control is read). rows: how many lines of this font the area has. With two or more
+// and a caller from the ID database ("callsign first-name more ..."), the callsign takes the first line with the
+// destination, and the rest of the text the lines below (words wrap, the last line ends in an ellipsis); with one
+// line the whole text is cut short beside the destination, then dropped if under four characters
+static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
 {
 	char buf[64], fit[48];
 	sbuf_t b;
@@ -2376,20 +2376,29 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y)
 		gfx_text(f, 0, y, fit, ui_col.warn);
 		return;
 	}
-	// The caller (the contact or ID database name, else the ID), then the destination. Too wide: the caller is cut
-	// short with an ellipsis, kept as long as it fits beside the destination; a caller left under four characters
-	// goes, then the destination is cut if it still doesn't fit
-	char head[40], tail[40];
+	bool db = false;
+	const char *text = c->src != 0 ? ui_svc_caller_text(c->src, &db) : "";
+	const char *rest = "";
+	char head[24], tail[40];
 	sb_init(&b, head, sizeof head);
 	if (c->enc)
 		sb_str(&b, "ENC ");
 	if (c->src == 0) {
 		head[0] = '\0';
-	} else if (c->name[0] != '\0') {
-		sb_str(&b, c->name);
-	} else {
+	} else if (text[0] == '\0') {
 		sb_str(&b, "ID ");
 		sb_u32(&b, c->src, 1);
+	} else if (db && rows >= 2) {
+		size_t n = strcspn(text, " "), at = strlen(head);
+		if (n > sizeof head - 1u - at)
+			n = sizeof head - 1u - at;
+		memcpy(head + at, text, n);
+		head[at + n] = '\0';
+		rest = text + strcspn(text, " ");
+		while (*rest == ' ')
+			rest++;
+	} else {
+		sb_str(&b, text);	// a contact's name, or the database's whole text on a one line area
 	}
 	sb_init(&b, tail, sizeof tail);
 	if (head[0] != '\0')
@@ -2413,6 +2422,32 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y)
 	sb_str(&b, tail);
 	gfx_text_fit(f, buf, gfx_width(), fit, sizeof fit);
 	gfx_text(f, 0, y, fit, ui_col.rx);
+	// The rest of the database text on the lines below: whole words while they fit, the last line cut with an ellipsis
+	for (int row = 1; row < rows && rest[0] != '\0'; row++) {
+		size_t len = strlen(rest), cut = len;
+		if (row + 1 < rows || gfx_text_width(f, rest) <= gfx_width()) {
+			while (cut > 0) {
+				size_t m = cut < sizeof fit - 1u ? cut : sizeof fit - 1u;
+				memcpy(fit, rest, m);
+				fit[m] = '\0';
+				if (gfx_text_width(f, fit) <= gfx_width() && (cut == len || rest[cut] == ' '))
+					break;
+				cut--;
+			}
+		}
+		if (cut == 0 || cut == len) {
+			gfx_text_fit(f, rest, gfx_width(), fit, sizeof fit);	// the last line, or one word too long
+			cut = len;
+		} else {
+			size_t m = cut < sizeof fit - 1u ? cut : sizeof fit - 1u;
+			memcpy(fit, rest, m);
+			fit[m] = '\0';
+		}
+		gfx_text(f, 0, y + row * f->h, fit, ui_col.fg);
+		rest += cut;
+		while (*rest == ' ')
+			rest++;
+	}
 }
 #endif
 
@@ -2438,7 +2473,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 		air_call_t ac;
 		bool air_rx = air_call(v, &ac);
 		if (!two && air_rx) {
-			air_call_line(&ac, sm, y);	// one line: who calls says more than the meter
+			air_call_line(&ac, sm, y, 1);	// one line: who calls says more than the meter
 			break;
 		}
 #endif
@@ -2451,7 +2486,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 			break;
 #if CONFIG_AIR
 		if (air_rx) {
-			air_call_line(&ac, sm, y2);
+			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h);
 			break;
 		}
 #endif
