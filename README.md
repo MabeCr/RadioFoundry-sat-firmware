@@ -22,6 +22,11 @@ and the [manual steps](docs/user/02-installing.md) are for scripting and for bro
 <img src="docs/ux/screens/240x320i10x5/zone_offer.png" width="200" alt="A zone shared by another radio, offered for import">
 </p>
 <p>
+<img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__aurora.png" width="200" alt="Aurora theme: dual watch with both channels receiving"><br><sub>Aurora</sub>
+<img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__orbit.png" width="200" alt="Orbit theme: dual watch with both channels receiving"><br><sub>Orbit</sub>
+<img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__vice_city.png" width="200" alt="Vice City theme: dual watch with both channels receiving"><br><sub>Vice City</sub>
+</p>
+<p>
 <img src="docs/ux/screens/160x120i5/rx_group.png" width="200" alt="A group call with the caller's name and location">
 <img src="docs/ux/screens/160x120i5/message_view.png" width="200" alt="A text message with quick replies">
 <img src="docs/ux/screens/160x120i5/zone_offer_preview.png" width="200" alt="Previewing a shared zone's channels">
