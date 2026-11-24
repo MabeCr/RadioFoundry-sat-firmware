@@ -30,6 +30,21 @@ Stored satellites (`CONFIG_SAT`): the satellite area at 0x01B000 comes from the 
 the DM-1701, and is untested on this radio. Check that 0x01B000-0x01BFFF is free on a used radio before relying on it,
 then `rfoundry_debug.py sat show` (`sat.store=ours`, `sat.slots=32`) and a stored satellite kept across power off.
 
+## Chinese image
+
+`LANG_ZH` is no longer unsupported on this board: the 160 px class moves its words up to the 8x16 font while a wide
+language is in use, so a 16 px CJK glyph fits on the 160x128 panel ([UI spec](../spec/ui.md) 2.5). The `chinese` ci
+extra in `boards/mduv380/board.toml` builds `CONFIG_LANG_ZH=y CONFIG_LANG_DEFAULT_ZH=y` beside Spanish in the 720 KB
+region. That is a compile check, not a radio check.
+
+| Feature | Record |
+|---|---|
+| `lang_zh`, `lang_default_zh` | off in the default build; no bring-up record. Untested on a radio |
+
+Nothing on this radio has run yet (Status above). A run needs a Chinese image and a check that a list, a menu label,
+the status strip and the About page draw whole glyphs with no cropped rows, and that Home still draws without its zone
+line. Until then nothing claims a pass ([features.toml](../../tests/hil/features.toml)).
+
 ## 0. Before anything
 
 1. Back up the radio: the codeplug with the stock CPS, then the whole SPI flash and the internal flash through the

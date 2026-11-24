@@ -209,6 +209,11 @@ msgctxt "HOTSPOT_BANNER_OK_STOPS"
 msgid "OK stops it"
 msgstr "OK 停止"
 
+#: core/ui/ui_app.c
+msgctxt "APRS_BANNER_MSG_FROM"
+msgid "APRS message from "
+msgstr "APRS 信息来自 "
+
 #: core/ui/ui_app.c core/ui/ui_menus.c core/ui/ui_svc_zone.c
 msgctxt "TOAST_SAVE_FAILED"
 msgid "Couldn't save: try again"
@@ -433,6 +438,21 @@ msgstr "正在扫描频段"
 msgctxt "SCAN_TOAST_SCANNING_ZONE"
 msgid "Scanning this zone"
 msgstr "正在扫描区域"
+
+#: core/ui/ui_app.c
+msgctxt "SCAN_TOAST_NOT_SCANNING"
+msgid "Not scanning"
+msgstr "未在扫描"
+
+#: core/ui/ui_app.c core/ui/ui_menus.c
+msgctxt "SCAN_TOAST_SKIPPED_UNTIL_STOP"
+msgid "Skipped until the scan stops"
+msgstr "扫描停止前跳过"
+
+#: core/ui/ui_app.c core/ui/ui_menus.c
+msgctxt "SCAN_TOAST_NOTHING_TO_SKIP"
+msgid "Nothing to skip yet"
+msgstr "暂无可跳过"
 
 #: core/ui/ui_app.c
 msgctxt "TALK_TOAST_DEFAULT"
@@ -963,6 +983,11 @@ msgstr "USB KISS"
 msgctxt "APRS_ROW_STATIONS_HEARD"
 msgid "Stations heard"
 msgstr "收到的台站"
+
+#: core/ui/ui_aprs.c
+msgctxt "APRS_LABEL_MUTE"
+msgid "Mute APRS audio"
+msgstr "APRS静音"
 
 #: core/ui/ui_aprs.c
 msgctxt "APRS_LABEL_NMEA_ON_USB"
@@ -2268,6 +2293,11 @@ msgstr "发射亚音"
 msgctxt "WORD_TONE_BURST"
 msgid "Tone burst"
 msgstr "突发音"
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_AES_KEY"
+msgid "AES key"
+msgstr "AES 密钥"
 
 #: core/ui/ui_menus.c
 msgctxt "CHAN_LABEL_COLOR_CODE"
@@ -3745,6 +3775,16 @@ msgid "Prev zone"
 msgstr "上一区域"
 
 #: core/ui/ui_menus.c
+msgctxt "KEYFN_VALUE_SCAN_SKIP"
+msgid "Scan skip"
+msgstr "跳过信道"
+
+#: core/ui/ui_menus.c
+msgctxt "KEYFN_VALUE_MONITOR_TOGGLE"
+msgid "Monitor toggle"
+msgstr "锁定监听"
+
+#: core/ui/ui_menus.c
 msgctxt "WORD_KEY_LOCK"
 msgid "Key lock"
 msgstr "按键锁"
@@ -4583,16 +4623,6 @@ msgstr "留在此处"
 msgctxt "SCAN_ROW_ALWAYS_SKIP"
 msgid "Always skip"
 msgstr "总是跳过"
-
-#: core/ui/ui_menus.c
-msgctxt "SCAN_TOAST_SKIPPED_UNTIL_STOP"
-msgid "Skipped until the scan stops"
-msgstr "扫描停止前跳过"
-
-#: core/ui/ui_menus.c
-msgctxt "SCAN_TOAST_NOTHING_TO_SKIP"
-msgid "Nothing to skip yet"
-msgstr "暂无可跳过"
 
 #: core/ui/ui_menus.c
 msgctxt "SCAN_TOAST_STOPPED_HERE"
@@ -5440,14 +5470,14 @@ msgid "NO TX"
 msgstr "禁发"
 
 #: core/ui/ui_screens.c
-msgctxt "TOP_CHIP_DUAL"
-msgid "DUAL"
-msgstr "双守"
-
-#: core/ui/ui_screens.c
 msgctxt "TOP_CHIP_SCAN"
 msgid "SCAN"
 msgstr "扫描"
+
+#: core/ui/ui_screens.c
+msgctxt "TOP_CHIP_DUAL"
+msgid "DUAL"
+msgstr "双守"
 
 #: core/ui/ui_screens.c
 msgctxt "TOP_CHIP_ROAM"
@@ -5553,6 +5583,16 @@ msgstr "系统已停止发射"
 msgctxt "DENY_WHY_NO_TX_FREQ"
 msgid "No TX frequency set"
 msgstr "未设发射频率"
+
+#: core/ui/ui_screens.c
+msgctxt "WHY_AES_KEY"
+msgid "AES key or TX disabled"
+msgstr "无 AES 密钥或已禁用发射"
+
+#: core/ui/ui_screens.c
+msgctxt "WHY_AES_WAIT"
+msgid "AES: saving, try again"
+msgstr "AES：正在保存，请重试"
 
 #: core/ui/ui_screens.c
 msgctxt "WHY_MODE_NOT_IN_BUILD"
@@ -6018,6 +6058,11 @@ msgstr "不能发射"
 msgctxt "ACTIVITY_BODY_TX_WAITS"
 msgid "Transmit waits for it"
 msgstr "设置前不能发射"
+
+#: core/ui/ui_screens.c
+msgctxt "APRS_ACTIVITY_LAST_MSG"
+msgid "APRS: "
+msgstr "APRS: "
 
 #: core/ui/ui_screens.c
 msgctxt "ACTIVITY_BODY_LAST"

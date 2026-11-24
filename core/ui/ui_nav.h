@@ -175,6 +175,8 @@ void ui_scan_list(uint8_t slot, const char *name);
 // The text entry (ui_menus.c) with something to do once the text is kept
 void ui_text_open_done(char *target, uint8_t max, void (*done)(void));
 #endif
+void ui_monitor_toggle(void);	// a side key set to Monitor toggle: what quick tile 5 does
+void ui_scan_skip(void);	// a side key set to Scan skip: skip the channel that stopped the scan
 // Actions for the last caller (CONTEXT on Home), or a toast when there is none
 void ui_open_caller_actions(void);
 // A list row's number key ('1'..'9', '0')
