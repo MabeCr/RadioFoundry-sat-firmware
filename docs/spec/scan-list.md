@@ -57,17 +57,19 @@ The lists are not part of the codeplug image: the CPS, the TFTP codeplug and a c
 |---|---|---|
 | 0 | 4 | magic `4F 53 43 4C` ("OSCL") |
 | 4 | 1 | layout, 1 |
-| 5 | 1 | flags, 0 (reserved) |
+| 5 | 1 | flags: the vote scan bits ([vote-scan.md](vote-scan.md) 3), 0 for a plain list |
 | 6 | 2 | channel count, at most 80 |
 | 8 | 16 | name, NUL padded, bytes as in a codeplug name; no terminator when it uses all 16 |
 | 24 | 160 | 80 channel numbers (u16, 1-based); the entries past the count are 0 |
-| 184 | 68 | reserved, 0 |
+| 184 | 3 | vote scan: threshold, margin, fixed transmit member ([vote-scan.md](vote-scan.md) 3), 0 for a plain list |
+| 187 | 65 | reserved, 0 |
 | 252 | 4 | CRC-32 of bytes 0 to 251 |
 
 A list is valid when it has a name, at most 80 channels, no channel 0 and no channel twice. A free slot is all 0xFF.
 A slot that is neither a list nor free is someone else's data.
 
-A later layout may use the reserved bytes and flags. A reader of this layout takes a record with another layout byte
+A list's vote options stay with it when its channels or name change (`scan_list_write`); `scan_list_write_vote` sets them
+alone. A later layout may use the reserved bytes. A reader of this layout takes a record with another layout byte
 as not a list.
 
 ## 4. Calls

@@ -23,6 +23,37 @@
 
 typedef zone_t scan_list_t;
 
+// A list's vote scan options (docs/spec/vote-scan.md 3), kept in the record's flags byte and reserved bytes 184-186. Every
+// list has them, 0 for a plain list; a change to the list's channels or name keeps them, in a build without vote scan
+// too. A field left 0 reads as its default (the _of helpers)
+#define SCAN_VOTE_ON		0x01u	// flags: the list is a vote list
+#define SCAN_VOTE_NO_PEEK	0x02u	// flags: no peeks at other sites during a call
+#define SCAN_VOTE_FIXED_TX	0x04u	// flags: PTT transmits on member tx_member, else on the voted site
+#define SCAN_VOTE_FLAGS		0x07u	// the bits this layout knows
+#define SCAN_VOTE_THRESHOLD_DEFAULT	(-70)	// dBm
+#define SCAN_VOTE_THRESHOLD_MIN		(-120)
+#define SCAN_VOTE_THRESHOLD_MAX		(-50)
+#define SCAN_VOTE_MARGIN_DEFAULT	6	// dB
+#define SCAN_VOTE_MARGIN_MAX		20
+typedef struct {
+	uint8_t flags;		// SCAN_VOTE_*
+	int8_t threshold_dbm;	// 0 = SCAN_VOTE_THRESHOLD_DEFAULT
+	uint8_t margin_db;	// 0 = SCAN_VOTE_MARGIN_DEFAULT
+	uint8_t tx_member;	// with SCAN_VOTE_FIXED_TX: the member PTT uses (0-based)
+} scan_list_vote_t;
+
+static inline int scan_vote_threshold_of(const scan_list_vote_t *v)
+{
+	int t = v->threshold_dbm;
+	return t == 0 ? SCAN_VOTE_THRESHOLD_DEFAULT : t < SCAN_VOTE_THRESHOLD_MIN ? SCAN_VOTE_THRESHOLD_MIN :
+	       t > SCAN_VOTE_THRESHOLD_MAX ? SCAN_VOTE_THRESHOLD_MAX : t;
+}
+static inline int scan_vote_margin_of(const scan_list_vote_t *v)
+{
+	return v->margin_db == 0 ? SCAN_VOTE_MARGIN_DEFAULT : v->margin_db > SCAN_VOTE_MARGIN_MAX ? SCAN_VOTE_MARGIN_MAX :
+	       v->margin_db;
+}
+
 typedef enum {
 	SCAN_LIST_NONE,		// no area on this board (or not usable: the flash, a bad map, the storage region foreign)
 	SCAN_LIST_OURS,		// every slot free or one of our records
@@ -37,7 +68,12 @@ uint16_t scan_list_slots(void);
 bool scan_list_read(uint16_t slot, scan_list_t *out);
 // Lists in the area
 uint16_t scan_list_count(void);
-// Store l in slot, replacing what is there. False for a slot outside the area, a list that isn't valid (no name, more
+// Slot i's vote options; false when it holds no valid list (out then all 0: a plain list)
+bool scan_list_read_vote(uint16_t slot, scan_list_vote_t *out);
+// Set slot i's vote options, the list itself unchanged. False when it holds no valid list, the area is foreign, or the
+// flash fails
+bool scan_list_write_vote(uint16_t slot, const scan_list_vote_t *v);
+// Store l in slot, replacing what is there; the slot's vote options stay. False for a slot outside the area, a list that isn't valid (no name, more
 // than SCAN_LIST_MAX channels, channel number 0 or one twice), a foreign area, or when the flash fails
 bool scan_list_write(uint16_t slot, const scan_list_t *l);
 // Store l in the first free slot: the slot, or -1 when full or when scan_list_write would refuse it
@@ -56,5 +92,9 @@ uint32_t scan_list_generation(void);
 // for a list that isn't valid (see scan_list_write)
 bool scan_list_encode(const scan_list_t *l, uint8_t out[SCAN_LIST_RECORD]);
 bool scan_list_decode(const uint8_t in[SCAN_LIST_RECORD], scan_list_t *out);
+// A record's vote options: put them in an encoded record (its CRC made again), take them out of a decoded one. Flag bits
+// this layout doesn't know are dropped on the way in and ignored on the way out
+void scan_list_put_vote(uint8_t rec[SCAN_LIST_RECORD], const scan_list_vote_t *v);
+void scan_list_get_vote(const uint8_t rec[SCAN_LIST_RECORD], scan_list_vote_t *out);
 
 #endif
