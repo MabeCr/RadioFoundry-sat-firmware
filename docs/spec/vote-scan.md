@@ -65,7 +65,7 @@ the first reserved bytes; a firmware without vote scan reads the same record as 
 | Offset | Size | Field | Default (0 reads as) |
 |---|---|---|---|
 | 5 | 1 | flags: bit 0 Vote, bit 1 peek during calls off, bit 2 fixed transmit (else steering) | 0: plain list |
-| 184 | 1 | threshold, dBm as i8; 0 = default | -70 dBm |
+| 184 | 1 | threshold, dBm as i8; 0 = default | -90 dBm |
 | 185 | 1 | hysteresis, dB; 0 = default | 6 dB |
 | 186 | 1 | fixed transmit member index (0-based) when flags bit 2 is set | 0: the first member |
 | 187 | 1 | reserved, 0 | |
@@ -78,7 +78,7 @@ choice. The list's options screen (Tools > Scan, a list, then its options) shows
 | Row | Values | Default |
 |---|---|---|
 | Vote | On, Off | Off |
-| Threshold | -50 to -120 dBm, in 5 dB steps on the radio (the record takes -120 to -50 in 1 dB steps) | -70 dBm |
+| Threshold | -50 to -120 dBm, in 5 dB steps on the radio (the record takes -120 to -50 in 1 dB steps) | -90 dBm |
 | Margin (hysteresis) | 2, 3, 4, 5, 6, 8, 10, 12, 15 or 20 dB on the radio (the record takes 1 to 20) | 6 dB |
 | Peek during calls | On, Off | On |
 | Transmit | Voted site, or one member (the picker lists them) | Voted site |
@@ -92,7 +92,7 @@ the air. The engine is `core/radio/vote.c` (no hardware; `tests/host/voteTest.c`
 | Phase | What happens |
 |---|---|
 | HOLD | on the voted site between calls. Kept while that site was strong in its last call (at or above the threshold): the next call is heard there at once, nothing lost. After `VOTE_RECHECK_MS` (30 s) with no call, one SWEEP in case a call is on the air that this site doesn't carry to us |
-| SWEEP | the voted site weak or not known yet: each member in turn for `VOTE_SWEEP_DWELL_MS` (150 ms), listening for a call, as a scan does |
+| SWEEP | the voted site weak or not known yet: each member in turn for `VOTE_SWEEP_DWELL_MS` (150 ms), listening for a call, as a scan does. On a digital member (DMR, P25, NXDN) a carrier, read by the strength at the squelch level after the settle, makes the sweep wait up to `VOTE_PROBE_MS` (700 ms) from the retune for the member's sync: a P25 NAC comes once a 180 ms frame, so the dwell alone misses most calls. A member whose carrier gave no sync (another system on the frequency) is not waited on again for `VOTE_PROBE_BACKOFF_MS` (5 s). FM needs none: its squelch is the call |
 | ROUND | a call heard on a member not known to be strong: each other member for `VOTE_SAMPLE_MS` (100 ms, the 50 ms settle included), then the strongest is voted if it beats the member the call was heard on by the margin. The round costs the start of that call (about 100 ms a member) |
 | CALL | on the voted site while the call lasts: its reading averaged (1/8 a poll); section 5 for peeks. `VOTE_HANG_MS` (1 s) after the call ends, the average is kept as the site's reading and the radio is in HOLD |
 
@@ -169,7 +169,7 @@ sync reading as none; peeks through the radio core with their gap measured.
 | Question | How to answer it |
 |---|---|
 | How long does a peek really cut the audio on a one-receiver radio? | the retune test on the debug link, then a peek counter and `vote.peek_gap_ms` on the radio |
-| Is the -70 dBm default right for this radio's signal reading? | compare `vote.rssi.<n>` with the sites' known coverage on a drive |
+| Is the -90 dBm default right for this radio's signal reading? | compare `vote.rssi.<n>` with the sites' known coverage on a drive |
 | Should decode quality (bit errors per voice frame) break ties? | log both during a drive and compare |
 | Do members ever need different NACs or talk groups? | allowed by the design; no system needing it is known yet |
 | Does a DMR peek fit in a repeater's other timeslot? | measure the retune and reading time first; if it fits, a DMR call loses nothing |

@@ -5339,6 +5339,26 @@ static bool vote_call_heard(radio_sm_t *sm, uint32_t now_ms)
 	return sm->view.state == RS_RX;
 }
 
+#if CONFIG_DMR || CONFIG_AIR
+static bool dmr_strength_heard(const radio_sm_t *sm, int16_t rssi_dbm);
+#endif
+
+// A digital member's carrier by its strength at the squelch level, once the retune has settled (a scan's carrier test:
+// dmr_strength_heard). FM's squelch is its call, so it has none: the sweep never waits on it
+static bool vote_carrier_heard(const radio_sm_t *sm, const radio_status_t *st, uint32_t now_ms)
+{
+#if CONFIG_DMR || CONFIG_AIR
+	uint8_t mode = sm->view.ch.mode;
+	if ((mode == RADIO_MODE_DMR || air_mode(mode)) && now_ms - sm->vote.tuned_ms >= VOTE_SETTLE_MS) {
+		return dmr_strength_heard(sm, st->rssi_dbm);
+	}
+#endif
+	(void)sm;
+	(void)st;
+	(void)now_ms;
+	return false;
+}
+
 // Every poll of a vote list (scan_service): the engine reads the member it is on; it names the next one to tune.
 // Nothing moves while the radio transmits; after a transmission on a fixed member it goes back to the voted one
 static void vote_service(radio_sm_t *sm, const radio_status_t *st, uint32_t now_ms)
@@ -5350,7 +5370,7 @@ static void vote_service(radio_sm_t *sm, const radio_status_t *st, uint32_t now_
 	if ((v->phase == VOTE_PH_HOLD || v->phase == VOTE_PH_CALL) && v->at != v->voted) {
 		vote_go(sm, v->voted, now_ms);
 	} else {
-		int m = vote_poll(v, now_ms, st->rssi_dbm, vote_call_heard(sm, now_ms));
+		int m = vote_poll(v, now_ms, st->rssi_dbm, vote_call_heard(sm, now_ms), vote_carrier_heard(sm, st, now_ms));
 		if (m >= 0) {
 			vote_go(sm, (uint8_t)m, now_ms);
 		}

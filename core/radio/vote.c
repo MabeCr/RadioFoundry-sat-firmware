@@ -69,6 +69,7 @@ void vote_tuned(vote_t *v, uint8_t m, uint32_t now_ms)
 	}
 	v->at = m;
 	v->tuned_ms = now_ms;
+	v->carrier_ms = 0;
 	v->acc = 0;
 	v->nacc = 0;
 }
@@ -122,12 +123,24 @@ static int hold(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call)
 	return -1;
 }
 
-static int sweep(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call)
+static int sweep(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call, bool carrier)
 {
 	if (call && now_ms - v->tuned_ms >= VOTE_SETTLE_MS)
 		return call_heard(v, now_ms, rssi_dbm);
+	if (carrier && now_ms - v->tuned_ms >= VOTE_SETTLE_MS)
+		v->carrier_ms = now_ms;
 	if (now_ms - v->tuned_ms < VOTE_SWEEP_DWELL_MS)
 		return -1;
+	// A carrier: its sync takes longer than the dwell (a NAC comes once a frame), so wait for it, unless this member's
+	// last carrier gave none (another system on the frequency)
+	bool wait = v->carrier_ms != 0 && now_ms - v->carrier_ms <= VOTE_CARRIER_HOLD_MS;
+	if (wait && v->nosync_ms[v->at] != 0 && now_ms - v->nosync_ms[v->at] < VOTE_PROBE_BACKOFF_MS)
+		wait = false;
+	if (wait) {
+		if (now_ms - v->tuned_ms < VOTE_PROBE_MS)
+			return -1;
+		v->nosync_ms[v->at] = now_ms;
+	}
 	if (v->left == 0) {
 		v->heard_ms = now_ms;		// the recheck counts from here
 		phase(v, VOTE_PH_HOLD, now_ms);
@@ -216,13 +229,13 @@ static int peek(vote_t *v, uint32_t now_ms, int16_t rssi_dbm)
 	return v->voted;
 }
 
-int vote_poll(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call)
+int vote_poll(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call, bool carrier)
 {
 	switch (v->phase) {
 	case VOTE_PH_HOLD:
 		return hold(v, now_ms, rssi_dbm, call);
 	case VOTE_PH_SWEEP:
-		return sweep(v, now_ms, rssi_dbm, call);
+		return sweep(v, now_ms, rssi_dbm, call, carrier);
 	case VOTE_PH_ROUND:
 		return round_(v, now_ms, rssi_dbm);
 	case VOTE_PH_CALL:

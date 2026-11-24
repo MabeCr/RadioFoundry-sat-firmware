@@ -59,7 +59,7 @@ Once Vote is on, the list's options have four more rows:
 
 | Row | What it does |
 |---|---|
-| Threshold | a site at or above this signal (-50 to -120 dBm, default -70) is good enough: the radio stays on it and doesn't look at the others during a call |
+| Threshold | a site at or above this signal (-50 to -120 dBm, default -90) is good enough: the radio stays on it and doesn't look at the others during a call |
 | Margin | another site must be this much stronger (2 to 20 dB, default 6) before the radio moves to it, so it doesn't flip between two close sites |
 | Peek during calls | On: below the threshold, the radio leaves the call for about 60 ms at most every 2 seconds to measure another site. Off: it only votes at the start of a call. An FM list starts with it off, as a peek is a short hole in FM audio |
 | Transmit | Voted site: PTT transmits on the site you are listening to. Or pick one channel to always transmit on |
