@@ -108,6 +108,7 @@ below are for an STM32F4 radio.
 | `CONFIG_SAT_CHART` | = SAT | the Tracking screen's signal chart (`core/sat/sat_sig.c`, `docs/spec/ui.md` 2.6): the receiver's level over the pass, key 2. About 1.5 KB of flash and 0.5 KB of RAM. Needs `CONFIG_SAT` |
 | `CONFIG_SAT_ALERT` | = SAT | pass alerts (`core/sat/sat_alert.c`, `docs/spec/satellite.md` 5.4): a banner and a tone a few minutes before a marked satellite's or pass's rise, the marks on the Satellites, Passes and Tracking screens, the alert settings. About 1.5 KB of flash. Needs `CONFIG_SAT` |
 | `CONFIG_SAT_SPLASH` | = SAT | the boot splash's mark is the Tracking screen's sky plot (a round badge with rings, a pass arc and a satellite) instead of the radio in a hexagon (`core/ui/ui_screens.c`, `docs/spec/ui.md`). Needs `CONFIG_SAT`; about the same flash either way |
+| `CONFIG_THEME_PACKS` | n | install and select up to 21 additional data-only color themes over the debug link (`core/ui/theme_pack.c`, `docs/spec/theme-packs.md`). Needs `CONFIG_SAT`, `CONFIG_UI_COLOR`, and a board-mapped dedicated data-flash erase unit. Writes only that area. |
 | `CONFIG_APRS_IGATE` | = APRS_RX and HOSTLINK (n where flash is short) | the iGate rules, RF to APRS-IS and messages back, with the host helper `tools/aprs_gate.py` holding the APRS-IS connection |
 | `CONFIG_DMR` | y | DMR voice: modem driver, call stack, AMBE FEC, vocoder hosting, PCM audio |
 | `CONFIG_DMR_PRIVACY` | = DMR | basic privacy (Motorola / Anytone BP) on the voice path, `core/dmr/dmrPrivacy.c` (`docs/spec/dmr-voice.md` 5) |

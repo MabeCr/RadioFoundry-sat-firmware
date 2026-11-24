@@ -40,8 +40,13 @@ enum {
 	DL_CMD_AIR		= 0x24,	// the air interface on the bench: tap, session, RX, TX (CONFIG_AIR_RAW; debuglink_air.c, 3.28)
 	DL_CMD_SUPPORT		= 0x25,	// the support info: source, hardware, image hash (CONFIG_SUPPORT_INFO; debuglink_support.c, 3.29)
 	DL_CMD_SATELLITE	= 0x26,	// selected satellite TLE records (debuglink_satellite.c; CONFIG_SATELLITE_TLE, 3.30)
+	DL_CMD_THEME_PACK	= 0x27,	// data-only UI theme pack transfer (debuglink_theme_pack.c, CONFIG_THEME_PACKS)
 	DL_CMD_SAT		= 0x30,	// satellite tracking: element set, observer, clock, look, pass, bench (debuglink_sat.c, 3.31)
 };
+
+// DL_CMD_THEME_PACK operations (first payload byte; docs/spec/theme-packs.md). Transfer data uses sequential offsets.
+enum { DL_THEME_PACK_INFO = 0, DL_THEME_PACK_BEGIN = 1, DL_THEME_PACK_DATA = 2, DL_THEME_PACK_COMMIT = 3,
+	DL_THEME_PACK_REMOVE = 4 };
 
 // DL_CMD_T3 operations (first payload byte; docs/spec/debuglink.md 3.26). Little endian
 enum {

@@ -233,12 +233,15 @@ void board_early_init(void)
 
 // Everything the core stores lives above the write floor (hardware-dm32.md 10.1): the open-firmware codeplug's 64 KB
 // "EEPROM" image at 0x700000, a decoded calibration copy from other firmware left alone at 0x710000, the settings ring
-// and the sector journal after it, optional satellite snapshots at 0x71B000..0x71DFFF, the stub write-test sectors at
+// and the sector journal after it, satellite snapshots at 0x71B000..0x71DFFF when CONFIG_SATELLITE_TLE is set, the
+// satellite and scan stores (0x71B000, 0x71C000) plus the optional theme-pack sector (0x71D000) in a satellite build,
+// the stub write-test sectors at
 // 0x71E000..0x71FFFF, the 1 MB open-firmware "flash" image at 0x720000 with room above it for the DMR ID database, the
 // native codeplug in the last 1 MB. The factory calibration is read only, so the open-firmware CPS gets no calibration window
 // Our stored satellites (CONFIG_SAT, `sat_addr`) take the first sector of the satellite snapshots' range, which the two
 // satellite features never share: CONFIG_SATELLITE_TLE is off in a build with CONFIG_SAT
-// Stored scan lists (CONFIG_SCAN_LIST, `scan_addr`) take the second sector of that range, so they exclude the snapshots too
+// Stored scan lists (CONFIG_SCAN_LIST, `scan_addr`) take the second sector of that range. The theme-pack area occupies
+// the third sector only with CONFIG_THEME_PACKS; that switch needs CONFIG_SAT, which excludes CONFIG_SATELLITE_TLE.
 #if CONFIG_SCAN_LIST && CONFIG_SATELLITE_TLE
 #error "Stored scan lists (0x71C000) are in the satellite TLE snapshots' range (0x71B000..0x71DFFF): CONFIG_SCAN_LIST and CONFIG_SATELLITE_TLE=y exclude each other on this board"
 #endif
@@ -259,6 +262,8 @@ static const hal_flash_map_t flash_map = {
 	.sat_size = 0x001000u,
 	.scan_addr = 0x71C000u,		// 16 scan lists (docs/spec/scan-list.md)
 	.scan_size = 0x001000u,
+	.theme_pack_addr = CONFIG_THEME_PACKS ? 0x71D000u : 0u,	// data-only palette pack (docs/spec/theme-packs.md)
+	.theme_pack_size = CONFIG_THEME_PACKS ? 0x001000u : 0u,
 };
 static const hrc_flash_cfg_t flash_cfg = {
 	.cs_pin = PIN_FLASH_CS,

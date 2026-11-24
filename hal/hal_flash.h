@@ -44,6 +44,10 @@ typedef struct {
 	// written by the open-firmware CPS. 16 lists a unit. 0 size: none (the radio has no scan lists)
 	uint32_t scan_addr;
 	uint32_t scan_size;
+	// Data-only UI theme pack: one erase unit outside every area above, never written by the open-firmware CPS. 0 size:
+	// unsupported on this board/configuration
+	uint32_t theme_pack_addr;
+	uint32_t theme_pack_size;
 } hal_flash_map_t;
 
 // The end of the highest area of a map whose flash erases in units of erase_size (an area of size 0 is none): a chip
@@ -63,6 +67,7 @@ static inline uint32_t hal_flash_map_end(const hal_flash_map_t *m, uint32_t eras
 		m->native_size != 0u ? m->native_addr + m->native_size : 0u,
 		m->staging_size != 0u ? m->staging_addr + m->staging_size : 0u,
 		m->satellite_size != 0u ? m->satellite_addr + m->satellite_size : 0u,
+		m->theme_pack_size != 0u ? m->theme_pack_addr + m->theme_pack_size : 0u,
 	};
 	uint32_t end = 0;
 	for (unsigned i = 0; i < sizeof(ends) / sizeof(ends[0]); i++) {

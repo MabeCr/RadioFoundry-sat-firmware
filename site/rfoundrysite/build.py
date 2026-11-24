@@ -289,7 +289,7 @@ class Site:
 	def screen_caption(self, lang, name):
 		page, _, color = name.partition("__")
 		cap = self.t(lang, "screen." + page)
-		if color in ("light", "high_contrast", "night", "terminal", "orange", "terminal_inverse", "orange_inverse"):	# a theme page in another theme (uiSim G_THEMES)
+		if color in ("light", "high_contrast", "night", "terminal", "orange", "terminal_inverse", "orange_inverse", "aurora", "orbit", "vice_city"):	# a theme page in another theme (uiSim G_THEMES)
 			return self.t(lang, "screen.in_theme", screen=cap, theme=self.t(lang, "theme." + color))
 		return self.t(lang, "screen.in_color", screen=cap, color=self.t(lang, "color." + color)) if color else cap
 
@@ -379,6 +379,7 @@ class Site:
 			self.flash_page(lang)
 			self.tools_page(lang)
 			self.satellite_tle_page(lang)
+			self.theme_pack_page(lang)
 			self.support_pages(lang)
 			self.codeplug_page(lang)
 			self.docs_pages(lang)
@@ -774,6 +775,13 @@ class Site:
 			   '<script type="module" src="{{root}}static/js/tletool.js?v=%s"></script>' % (strings, self.asset_version))
 		self.page(lang, "tools/satellite/index.html", self.t(lang, "tools.satellite.title"),
 			  self.tpl.render("satellite_tle", {}, lang), "tools", scripts=scripts, nav="tools")
+
+	def theme_pack_page(self, lang):
+		strings = json.dumps(self.i18n.subset(lang, ("tools.title", "tools.theme_pack.", "flash.err.")), ensure_ascii=False).replace("</", "<\\/")
+		scripts = ('<script type="application/json" id="i18n">%s</script>'
+			   '<script type="module" src="{{root}}static/js/theme-pack-tool.js?v=%s"></script>' % (strings, self.asset_version))
+		self.page(lang, "tools/themes/index.html", self.t(lang, "tools.theme_pack.title"),
+			  self.tpl.render("theme_pack", {}, lang), "tools", scripts=scripts, nav="tools")
 
 	def support_pages(self, lang):
 		"""Support: the FAQ, the reminder to update, and the support download (static/js/supportpage.js) with the About

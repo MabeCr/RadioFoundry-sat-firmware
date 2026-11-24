@@ -5,6 +5,7 @@
 #include <string.h>
 #include "board.h"
 #include "ui_screens.h"
+#include "theme_pack.h"
 #include "fmt.h"
 #include "i18n.h"
 #include "ui_svc.h"
@@ -36,11 +37,13 @@ static bool ui_strip_fill;
 // highlight color, so nothing but red reaches the eye
 static void accent_apply(void)
 {
+	if (ui_theme >= UI_THEME_ALL && ui_accent == UI_ACCENT_DEFAULT)
+		return;		// a pack's default palette supplies all of its own accent colors
 	ui_col.focus_fg = ui_col.fg;
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
-	if (ui_theme >= 6) {
+	if (ui_theme_is_inverse()) {
 		// The inverse themes: a light background with black text, so the focus is a black bar in the background's color
 		ui_col.focus_fg = ui_col.bg;
 		return;
@@ -50,11 +53,11 @@ static void accent_apply(void)
 		ui_col.strip_warn = ui_col.focus_fg = ui_col.bg;
 		return;
 	}
-	if ((ui_theme == 4 || ui_theme == 5) && ui_accent == UI_ACCENT_DEFAULT) {
+	if ((ui_theme == UI_THEME_TERMINAL || ui_theme == UI_THEME_ORANGE) && ui_accent == UI_ACCENT_DEFAULT) {
 		// Terminal and Orange with Default keep their own hue: the focus is a dark bar with brighter text, not reverse video
 		// (a bright row would leave the one hue). A highlight color other than Default is the user's choice and applies
 		// like on the dark theme
-		ui_col.focus_fg = ui_theme == 4 ? RGB565(170, 255, 170) : RGB565(255, 208, 140);
+		ui_col.focus_fg = ui_theme == UI_THEME_TERMINAL ? RGB565(170, 255, 170) : RGB565(255, 208, 140);
 		return;
 	}
 	static const color_t acc[UI_ACCENT_COUNT] = {
@@ -102,11 +105,27 @@ static void accent_apply(void)
 
 void ui_theme_set(uint8_t theme)
 {
-	if (!CONFIG_UI_COLOR || theme >= UI_THEME_COUNT)
+	if (!CONFIG_UI_COLOR || theme >= UI_THEME_COUNT ||
+	    (theme >= UI_THEME_ALL && (!CONFIG_THEME_PACKS || theme - UI_THEME_ALL >= ui_theme_pack_count())))
 		theme = UI_THEME_DARK;	// without color settings: the dark theme only
 	ui_theme = theme;
 	if (gfx_bpp() == 1)
 		return;		// ink on paper whatever the theme
+	if (theme >= UI_THEME_ALL) {
+		char name[THEME_PACK_NAME_LEN];
+		uint16_t c[THEME_PACK_COLOR_COUNT];
+		if (!ui_theme_pack_get((uint8_t)(theme - UI_THEME_ALL), name, c)) {
+			ui_theme = UI_THEME_DARK;
+			return;
+		}
+		ui_col.bg = c[0]; ui_col.fg = c[1]; ui_col.dim = c[2]; ui_col.line = c[3];
+		ui_col.tx = c[4]; ui_col.rx = c[5]; ui_col.warn = c[6]; ui_col.idle = c[7];
+		ui_col.pill_fg = c[8]; ui_col.pill_dark_fg = c[9]; ui_col.focus = c[10]; ui_col.hint_bg = c[11];
+		ui_col.priv = c[12]; ui_col.idle_fg = c[13]; ui_col.focus_fg = c[14]; ui_col.chnum = c[15];
+		ui_col.strip_bg = c[16]; ui_col.strip_warn = c[17];
+		accent_apply();
+		return;
+	}
 	ui_col.pill_fg = RGB565(255, 255, 255);
 	ui_col.pill_dark_fg = RGB565(0, 0, 0);
 	if (theme == UI_THEME_NIGHT) {
@@ -148,7 +167,7 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(0, 0, 255);
 		ui_col.hint_bg = RGB565(0, 0, 0);
 		ui_col.priv = RGB565(0, 255, 255);
-	} else if (theme == 3) {
+	} else if (theme == UI_THEME_NIGHT) {
 		// Night: black and pure reds, to keep night vision, and nothing blue. Only two other colors, both dim: green
 		// for receive and amber for warnings, which red text would hide. TX is the brightest red, in a pill (P5)
 		ui_col.bg = RGB565(0, 0, 0);
@@ -164,7 +183,7 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(64, 0, 0);
 		ui_col.hint_bg = RGB565(32, 0, 0);
 		ui_col.priv = RGB565(160, 0, 0);
-	} else if (theme == 4) {
+	} else if (theme == UI_THEME_TERMINAL) {
 		// Terminal: an old green phosphor screen, for looks and not for night vision, so brighter than Night. Yellow
 		// marks receive and red transmit, which green text would hide; orange warns (yellow is receive's). TX is a red
 		// pill (P5). Everything else is a shade of green
@@ -179,7 +198,7 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(0, 72, 0);
 		ui_col.hint_bg = RGB565(0, 36, 0);
 		ui_col.priv = RGB565(0, 230, 150);
-	} else if (theme == 5) {
+	} else if (theme == UI_THEME_ORANGE) {
 		// Orange: the same idea in amber phosphor. Green marks receive and red transmit, which orange text would hide;
 		// yellow warns. TX is a red pill (P5)
 		ui_col.bg = RGB565(0, 0, 0);
@@ -193,11 +212,11 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(80, 40, 0);
 		ui_col.hint_bg = RGB565(40, 20, 0);
 		ui_col.priv = RGB565(0, 220, 200);
-	} else if (theme == 6 || theme == 7) {
+	} else if (theme == UI_THEME_TERMINAL_INVERSE || theme == UI_THEME_ORANGE_INVERSE) {
 		// Terminal Inverse and Orange Inverse: the phosphor color as the background, black text. The meaning colors
 		// are dark shades that read on it (red transmit, blue or green receive, brown or blue warnings), and their
 		// pills carry text in the background's color
-		bool green = theme == 6;
+		bool green = theme == UI_THEME_TERMINAL_INVERSE;
 		ui_col.bg = green ? RGB565(51, 255, 51) : RGB565(255, 153, 0);
 		ui_col.fg = RGB565(0, 0, 0);
 		ui_col.dim = green ? RGB565(0, 96, 0) : RGB565(112, 56, 0);
@@ -208,7 +227,47 @@ void ui_theme_set(uint8_t theme)
 		ui_col.idle = green ? RGB565(0, 110, 0) : RGB565(128, 64, 0);
 		ui_col.focus = RGB565(0, 0, 0);
 		ui_col.hint_bg = green ? RGB565(0, 190, 0) : RGB565(214, 126, 0);
-		ui_col.priv = green ? RGB565(0, 90, 90) : RGB565(0, 64, 112);
+#if CONFIG_SAT
+	} else if (theme == UI_THEME_AURORA) {
+		// Aurora: a cold night sky with green and violet light, warm transmit and warning colors
+		ui_col.bg = RGB565(4, 12, 28);
+		ui_col.fg = RGB565(184, 240, 224);
+		ui_col.dim = RGB565(96, 160, 160);
+		ui_col.line = RGB565(40, 92, 104);
+		ui_col.tx = RGB565(255, 104, 112);
+		ui_col.rx = RGB565(96, 240, 168);
+		ui_col.warn = RGB565(255, 200, 72);
+		ui_col.idle = RGB565(40, 112, 104);
+		ui_col.focus = RGB565(16, 64, 64);
+		ui_col.hint_bg = RGB565(8, 28, 44);
+		ui_col.priv = RGB565(176, 144, 255);
+	} else if (theme == UI_THEME_ORBIT) {
+		// Orbit: a deep blue space palette with cyan receive, gold warnings and a bright red transmit pill
+		ui_col.bg = RGB565(4, 8, 28);
+		ui_col.fg = RGB565(208, 224, 255);
+		ui_col.dim = RGB565(120, 152, 208);
+		ui_col.line = RGB565(48, 72, 128);
+		ui_col.tx = RGB565(255, 104, 104);
+		ui_col.rx = RGB565(80, 224, 240);
+		ui_col.warn = RGB565(255, 204, 72);
+		ui_col.idle = RGB565(48, 80, 152);
+		ui_col.focus = RGB565(16, 40, 96);
+		ui_col.hint_bg = RGB565(8, 20, 52);
+		ui_col.priv = RGB565(184, 144, 255);
+	} else if (theme == UI_THEME_VICE_CITY) {
+		// Vice City: a synthwave palette of neon pink, cyan and violet on a dark purple sky
+		ui_col.bg = RGB565(20, 4, 32);
+		ui_col.fg = RGB565(255, 176, 232);
+		ui_col.dim = RGB565(184, 112, 176);
+		ui_col.line = RGB565(104, 48, 120);
+		ui_col.tx = RGB565(255, 96, 152);
+		ui_col.rx = RGB565(64, 232, 240);
+		ui_col.warn = RGB565(255, 216, 72);
+		ui_col.idle = RGB565(120, 48, 144);
+		ui_col.focus = RGB565(72, 16, 96);
+		ui_col.hint_bg = RGB565(36, 8, 56);
+		ui_col.priv = RGB565(184, 144, 255);
+#endif
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);
@@ -224,9 +283,9 @@ void ui_theme_set(uint8_t theme)
 	}
 	// Terminal and Orange have no white; pills carry black text. The inverse themes' pills are dark shades, so their
 	// text is the light background's color (pill_dark_fg is the text on the light pills and tiles of the other themes)
-	if (theme >= 4) {
-		ui_col.pill_fg = theme >= 6 ? ui_col.bg : RGB565(0, 0, 0);
-		ui_col.pill_dark_fg = theme >= 6 ? ui_col.bg : RGB565(0, 0, 0);
+	if (theme >= UI_THEME_TERMINAL) {
+		ui_col.pill_fg = ui_theme_is_inverse() ? ui_col.bg : RGB565(0, 0, 0);
+		ui_col.pill_dark_fg = ui_theme_is_inverse() ? ui_col.bg : RGB565(0, 0, 0);
 	}
 	ui_col.idle_fg = ui_col.pill_fg;
 	accent_apply();
@@ -246,7 +305,7 @@ bool ui_theme_is_terminal(void)
 // The inverse themes (Terminal Inverse, Orange Inverse): a light background, so the highlight color doesn't apply
 bool ui_theme_is_inverse(void)
 {
-	return ui_theme >= 6 && gfx_bpp() != 1;
+	return (ui_theme == UI_THEME_TERMINAL_INVERSE || ui_theme == UI_THEME_ORANGE_INVERSE) && gfx_bpp() != 1;
 }
 
 // The theme number, for the few drawings that pick colors by theme (the satellite sky plot)

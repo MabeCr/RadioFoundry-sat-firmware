@@ -357,6 +357,8 @@ CONFIG_SATELLITE_TLE ?= $(if $(filter y,$(CONFIG_SAT)),n,$(if $(filter y,$(CONFI
 # and a 1.5 KB task stack, which some radios don't have to spare: off by default (docs/spec/satellite.md 7). It is the
 # alternative to SATELLITE_TLE above: the two never share a build (their screens, settings and flash areas collide)
 CONFIG_SAT ?= n
+# Data-only theme packs stored in a board-provided flash area and installed over the debug link
+CONFIG_THEME_PACKS ?= n
 # element sets by sound (core/sat/sat_sound_rx.c, docs/spec/sound-transfer.md): a phone plays the chosen satellites at the
 # microphone and the radio decodes them with the AFSK demodulator and stores them, no cable. Tools > Satellites > Receive
 # sound. Needs SAT, DMR (the microphone is read in the modem's DMR work mode) and APRS (the demodulator is core/aprs's).
@@ -375,7 +377,7 @@ CONFIG_SAT_SPLASH ?= $(CONFIG_SAT)
 
 FEATURES := USB_SERIAL_REQUEST FM SUBTONE DMR DMR_PRIVACY DMR_AES DMR_TALKER_ALIAS DMR_GPS DMR_SMS DMR_TMS DMR_ARS DMR_LRRP DMR_SIGNALING DMR_EMERGENCY DMR_ROAMING DMR_TRUNK DMR_TRUNK_TX DMR_TRUNK_SUPL DMR_TRUNK_GW VOICE_CAPTURE DMR_IP_GATEWAY ZONE_SHARE DMR_UDP_COMPRESS NET_TCP NET_KISS NET_HTTP NET_HTTP_GZIP NET_WEBCTL NET_RADIO_UDP NET_RIGCTL NET_APRSIS NET_USRP MDNS TFTP TFTP_IDDB IDDB_COMPACT DMR_CONTROL_STATION SNMP SFR SFR_DUALPATH_RX SFR_CWID TASK_STACKS \
 	USB HOSTLINK USB_NETWORK NET_PPP HOTSPOT HOTSPOT_SPLIT DEBUGLINK CPS_OPENFW CPS_FAST VFO VFO_FM VFO_DMR DIAG BACKLIGHT_TEST FONT_XL FONT_AA FONT_BIG LANG_ES LANG_IT LANG_FR LANG_ZH CJK_GLYPHS LANG_DEFAULT_ES LANG_DEFAULT_IT LANG_DEFAULT_FR LANG_DEFAULT_ZH UI_COLOR UI_SETTINGS SCAN SCAN_LIST DUAL_WATCH BEEP SIG_TONES FM_TX_TONES DTMF \
-	RX_EXT VOX REF_TRIM BATTERY_SAVE VIBRATE GPS AUDIO_PROBE STUB_ENTRY NAND_STORAGE CRASH_LOG CRASH_SCREEN CRASH_REPORT WATCHDOG SUPPORT_INFO FAULT_TRACE AM_RX BCAST_FM APRS APRS_AFSK APRS_DMR APRS_RX APRS_IGATE GPS_SKY SATELLITE_TLE SAT SAT_SOUND SAT_CHART SAT_ALERT SAT_SPLASH KEY_ASSIGN CHANNEL_LIST CHANNEL_EDIT ZONE_EDIT CONTACT_EDIT VOLUME_BAR P25 P25_TRUNK NXDN NXDN_SCRAMBLER AIR_RAW
+	RX_EXT VOX REF_TRIM BATTERY_SAVE VIBRATE GPS AUDIO_PROBE STUB_ENTRY NAND_STORAGE CRASH_LOG CRASH_SCREEN CRASH_REPORT WATCHDOG SUPPORT_INFO FAULT_TRACE AM_RX BCAST_FM APRS APRS_AFSK APRS_DMR APRS_RX APRS_IGATE GPS_SKY SATELLITE_TLE SAT SAT_SOUND SAT_CHART SAT_ALERT SAT_SPLASH THEME_PACKS KEY_ASSIGN CHANNEL_LIST CHANNEL_EDIT ZONE_EDIT CONTACT_EDIT VOLUME_BAR P25 P25_TRUNK NXDN NXDN_SCRAMBLER AIR_RAW
 
 # The panel's width in pixels: the display class the board's board.toml names (hardware.gallery = "160x128", the width
 # first). Empty when it names none, which counts as a narrow panel
@@ -462,6 +464,17 @@ ifneq ($(call feature_on,DEBUGLINK),)
 endif
 ifneq ($(and $(call feature_on,SAT),$(call feature_on,SATELLITE_TLE)),)
   $(error CONFIG_SAT and CONFIG_SATELLITE_TLE=y are alternatives: set CONFIG_SATELLITE_TLE=n with the satellite tracking of core/sat)
+endif
+ifneq ($(call feature_on,THEME_PACKS),)
+  ifeq ($(call feature_on,SAT),)
+    $(error CONFIG_THEME_PACKS=y needs CONFIG_SAT=y)
+  endif
+  ifeq ($(call feature_on,UI_COLOR),)
+    $(error CONFIG_THEME_PACKS=y needs CONFIG_UI_COLOR=y)
+  endif
+  ifeq ($(call feature_on,DEBUGLINK),)
+    $(error CONFIG_THEME_PACKS=y needs CONFIG_DEBUGLINK=y)
+  endif
 endif
 ifneq ($(call feature_on,SATELLITE_TLE),)
   ifeq ($(call feature_on,DEBUGLINK),)

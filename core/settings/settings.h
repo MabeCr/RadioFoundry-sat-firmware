@@ -361,26 +361,27 @@ static inline void settings_set_aprs_cp_ssid(settings_t *s, uint8_t ssid_plus_1)
 
 // theme holds 0..3 and updown_home 0..2 in bits 0-1 (firmware from before night reads theme 3 as dark); their upper
 // bits hold the crash report's target (below), and updown_home bit 7 Home's talk line order (0, older records:
-// talkgroup number first, 1: its name first). The fifth theme (4, terminal, CONFIG_SAT) has its bit 2 in sat_flags
+// talkgroup number first, 1: its name first). In CONFIG_SAT, sat_flags bits 2-4 hold theme bits 2-4 (through theme 31).
 #define SETTINGS_SMALL_MASK	0x03u
 #define SETTINGS_HOME_LABEL_FIRST	0x80u
 #define SETTINGS_SAT_UTC	0x01u	// sat_flags: the satellite screens show times in UTC, not local time (Pass times in UTC)
 #define SETTINGS_SAT_QUIET	0x02u	// sat_flags: a pass alert shows its banner without the tone and the vibration
 #define SETTINGS_SAT_THEME_HIGH	0x04u	// sat_flags: the theme number's bit 2 (theme 4, terminal)
-#define SETTINGS_THEME_MAX	7u
+#define SETTINGS_SAT_THEME_MASK	0x1Cu	// sat_flags: theme number bits 2-4; theme packs can use IDs through 31
+#define SETTINGS_THEME_MAX	(CONFIG_THEME_PACKS ? 31u : 10u)
 // Each reader has an _of form that takes the field's value, for a caller that read just that field (SETTINGS_FIELD).
-// In a build with satellites the theme's bit 2 (the terminal theme) is in sat_flags: settings_theme_sat_of adds it
+// In a build with satellites the theme's bits 2-4 are in sat_flags: settings_theme_sat_of adds them
 static inline uint8_t settings_theme_of(uint8_t theme) { return theme & SETTINGS_SMALL_MASK; }
 #if CONFIG_SAT
 static inline uint8_t settings_theme_sat_of(uint8_t theme, uint8_t sat_flags)
 {
-	return (uint8_t)(settings_theme_of(theme) | ((sat_flags & SETTINGS_SAT_THEME_HIGH) ? 4u : 0u));
+	return (uint8_t)(settings_theme_of(theme) | (sat_flags & SETTINGS_SAT_THEME_MASK));
 }
 static inline uint8_t settings_theme(const settings_t *s) { return settings_theme_sat_of(s->theme, s->sat_flags); }
 static inline void settings_set_theme(settings_t *s, uint8_t theme)
 {
 	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
-	s->sat_flags = (uint8_t)((s->sat_flags & ~SETTINGS_SAT_THEME_HIGH) | ((theme & 4u) ? SETTINGS_SAT_THEME_HIGH : 0u));
+	s->sat_flags = (uint8_t)((s->sat_flags & ~SETTINGS_SAT_THEME_MASK) | (theme & SETTINGS_SAT_THEME_MASK));
 }
 #else
 static inline uint8_t settings_theme(const settings_t *s) { return settings_theme_of(s->theme); }

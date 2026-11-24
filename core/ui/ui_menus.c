@@ -7,6 +7,7 @@
 #include <string.h>
 #include "board.h"
 #include "ui_nav.h"
+#include "theme_pack.h"
 #include "ui_svc.h"
 #include "ui_svc_aprs.h"
 #include "aprs/aprs_fmt.h"
@@ -6625,10 +6626,11 @@ static const tr_id_t n_backlight[] = { TRX(SET_VALUE_BACKLIGHT_5S_20S, "5s/20s")
 #if CONFIG_UI_COLOR
 #if CONFIG_SAT
 static const int16_t v_theme[] = { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT, UI_THEME_TERMINAL,
-	UI_THEME_ORANGE, UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE };
+	UI_THEME_ORANGE, UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE, UI_THEME_AURORA, UI_THEME_ORBIT, UI_THEME_VICE_CITY };
 static const tr_id_t n_theme[] = { TRN(SET_VALUE_THEME_DARK, "Dark"), TRN(SET_VALUE_THEME_LIGHT, "Light"),
 	TRN(SET_VALUE_THEME_HIGH_CONTRAST, "High contrast"), TRN(SET_VALUE_THEME_NIGHT, "Night (red)"), TRN(TERMINAL, "Terminal"),
-	TRN(SET_VALUE_ACCENT_ORANGE, "Orange"), TRN(TERMINAL_INVERSE, "Terminal Inverse"), TRN(ORANGE_INVERSE, "Orange Inverse") };
+	TRN(SET_VALUE_ACCENT_ORANGE, "Orange"), TRN(TERMINAL_INVERSE, "Terminal Inverse"), TRN(ORANGE_INVERSE, "Orange Inverse"),
+	TRN(SET_VALUE_THEME_AURORA, "Aurora"), TRN(SET_VALUE_THEME_ORBIT, "Orbit"), TRN(SET_VALUE_THEME_VICE_CITY, "Vice City") };
 #else
 static const int16_t v_theme[] = { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT };
 static const tr_id_t n_theme[] = { TRN(SET_VALUE_THEME_DARK, "Dark"), TRN(SET_VALUE_THEME_LIGHT, "Light"),
@@ -7496,6 +7498,16 @@ static void set_value_text(const set_item_t *s, int32_t v, char *out, size_t len
 				return;
 			}
 		}
+		if (s->id == UI_SET_THEME && CONFIG_THEME_PACKS && v >= UI_THEME_ALL) {
+			char name[THEME_PACK_NAME_LEN];
+			uint16_t colors[THEME_PACK_COLOR_COUNT];
+			if (ui_theme_pack_get((uint8_t)(v - UI_THEME_ALL), name, colors)) {
+				sb_str(&b, name);
+				return;
+			}
+			sb_str(&b, TR(SET_VALUE_THEME_DARK, "Dark"));
+			return;
+		}
 		sb_i32(&b, v);
 		break;
 	case ST_NUMBER:
@@ -7688,6 +7700,19 @@ static void group_select(uint16_t i, bool hold)
 		set_store(s, !v);
 		break;
 	case ST_LIST: {
+		if (s->id == UI_SET_THEME && CONFIG_THEME_PACKS) {
+			uint8_t count = (uint8_t)(s->n + ui_theme_pack_count());
+			uint8_t k = 0;
+			while (k < s->n && s->values[k] != v)
+				k++;
+			if (k == s->n && v >= UI_THEME_ALL && v - UI_THEME_ALL < ui_theme_pack_count())
+				k = (uint8_t)(s->n + v - UI_THEME_ALL);
+			else if (k == s->n)
+				k = 0u;
+			uint8_t next = count != 0u ? (uint8_t)((k + 1u) % count) : 0u;
+			set_store(s, next < s->n ? s->values[next] : UI_THEME_ALL + next - s->n);
+			break;
+		}
 		uint8_t k = 0;
 		while (k < s->n && s->values[k] != v)
 			k++;

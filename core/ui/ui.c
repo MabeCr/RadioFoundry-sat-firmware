@@ -16,6 +16,7 @@
 #include "ui.h"
 #include "ui_app.h"
 #include "ui_screens.h"
+#include "theme_pack.h"
 #include "ui_svc.h"
 #include "input/input.h"
 #include "radio/radio.h"
@@ -120,6 +121,7 @@ static void ui_task(void *arg)
 {
 	(void)arg;
 	bool have_fb = gfx_init(board.display);
+	ui_theme_pack_init();
 	input_event_t ev;
 
 	if (have_fb) {

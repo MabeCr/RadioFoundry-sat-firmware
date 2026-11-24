@@ -803,14 +803,14 @@ static void test_crash_bits(void)
 	s.theme = 0xFF;				// bits 0-1 have no out-of-range value: 3 is the night theme
 	CHECK(settings_theme(&s) == 3);
 #if CONFIG_SAT
-	// The phosphor themes of a satellite build (4..7): the theme's bit 2 is sat_flags bit 2, every other field keeps its value
+	// Satellite-only themes (4..10) keep their high bits in sat_flags, alongside the other settings
 	s.theme = 2;
 	s.updown_home = 1;
 	settings_set_crash_contact(&s, 1234);
 	settings_set_theme(&s, 4);
 	CHECK(settings_theme(&s) == 4 && (s.theme & 3u) == 0 && (s.sat_flags & SETTINGS_SAT_THEME_HIGH) && settings_updown_home(&s) == 1);
 	CHECK(settings_crash_contact(&s) == 1234 && settings_crash_mode(&s) == 1);
-	for (uint8_t th = 0; th <= 7; th++) {
+	for (uint8_t th = 0; th <= SETTINGS_THEME_MAX; th++) {
 		settings_set_theme(&s, th);
 		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 1234);
 	}
