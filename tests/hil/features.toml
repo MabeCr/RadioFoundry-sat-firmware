@@ -209,6 +209,11 @@ spec = "docs/spec/radio-features.md"
 switch = "DUAL_WATCH"
 spec = "docs/spec/radio-features.md"
 
+[feature.vote_scan]
+switch = "VOTE_SCAN"
+spec = "docs/spec/vote-scan.md"
+source = ["core/radio/vote.c", "core/radio/vote.h"]
+
 [feature.beep]
 switch = "BEEP"
 spec = "docs/spec/radio-features.md"

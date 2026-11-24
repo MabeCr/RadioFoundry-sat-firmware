@@ -270,6 +270,20 @@ typedef struct {
 	uint32_t site_phase_ms[RADIO_ROAM_SITES];	// its last beacon's start in the interval (ms), UINT32_MAX = unknown
 	uint16_t site_fresh16;	// bit i: site i's survey data is fresh
 } radio_roam_view_t;
+
+// A vote list running (radio_view_t.vote, CONFIG_VOTE_SCAN; docs/spec/vote-scan.md 8): the vote engine's state
+#define RADIO_VOTE_MAX	16	// radio/vote.h VOTE_MAX
+typedef struct {
+	uint8_t phase;		// vote_phase_t: off, hold, sweep, round, call, peek
+	uint8_t n;		// members
+	uint8_t voted;		// the member voted (0-based, in the list's order of the members found)
+	uint8_t at;		// the member tuned now
+	int8_t avg_dbm;		// during a call: the voted site's average
+	int8_t last_dbm[RADIO_VOTE_MAX];	// each member's last reading, -128 = none
+	uint16_t rounds, sweeps, switches, peeks;
+	uint16_t peek_max_ms;	// the longest peek, the retune back included
+	char voted_name[CODEPLUG_NAME_LEN + 1];	// the voted member's channel name, for Home
+} radio_vote_view_t;
 #endif
 
 #if CONFIG_DMR_TRUNK
@@ -469,7 +483,7 @@ typedef struct {
 	bool hotspot;		// the radio is an MMDVM hotspot: the host link drives the modem, channel keys are off
 	uint8_t hs_power;	// the board power level the hotspot keys, while hotspot
 	// Scan (CONFIG_SCAN; all 0 otherwise)
-	uint8_t scan;		// scan_kind_t: 0 off, 1 zone, 2 VFO, 3 dual watch, 4 scan list
+	uint8_t scan;		// scan_kind_t: 0 off, 1 zone, 2 VFO, 3 dual watch, 4 scan list, 5 vote list
 	uint8_t scan_phase;	// scan_phase_t: listen, probe, hold, resume, paused
 	uint8_t scan_skipped;	// nuisance-deleted stops
 	uint16_t scan_probes;	// this scan: stops probed (a carrier at the end of the dwell)
@@ -515,6 +529,9 @@ typedef struct {
 	uint32_t bcast_khz;		// what the receiver reports it is tuned to, for the debug link (0 = not playing)
 #if CONFIG_DMR
 	radio_dmr_view_t dmr;
+#endif
+#if CONFIG_VOTE_SCAN
+	radio_vote_view_t vote;	// a vote list running (scan == 5): docs/spec/vote-scan.md 8
 #endif
 #if CONFIG_DMR_ROAMING
 	radio_roam_view_t roam;

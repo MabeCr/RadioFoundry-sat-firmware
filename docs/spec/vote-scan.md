@@ -139,19 +139,26 @@ the transmission. Transmit checks (TX inhibit, band, RX only) apply to the membe
 
 ## 8. The debug link and tests
 
-A `vote` view section for HIL tests and on-radio debugging:
+The `roam` view section ([debuglink.md](debuglink.md) 3.7) ends with the vote keys, as roaming and voting both choose
+between sites; `features` says `scan=vote` while a list votes. The keys are printed only then, so the section still fits a
+reply:
 
 | Key | Meaning |
 |---|---|
-| `vote.on`, `vote.state` | running; idle, search or call |
-| `vote.site`, `vote.site_rssi` | the voted member (0-based) and its average |
-| `vote.rssi.<n>` | each member's last average, or `-` before one is read |
-| `vote.searches`, `vote.switches`, `vote.peeks`, `vote.peek_gap_ms` | counters, and the longest peek in ms |
+| `vote.built` | 1 with `CONFIG_VOTE_SCAN` |
+| `vote.phase` | hold, sweep, round, call or peek (section 4) |
+| `vote.n`, `vote.voted`, `vote.at` | members, the voted member (0-based) and the one tuned now |
+| `vote.avg_dbm` | during a call, the voted site's average |
+| `vote.rounds`, `vote.sweeps`, `vote.switches`, `vote.peeks` | counters since the list started |
+| `vote.peek_max_ms` | the longest peek, the retune back included |
+| `vote.dbm` | each member's last reading, comma separated, `-` before one is read |
+| `vote.site` | the voted member's channel name |
 
-Host tests (`tests/host/radioCoreTest.c`): the strongest of three fake sites wins, in P25, DMR and FM; hysteresis holds a
-near tie; a carrier without the member's sync reads as none; a call on a weaker member returns to the voted site; peeks
-only below the threshold, never closer than the gap; peeks off; each list's own threshold; steering and fixed transmit;
-a list mixing modes refused. UI flows: the option rows, the refusal, the VOTE pill.
+Host tests: `tests/host/voteTest.c` drives the engine against a simulated system (first call, a strong site holding, the
+margin, peeks and peeks off, a site out of range); `tests/host/radioCoreTest.c` (`test_p25_vote`) runs a vote list of
+three P25 sites in three zones through the radio core (the round, PTT on the voted site and on a fixed member, a stop, a
+list mixing modes refused, the debug link keys). Still to write: DMR and FM vote lists through the radio core; a carrier without the member's sync reading as none;
+peeks through the radio core with their gap measured; UI flows for the option rows, the refusal and the VOTE pill.
 
 ## 9. Open questions
 

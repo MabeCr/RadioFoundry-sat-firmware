@@ -127,7 +127,7 @@ static bool keyrun_keyed(void)
 
 void debuglink_view_radio(const radio_view_t *v, dl_text_t *t)
 {
-	static const char *const kinds[] = { "off", "zone", "vfo", "dual" };
+	static const char *const kinds[] = { "off", "zone", "vfo", "dual", "list", "vote" };
 	static const char *const phases[] = { "listen", "probe", "hold", "resume", "paused" };
 	static const char *const batt[] = { "ok", "low", "critical" };
 	static const char *const resumes[] = { "time", "carrier", "stop" };
@@ -143,7 +143,7 @@ void debuglink_view_radio(const radio_view_t *v, dl_text_t *t)
 	if (CONFIG_DMR && board.radio != NULL && board.radio->tx_drive != NULL) {
 		dl_text(t, "pa_keyrun.last=%u/%u\n", (unsigned)pa_keyrun_last_n, (unsigned)pa_keyrun_last_of);
 	}
-	dl_text(t, "scan=%s\nscan_phase=%s\nscan_skipped=%u\n", word(v->scan, kinds, 4), word(v->scan_phase, phases, 5),
+	dl_text(t, "scan=%s\nscan_phase=%s\nscan_skipped=%u\n", word(v->scan, kinds, 6), word(v->scan_phase, phases, 5),
 		v->scan_skipped);
 	dl_text(t, "scan_probes=%u\nscan_synced=%u\n", v->scan_probes, v->scan_synced);
 	// Dual watch: the two channels ("vfo", or zone index:position), the selected one and the one the receiver is on

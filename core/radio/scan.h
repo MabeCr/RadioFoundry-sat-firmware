@@ -16,7 +16,8 @@
 #include "codeplug/codeplug.h"
 
 // SCAN_LIST: the channels of a stored scan list (CONFIG_SCAN_LIST), each in its own zone. Its positions are the list's
-typedef enum { SCAN_OFF, SCAN_ZONE, SCAN_VFO, SCAN_DUAL, SCAN_LIST } scan_kind_t;
+// SCAN_VOTE: a scan list marked Vote (CONFIG_VOTE_SCAN): the vote engine (radio/vote.h) picks the member, not this one
+typedef enum { SCAN_OFF, SCAN_ZONE, SCAN_VFO, SCAN_DUAL, SCAN_LIST, SCAN_VOTE } scan_kind_t;
 typedef enum { SCAN_PH_LISTEN, SCAN_PH_PROBE, SCAN_PH_HOLD, SCAN_PH_RESUME, SCAN_PH_PAUSED } scan_phase_t;
 typedef enum { SCAN_RESUME_TIME, SCAN_RESUME_CARRIER, SCAN_RESUME_STOP } scan_resume_t;
 typedef enum { SCAN_ACT_NONE, SCAN_ACT_NEXT, SCAN_ACT_STOP } scan_act_t;

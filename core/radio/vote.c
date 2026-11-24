@@ -2,7 +2,10 @@
 // Copyright (c) 2026 The RadioFoundry Authors
 // The vote scan engine (vote.h, docs/spec/vote-scan.md)
 #include <string.h>
+#include "config.h"
 #include "radio/vote.h"
+
+#if CONFIG_VOTE_SCAN
 
 static bool strong(const vote_t *v, uint8_t m)
 {
@@ -235,3 +238,5 @@ uint8_t vote_tx_member(const vote_t *v, bool fixed, uint8_t fixed_member)
 {
 	return fixed && fixed_member < v->cfg.n ? fixed_member : v->voted;
 }
+
+#endif // CONFIG_VOTE_SCAN
