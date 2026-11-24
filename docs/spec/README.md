@@ -19,6 +19,7 @@ Past bugs, by subsystem: [gotchas.md](gotchas.md). Contributors read [docs/dev](
 | [position.md](position.md) | The radio's position: sources, settings, who reads it |
 | [satellite-tle.md](satellite-tle.md) | PC-managed orbital data, satellite passes and Doppler frequency compensation |
 | [scan-list.md](scan-list.md) | Scan lists: named lists of channels from any zone, their record and flash area |
+| [vote-scan.md](vote-scan.md) | Vote scan (proposal): a P25 scan list that keeps the radio on the strongest site of a multi-site system |
 | [satellite.md](satellite.md) | Satellite tracking: TLEs, the SGP4 orbit model, passes, Doppler, satellite profiles and repeater arming |
 | [sound-transfer.md](sound-transfer.md) | Element sets by sound: the AFSK signal, the frame and a transfer |
 | [ui.md](ui.md) | The user interface as built: screens, keys, the drawing layer ([docs/ux](../ux/) has the design) |
