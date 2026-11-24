@@ -824,7 +824,7 @@ msgctxt "VALUE_30_MIN"
 msgid "30 min"
 msgstr "30 分钟"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_scanlist.c core/ui/ui_screens.c
 msgctxt "VALUE_NONE"
 msgid "None"
 msgstr "无"
@@ -3630,6 +3630,11 @@ msgid "up"
 msgstr "上"
 
 #: core/ui/ui_menus.c
+msgctxt "KEYFN_WHY_NO_SCAN_LISTS"
+msgid "Scan lists: not on this radio"
+msgstr "扫描列表：此电台不支持"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_VALUE_BACKLIGHT_10S_DIM"
 msgid "10s/dim"
 msgstr "10秒/暗"
@@ -3823,6 +3828,11 @@ msgstr "TG 名称/号码"
 msgctxt "WORD_FLIP_SCREEN"
 msgid "Flip screen"
 msgstr "翻转屏幕"
+
+#: core/ui/ui_menus.c
+msgctxt "KEYFN_VALUE_SCAN_LISTS"
+msgid "Scan lists"
+msgstr "扫描列表"
 
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
@@ -5460,6 +5470,11 @@ msgid "Transmit"
 msgstr "发射"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_LINK"
+msgid "Scan key"
+msgstr "扫描键"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_VOTE_OFF"
 msgid "Vote off"
 msgstr "表决已关"
@@ -5513,6 +5528,41 @@ msgstr "在列表中"
 msgctxt "SCANLIST_TITLE_ADD_TO"
 msgid "Add to"
 msgstr "添加到"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_LINKED"
+msgid "Linked"
+msgstr "已关联"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_LINKED_ELSEWHERE"
+msgid "Other list"
+msgstr "其他列表"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINK_USED_BY"
+msgid "Used by "
+msgstr "已被使用： "
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINKED_TO"
+msgid "Scan key: "
+msgstr "扫描键： "
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINK_OFF"
+msgid "Scan key link removed"
+msgstr "已取消扫描键关联"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TITLE_LINK"
+msgid "Scan key"
+msgstr "扫描键"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_HINT_LINK"
+msgid "{OK link  0-9 find  Back|OK link  Back}"
+msgstr "{OK 关联  0-9 查找  返回|OK 关联  返回}"
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_VOTING"
@@ -6158,6 +6208,11 @@ msgstr "返回 停止表决"
 msgctxt "HOME_HINT_SCANNING"
 msgid "# skip  Back stop scan"
 msgstr "# 跳过  返回 停止扫描"
+
+#: core/ui/ui_screens.c
+msgctxt "HOME_HINT_VOTE_LINK"
+msgid "Scan: vote"
+msgstr "扫描：表决"
 
 #: core/ui/ui_screens.c
 msgctxt "HOME_HINT_REPLY"

@@ -40,6 +40,7 @@ typedef struct {
 	int8_t threshold_dbm;	// 0 = SCAN_VOTE_THRESHOLD_DEFAULT
 	uint8_t margin_db;	// 0 = SCAN_VOTE_MARGIN_DEFAULT
 	uint8_t tx_member;	// with SCAN_VOTE_FIXED_TX: the member PTT uses (0-based)
+	uint16_t link;		// the channel whose Scan key starts this list (any channel, a member or not); 0: none. Bytes 188-189
 } scan_list_vote_t;
 
 static inline int scan_vote_threshold_of(const scan_list_vote_t *v)
@@ -70,8 +71,11 @@ bool scan_list_read(uint16_t slot, scan_list_t *out);
 uint16_t scan_list_count(void);
 // Slot i's vote options; false when it holds no valid list (out then all 0: a plain list)
 bool scan_list_read_vote(uint16_t slot, scan_list_vote_t *out);
-// Set slot i's vote options, the list itself unchanged. False when it holds no valid list, the area is foreign, or the
-// flash fails
+// The slot of the list linked to channel (scan_list_vote_t.link), skipping skip_slot (-1: none): -1 when no list is
+// (the lowest slot when several are: the options screens never make that, a record from elsewhere might)
+int scan_list_find_link(uint16_t channel, int skip_slot);
+// Set slot i's vote options, the list itself unchanged. False when it holds no valid list, the area is foreign, the
+// link is another list's channel (one list to a channel), or the flash fails
 bool scan_list_write_vote(uint16_t slot, const scan_list_vote_t *v);
 // Store l in slot, replacing what is there; the slot's vote options stay. False for a slot outside the area, a list that isn't valid (no name, more
 // than SCAN_LIST_MAX channels, channel number 0 or one twice), a foreign area, or when the flash fails

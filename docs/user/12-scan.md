@@ -66,6 +66,21 @@ Once Vote is on, the list's options have four more rows:
 
 The CPS has no setting for this: Vote is set on the radio.
 
+### Start a vote with the Scan key
+
+A vote list can be tied to a channel, so the Scan key starts the vote instead of scanning the zone. Make a channel in
+the zone for it (for example "MVP25 Vote"; it doesn't need to be a channel you talk on, and it doesn't need to be one
+of the list's channels). In the list's options, row **9**, **Scan key**, pick that channel. **OK** on the
+linked channel takes the link off again.
+
+- On that channel the hint says "Scan: vote", and the Scan key starts the vote ("Voting" and the
+  list's name). On every other channel it still scans the zone.
+- A channel belongs to one list. Another list can't take it ("Used by" and the name).
+- Turning to the channel doesn't start anything, so scrolling through the zone never starts a vote. Pressing **Back** during a vote stops it and leaves you on the
+  site it was listening to; that site isn't the linked channel, so turn back to the linked channel to vote again.
+- To pick a list yourself, give a side key the **Scan lists** function ([Settings](17-settings.md#keys-key-8)): it opens
+  the list of lists, with **Scan zone** first. For example, Scan on a press and Scan lists on a long press.
+
 ## How the scan moves
 
 - The scan visits the zone's channels in order, from the one it started on. It skips empty positions and channels
