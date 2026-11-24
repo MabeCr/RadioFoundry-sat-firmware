@@ -18,6 +18,7 @@ Past bugs, by subsystem: [gotchas.md](gotchas.md). Contributors read [docs/dev](
 | [aprs.md](aprs.md) | APRS on FM and over DMR |
 | [position.md](position.md) | The radio's position: sources, settings, who reads it |
 | [satellite.md](satellite.md) | PC-managed orbital data, satellite passes and Doppler frequency compensation |
+| [vote-scan.md](vote-scan.md) | Vote scan: a scan list that keeps the radio on the strongest site of a multi-site system |
 | [ui.md](ui.md) | The user interface as built: screens, keys, the drawing layer ([docs/ux](../ux/) has the design) |
 
 ## DMR
