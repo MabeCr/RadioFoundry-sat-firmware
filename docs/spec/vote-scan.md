@@ -110,8 +110,8 @@ voice frames for that moment. The design keeps that rare and short:
 | Below it, one peek at a time, at most every `VOTE_PEEK_GAP_MS` (2000 ms) | a call loses at most one short gap every two seconds |
 | A peek visits one member (round robin) for `VOTE_PEEK_MS` (60 ms: a 40 ms settle, then readings) | about three IMBE frames |
 | A peeked member that is better stays tuned: the call carries on from it with no second retune | the switch costs nothing more |
-| A peek starts at the mode's frame boundary: after a P25 LDU, in a DMR repeater's other timeslot where it fits, after an NXDN frame; FM has none | the loss falls on whole frames |
-| Peeks are off when the list's "peek during calls off" flag is set | the safety net the owner asked for: voting then happens only between calls |
+| Where the radio core can tell, a peek starts at the mode's frame boundary: after a P25 LDU, in a DMR repeater's other timeslot where it fits, after an NXDN frame; FM has none (not in the first version: measure first) | the loss falls on whole frames |
+| Peeks are off when the list's "peek during calls off" flag is set | the safety net the owner asked for: voting then happens only at the start of a call (section 4) |
 
 The P25 engine plays a lost frame as its own repeat or silence ([p25.md](p25.md)); the length of the gap a peek costs
 is the first thing to measure on a radio (section 9). On FM a peek is a short hole in the audio, so an FM list starts with
