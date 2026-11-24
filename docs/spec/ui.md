@@ -847,6 +847,11 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
   focus is a black bar with background-colored text, and a toast and an edited row or tile are the normal reverse
   video: a light screen has no night vision to protect. Like Night they ignore Highlight color and Filled status bar
   (`ui_theme_is_inverse()`; their rows are dimmed with "This theme uses its own colors"). The sky plot uses dark shades.
+- Orbit (`ui_theme_set` 8), Aurora (9) and Vice City (10) are available only with `CONFIG_SAT`. Orbit uses deep navy with
+  cool blue details; Aurora uses dark teal with mint details. Vice City follows the supplied palette: deep violet
+  background, purple focus, magenta idle, coral TX, orange private-call details and warm yellow text and warnings. All
+  three keep green RX and accept the user's Highlight color and Filled status bar. Theme bit 3 is appended after the
+  satellite settings, so non-satellite builds keep their existing settings layout.
 - Night theme (`ui_theme_set` 3) protects night vision: a black background, pure reds for text and lines, dim green
   only for receive, dim amber only for warnings, nothing blue or white. TX is the brightest red, in a pill with black
   text. Highlight color and Filled status bar don't apply: their rows are dimmed ("Night uses its own colors") and

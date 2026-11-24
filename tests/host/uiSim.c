@@ -8,8 +8,8 @@
 //                            in DIR/sheets. A color page is drawn again in each highlight color UI_GALLERY_COLORS
 //                            names (space separated, sim_color_find: "red yellow light_blue"), as
 //                            <screen>__<color>.png right after it, on color displays only (none when it is unset).
-//                            The theme pages are drawn again in the light, high-contrast, night and terminal themes too, as
-//                            <screen>__light.png, <screen>__high_contrast.png, <screen>__night.png and <screen>__terminal.png
+//                            The theme pages are drawn again in Light, High contrast, Night, Terminal, Orange and both
+//                            Inverse themes, plus Orbit, Aurora and Vice City in satellite builds, as <screen>__<theme>.png
 //   uiSim --sheets DIR [GEOM] contact sheets only: DIR/<geom>.png, every gallery screen at 2x under its name in one
 //                            palette PNG, at one display class or all of them (a quick layout audit)
 //   uiSim --ellipsis [GEOM]  every text shortened with an ellipsis on the gallery screens and the settings pages
@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#endif
 #include "sim/ui_sim.h"
 #include "ui/ui_app.h"
 #include "config.h"
@@ -543,7 +547,7 @@ static int run_audit(const char *only)
 
 // Gallery screens drawn differently on color displays. G_COLOR: color displays only (on a monochrome one it would
 // repeat another screen); G_COLORS: also once in each UI_GALLERY_COLORS highlight color, on color displays;
-// G_THEMES: also in the light, high-contrast, night and terminal themes (Settings > Display), on color displays
+// G_THEMES: also in every non-dark theme (Settings > Display), on color displays
 #define G_COLOR		1u
 #define G_COLORS	2u
 #define G_THEMES	4u

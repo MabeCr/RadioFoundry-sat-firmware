@@ -131,7 +131,7 @@ typedef struct {
 	uint16_t roam_check_s;		// beacon check interval, 0 = off
 	uint8_t roam_zones[SETTINGS_ROAM_ZONE_BYTES];	// bit z % 8 of byte z / 8: zone z is a roaming zone
 	// More of the UI's settings (docs/spec/ui.md 4; appended for uifix)
-	uint8_t theme;			// 0 dark, 1 light, 2 high contrast, 3 night, 4 terminal (color displays; settings_theme)
+	uint8_t theme;			// low two theme bits (color displays; settings_theme); high bits share storage with other settings
 	uint8_t ui_flags;		// SETTINGS_UI_* bits
 	uint8_t updown_home;		// what Up / Down change on Home: 0 channel, 1 zone, 2 talk target
 	uint8_t low_batt_pct;		// warn at this battery percent (5-30), 0 = only the board's low voltage
@@ -370,6 +370,8 @@ static inline uint8_t settings_theme(const settings_t *s)
 }
 static inline void settings_set_theme(settings_t *s, uint8_t theme)
 {
+	if (theme > SETTINGS_THEME_MAX)
+		theme = 0;
 	s->theme = (uint8_t)((s->theme & ~SETTINGS_SMALL_MASK) | (theme & 3u));
 	s->sat_flags = (uint8_t)((s->sat_flags & ~SETTINGS_SAT_THEME_HIGH) | ((theme & 4u) ? SETTINGS_SAT_THEME_HIGH : 0u));
 }

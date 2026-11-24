@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "config.h"
 #include "radio/radio.h"
 
 // Display classes (information-architecture.md, wireframes) and key maps (7.1 - 7.5)
@@ -34,9 +35,14 @@ const sim_geom_t *sim_geom_find(const char *name);
 void sim_reset(const sim_geom_t *g, sim_map_t map);
 // Run a script (tokens separated by spaces; see ui_sim.c). Returns false and fills err on the first failure
 bool sim_run(const char *script, char *err, size_t err_len);
-// Color themes (Settings > Display), as ui_theme_set numbers them: "dark", "light", "high_contrast", "night", "terminal"; theme: in a
-// script. sim_theme_find: the number, or -1
+// Color themes (Settings > Display), as ui_theme_set numbers them: "dark", "light", "high_contrast", "night", "terminal",
+// "orange", "terminal_inverse", "orange_inverse"; "orbit", "aurora" and "vice_city" in satellite builds. theme: in a script.
+// sim_theme_find: the number, or -1
+#if CONFIG_SAT
+#define SIM_THEME_COUNT	11
+#else
 #define SIM_THEME_COUNT	8
+#endif
 extern const char *const sim_themes[SIM_THEME_COUNT];
 int sim_theme_find(const char *name);
 // A highlight color by its gallery name (red, light_blue, ...; color: in a script): UI_ACCENT_*, or -1

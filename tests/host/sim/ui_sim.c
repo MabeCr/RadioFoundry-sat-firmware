@@ -59,7 +59,8 @@
 //   contacts:<n>        the same up to contact n (a list just past 128 at 220)
 //   channels:full       every channel number past the 40 holds one ("Far 41" ...), but every third: a list past 128
 //   color:<name>        the highlight color (sim_color_find); strip:on|off  the filled status bar (Settings > Display)
-//   theme:<name>        the color theme (sim_theme_find: dark, light, high_contrast, night, terminal)
+//   theme:<name>        the color theme (sim_theme_find: dark, light, high_contrast, night, terminal, orange,
+//                       terminal_inverse, orange_inverse; orbit, aurora and vice_city in satellite builds)
 //   splash              draw the boot screen (put it last: nothing redraws over it)
 //   splash:loader       the same splash as the stub entry draws it, while the flashing tools have the radio
 //   shot:<name>         save the screen (sim_set_shot_dir)
@@ -4356,7 +4357,11 @@ static bool run_token(char *t, char *err, size_t len)
 }
 
 const char *const sim_themes[SIM_THEME_COUNT] = { "dark", "light", "high_contrast", "night", "terminal", "orange", "terminal_inverse",
-								  "orange_inverse" };	// ui_theme_set's order
+								  "orange_inverse",
+#if CONFIG_SAT
+								  "orbit", "aurora", "vice_city",
+#endif
+};	// ui_theme_set's order
 
 int sim_theme_find(const char *name)
 {

@@ -1,4 +1,17 @@
-# RadioFoundry
+# RadioFoundry 
+<p>
+<h3>New Themes Available: </h3>
+<b>Aurora: 
+  <br>
+<img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__aurora.png" width="200" alt="Aurora theme: dual watch with both channels receiving"><br><sub></sub>
+Orbit:
+  <br>
+  <img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__orbit.png" width="200" alt="Orbit theme: dual watch with both channels receiving"><br><sub></sub>
+Vice City:
+  <br>
+  <img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__vice_city.png" width="200" alt="Vice City theme: dual watch with both channels receiving"><br><sub></sub>
+</b>
+</p>  
 
 **Free, MIT-licensed multi-mode firmware for affordable digital radios: DMR, P25, NXDN and FM.** One shared core runs the digital voice stacks, the UI, the codeplug and
 the host tools; each radio adds a thin board layer. It brings the features low-cost stock firmware leaves
@@ -21,6 +34,19 @@ and the [manual steps](docs/user/02-installing.md) are for scripting and for bro
 <img src="docs/ux/screens/240x320i10x5/tools.png" width="200" alt="Tools: scan, position, hotspot, USB network, repeater, roaming, APRS">
 <img src="docs/ux/screens/240x320i10x5/zone_offer.png" width="200" alt="A zone shared by another radio, offered for import">
 </p>
+<p>
+# New Themes:
+<b>Aurora: 
+  <br>
+<img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__aurora.png" width="200" alt="Aurora theme: dual watch with both channels receiving"><br><sub></sub>
+Orbit:
+  <br>
+  <img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__orbit.png" width="200" alt="Orbit theme: dual watch with both channels receiving"><br><sub></sub>
+Vice City:
+  <br>
+  <img src="docs/ux/screens/240x320i10x5/home_dual_two_rx__vice_city.png" width="200" alt="Vice City theme: dual watch with both channels receiving"><br><sub></sub>
+</b>
+</p>  
 <p>
 <img src="docs/ux/screens/160x120i5/rx_group.png" width="200" alt="A group call with the caller's name and location">
 <img src="docs/ux/screens/160x120i5/message_view.png" width="200" alt="A text message with quick replies">
