@@ -919,6 +919,14 @@ run-ambe: ambeFecTest ambeVoiceTest ambeVoiceCaptureTest sigToneTest micGainTest
 	./paKeyrunTest
 .PHONY: run-ambe
 
+# The vote scan engine (core/radio/vote.c) against a simulated system of sites
+TESTS   += voteTest
+voteTest: voteTest.c $(CORE)/radio/vote.c $(CORE)/radio/vote.h
+	$(CC) $(CFLAGS) -Wshadow -o $@ voteTest.c $(CORE)/radio/vote.c
+run: run-vote
+run-vote: voteTest
+	./voteTest
+
 # The DMR voice call stack (core/dmr/call) against a simulated modem; LC coding cross-checked with sfr.c and dmrData.c
 CALL    := dmrCallTest.c sim/dmr_sim_modem.c $(CORE)/dmr/call/dmr_call.c $(RXSEEN) $(CORE)/dmr/fec/dmrCach.c $(CORE)/dmr/call/dmr_lc.c $(CORE)/dmr/sfr.c $(DATA) $(FRAME) \
            $(CORE)/dmr/dmrPrivacy.c $(CORE)/dmr/dmrAes.c $(CORE)/dmr/ambe/ambeFec.c
