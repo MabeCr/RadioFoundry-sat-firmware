@@ -49,6 +49,7 @@
 //   usbnet:off|on|up    USB a serial port, a network adapter, or a network adapter the computer has brought up
 //   timeout             the TX timeout cuts the transmission off while PTT is still held (shows the timeout deny)
 //   pttlocked:on|off    turns Settings > Key lock > PTT when locked on or off
+//   aliasshow:on|off    turns Settings > Talk & listen > Show talker alias on or off (P25 caller names too)
 //   autolock:<s>        Settings > Keys > Auto lock: s seconds, 0 off
 //   battery:<pct>       the battery reads pct; offfailed: auto power off couldn't switch off
 //   foreign             the codeplug is another firmware's: a channel write asks first (codeplug-foreign)
@@ -3598,6 +3599,17 @@ static bool run_token(char *t, char *err, size_t len)
 		}
 		ui_svc_setting_set(UI_SET_HINTS, on);
 		ui_apply_setting(UI_SET_HINTS, on);
+		advance(200);
+		return true;
+	}
+	if (strcmp(t, "aliasshow") == 0 && arg != NULL) {	// Settings > Talk & listen > Show talker alias
+		bool on = strcmp(arg, "on") == 0;
+		if (!on && strcmp(arg, "off") != 0) {
+			snprintf(err, len, "aliasshow: expected on or off, got %s", arg);
+			return false;
+		}
+		ui_svc_setting_set(UI_SET_ALIAS_SHOW, on);
+		ui_apply_setting(UI_SET_ALIAS_SHOW, on);
 		advance(200);
 		return true;
 	}
