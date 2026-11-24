@@ -364,17 +364,17 @@ static const flow_t flows[] = {
 	{ "11 scan lists: no, keep it", "scanlists:seed", "ok 6 1 down ctx 3 ok", "lists=2 screen=scan-list", 7, false },
 #if CONFIG_VOTE_SCAN
 	// Vote lists (docs/spec/vote-scan.md 2, 3, 7): slot 2 "Sites" holds three DMR channels; vote2=flags:threshold:margin:tx
-	{ "11 vote: off at first", "scanlists:sites", "ok 6 1 down down down ctx", "screen=scan-list vote2=0:0:0:0", 7, false },
-	{ "11 vote: on", "scanlists:sites", "ok 6 1 down down down ctx 4", "vote2=1:0:0:0 toast=Vote_on:_Sites screen=scan-list", 8, false },
-	{ "11 vote: off again", "scanlists:vote", "ok 6 1 down down down ctx 4", "vote2=0:0:0:0 toast=Vote_off", 8, false },
-	{ "11 vote: not a list of two modes", "scanlists:sites", "ok 6 1 down ctx 4", "vote0=0:0:0:0 toast=Vote:_one_mode_only", 6, false },
-	{ "11 vote: not a list of no channels", "scanlists:sites", "ok 6 1 down down ctx 4", "vote1=0:0:0:0 toast=Add_two_channels_first", 7, false },
-	{ "11 vote: threshold", "scanlists:vote", "ok 6 1 down down down ctx 5 up ok", "vote2=1:-85:0:0 screen=scan-list", 10, false },
-	{ "11 vote: margin", "scanlists:vote", "ok 6 1 down down down ctx 6 down ok", "vote2=1:0:8:0 screen=scan-list", 10, false },
-	{ "11 vote: no peeks", "scanlists:vote", "ok 6 1 down down down ctx 7", "vote2=3:0:0:0 screen=scan-list", 8, false },
-	{ "11 vote: transmit on one site", "scanlists:vote", "ok 6 1 down down down ctx 8 down down ok", "vote2=5:0:0:1 screen=scan-list", 11, false },
+	{ "11 vote: off at first", "scanlists:sites", "ok 6 1 down down down ctx", "screen=scan-list vote2=0:0:0:0:0", 7, false },
+	{ "11 vote: on", "scanlists:sites", "ok 6 1 down down down ctx 4", "vote2=1:0:0:0:0 toast=Vote_on:_Sites screen=scan-list", 8, false },
+	{ "11 vote: off again", "scanlists:vote", "ok 6 1 down down down ctx 4", "vote2=0:0:0:0:0 toast=Vote_off", 8, false },
+	{ "11 vote: not a list of two modes", "scanlists:sites", "ok 6 1 down ctx 4", "vote0=0:0:0:0:0 toast=Vote:_one_mode_only", 6, false },
+	{ "11 vote: not a list of no channels", "scanlists:sites", "ok 6 1 down down ctx 4", "vote1=0:0:0:0:0 toast=Add_two_channels_first", 7, false },
+	{ "11 vote: threshold", "scanlists:vote", "ok 6 1 down down down ctx 5 up ok", "vote2=1:-85:0:0:0 screen=scan-list", 10, false },
+	{ "11 vote: margin", "scanlists:vote", "ok 6 1 down down down ctx 6 down ok", "vote2=1:0:8:0:0 screen=scan-list", 10, false },
+	{ "11 vote: no peeks", "scanlists:vote", "ok 6 1 down down down ctx 7", "vote2=3:0:0:0:0 screen=scan-list", 8, false },
+	{ "11 vote: transmit on one site", "scanlists:vote", "ok 6 1 down down down ctx 8 down down ok", "vote2=5:0:0:1:0 screen=scan-list", 11, false },
 	{ "11 vote: transmit on the voted site again", "scanlists:vote ok 6 1 down down down ctx 8 down down ok", "8 up up ok",
-	  "vote2=1:0:0:0 screen=scan-list", 4, false },
+	  "vote2=1:0:0:0:0 screen=scan-list", 4, false },
 	{ "11 vote: the value picker opens", "scanlists:vote", "ok 6 1 down down down ctx 5", "screen=scan-list-vote", 8, false },
 	{ "11 vote: only its own mode joins", "scanlists:vote", "ok 6 1 down down down ctx 1 ok ok",
 	  "list2=Sites:5,6,7 toast=Vote:_one_mode_only screen=scan-list-add", 10, false },
@@ -382,6 +382,20 @@ static const flow_t flows[] = {
 	  "list2=Sites:5,6,7,3 screen=scan-list-add", 12, false },
 	{ "11 vote: OK starts it", "scanlists:vote", "ok 6 1 down down down ok", "votescan=2 scanning=1 screen=home toast=Voting_Sites", 7, false },
 	{ "11 vote: Back stops it", "scanlists:vote ok 6 1 down down down ok", "back", "scanning=0 votescan=-1 toast=Vote_stopped", 1, false },
+	// The Scan key channel (docs/spec/vote-scan.md 2): channel 3, where Home starts, is "Sites"'s; vote2 ends with the link
+	{ "11 link: the picker opens", "scanlists:vote", "ok 6 1 down down down ctx 9", "screen=scan-list-link", 8, false },
+	{ "11 link: pick a channel", "scanlists:vote", "ok 6 1 down down down ctx 9 3 ok", "vote2=1:0:0:0:3 screen=scan-list toast=Scan_key:", 10, false },
+	{ "11 link: OK on the linked channel takes it off", "scanlists:linked ok 6 1 down down down ctx 9", "3 ok",
+	  "vote2=1:0:0:0:0 screen=scan-list toast=Scan_key_link_removed", 2, false },
+	{ "11 link: the Scan key votes on it", "scanlists:linked", "scankey", "votescan=2 scanning=1 toast=Voting_Sites", 1, false },
+	{ "11 link: long press too", "scanlists:linked", "long:scankey", "votescan=2 scanning=1", 1, false },
+	{ "11 link: the key stops it", "scanlists:linked scankey", "scankey", "scanning=0 votescan=-1", 1, false },
+	{ "11 link: no link, the zone scan", "scanlists:vote", "scankey", "listscan=-1 votescan=-1 scanning=1", 1, false },
+	{ "11 link: Vote off, the zone scan", "scanlists:linked ok 6 1 down down down ctx 4 back back back", "scankey",
+	  "votescan=-1 scanning=1", 1, false },
+	{ "11 link: one list to a channel", "scanlists:linked", "ok 6 1 down down down down ctx 9 3 ok",
+	  "vote3=1:0:0:0:0 toast=Used_by_Sites screen=scan-list-link", 11, false },
+
 #endif
 #endif
 	// Dual watch (docs/ux/dual-watch.md): on in a few presses, PTT on the selected channel, the other one press away

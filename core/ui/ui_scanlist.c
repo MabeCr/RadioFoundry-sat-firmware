@@ -29,6 +29,11 @@ static uint32_t seen_gen = 0xFFFFFFFFu;
 static char focus_name[CODEPLUG_NAME_LEN + 1];	// the list to focus once its write has landed ("" = none)
 
 static scan_list_t cur;				// the list the editor and the options work on
+#if CONFIG_VOTE_SCAN
+// One scratch channel, one scratch list or zone for the vote scan code: the UI is one task and each use ends before the next
+static channel_t vch;
+static zone_t vzone;
+#endif
 static uint8_t cur_slot;
 static char new_name[CODEPLUG_NAME_LEN + 1];	// a name being typed
 static char msg[CODEPLUG_NAME_LEN + 24];		// the toasts
@@ -40,10 +45,9 @@ static scan_list_vote_t cur_vote;		// the open list's vote options
 // member) or one the codeplug no longer has
 static int vote_mode(uint16_t num)
 {
-	static channel_t ch;
-	if (!codeplug_channel(num, &ch) || codeplug_kind_trunked(ch.kind))
+	if (!codeplug_channel(num, &vch) || codeplug_kind_trunked(vch.kind))
 		return -1;
-	return ch.kind == CODEPLUG_KIND_P25 ? RADIO_MODE_P25 : ch.kind == CODEPLUG_KIND_NXDN ? RADIO_MODE_NXDN : ch.mode;
+	return vch.kind == CODEPLUG_KIND_P25 ? RADIO_MODE_P25 : vch.kind == CODEPLUG_KIND_NXDN ? RADIO_MODE_NXDN : vch.mode;
 }
 
 // Why l can't vote (docs/spec/vote-scan.md 2), TR_NONE when it can: two channels or more the codeplug has, all of one
@@ -53,8 +57,7 @@ static tr_id_t vote_refusal(const scan_list_t *l, int *mode)
 	uint8_t found = 0;
 	*mode = -1;
 	for (uint8_t k = 0; k < l->count; k++) {
-		static channel_t ch;
-		if (!codeplug_channel(l->channels[k], &ch))
+		if (!codeplug_channel(l->channels[k], &vch))
 			continue;
 		int m = vote_mode(l->channels[k]);
 		if (m < 0)
@@ -195,9 +198,8 @@ static void lists_select(uint16_t i, bool hold)
 	}
 #if CONFIG_VOTE_SCAN
 	if (r->vote) {
-		static scan_list_t l;
 		int mode;
-		tr_id_t why = ui_svc_scanlist_get(r->slot, &l) ? vote_refusal(&l, &mode) : TR_NONE;
+		tr_id_t why = ui_svc_scanlist_get(r->slot, &vzone) ? vote_refusal(&vzone, &mode) : TR_NONE;
 		if (why != TR_NONE) {
 			ui_toast(tr(why));	// the radio core would refuse it too (the channels changed since Vote was turned on)
 			return;
@@ -222,7 +224,7 @@ const ui_scr_def_t ui_scanlists_screen = {
 
 // ======================= A list's options (arg: its slot) =======================
 
-enum { LO_EDIT, LO_RENAME, LO_DELETE, LO_VOTE, LO_THRESHOLD, LO_MARGIN, LO_PEEK, LO_TX, LO_ALL };
+enum { LO_EDIT, LO_RENAME, LO_DELETE, LO_VOTE, LO_THRESHOLD, LO_MARGIN, LO_PEEK, LO_TX, LO_LINK, LO_ALL };
 
 static void opt_enter(void)
 {
@@ -248,13 +250,12 @@ static uint16_t opt_count(void)
 // The transmit choice: the voted site, or one member by its channel name
 static void sb_vote_tx(sbuf_t *b)
 {
-	static channel_t ch;
 	if (!(cur_vote.flags & SCAN_VOTE_FIXED_TX) || cur_vote.tx_member >= cur.count ||
-	    !codeplug_channel(cur.channels[cur_vote.tx_member], &ch)) {
+	    !codeplug_channel(cur.channels[cur_vote.tx_member], &vch)) {
 		sb_str(b, TR(SCANLIST_VALUE_VOTED_SITE, "Voted site"));
 		return;
 	}
-	sb_str(b, ch.name);
+	sb_str(b, vch.name);
 }
 #endif
 
@@ -264,6 +265,7 @@ static void opt_item(uint16_t i, ui_item_t *it)
 		TRN(SCANLIST_ROW_EDIT_CHANNELS, "Edit channels"), TRN(ZONE_ROW_RENAME, "Rename"), TRN(MSG_ROW_DELETE, "Delete"),
 		TRN(SCANLIST_ROW_VOTE, "Vote"), TRN(SCANLIST_ROW_THRESHOLD, "Threshold"), TRN(SCANLIST_ROW_MARGIN, "Margin"),
 		TRN(SCANLIST_ROW_PEEK, "Peek during calls"), TRN(SCANLIST_ROW_TRANSMIT, "Transmit"),
+		TRN(SCANLIST_ROW_LINK, "Scan key"),
 	};
 	str_copy(it->label, sizeof it->label, tr(names[i]));
 	item_num_set(it, (uint16_t)(i + 1u));
@@ -290,6 +292,13 @@ static void opt_item(uint16_t i, ui_item_t *it)
 	case LO_TX:
 		sb_vote_tx(&b);
 		break;
+	case LO_LINK: {
+		if (cur_vote.link != 0 && codeplug_channel(cur_vote.link, &vch))
+			sb_str(&b, vch.name);
+		else
+			sb_str(&b, TR(VALUE_NONE, "None"));
+		break;
+	}
 	default:
 		break;
 	}
@@ -360,6 +369,9 @@ static void opt_select(uint16_t i, bool hold)
 		scan_list_vote_t v = cur_vote;
 		v.flags ^= SCAN_VOTE_NO_PEEK;
 		vote_save(&v);
+	} else if (i == LO_LINK) {
+		pick_zone = ui_view()->zone_index;
+		ui_push(SCR_SLLINK, cur_slot);
 	} else {
 		ui_push(SCR_SLVOTE, i);	// Threshold, Margin or Transmit: the values to pick from
 #endif
@@ -399,7 +411,6 @@ static int vpick_threshold(uint16_t i)
 
 static void vpick_item(uint16_t i, ui_item_t *it)
 {
-	static channel_t ch;
 	uint16_t f = ui_frame()->arg;
 	sbuf_t b;
 	sb_init(&b, it->label, sizeof it->label);
@@ -418,7 +429,7 @@ static void vpick_item(uint16_t i, ui_item_t *it)
 	} else {
 		sb_u32(&b, i, 1);
 		sb_chr(&b, ' ');
-		sb_str(&b, codeplug_channel(cur.channels[i - 1u], &ch) ? ch.name : "?");
+		sb_str(&b, codeplug_channel(cur.channels[i - 1u], &vch) ? vch.name : "?");
 		cur_one = (cur_vote.flags & SCAN_VOTE_FIXED_TX) && cur_vote.tx_member == i - 1u;
 	}
 	if (cur_one)
@@ -714,6 +725,131 @@ const ui_scr_def_t ui_scanlist_zone_screen = {
 	.name = "scan-list-zone", .flags = SF_LIST | SF_FIELD, .prefix = TRN(WORD_ZONE, "Zone"), .hint = TRN(HINT_OK_PICK_BACK, "OK pick  Back"),
 	.count = zone_count, .item = zone_item, .select = zone_select, .enter = zone_enter,
 };
+
+#if CONFIG_VOTE_SCAN
+// ======================= The channel whose Scan key starts the list (arg: its slot) =======================
+// The same zone and channel picker as Add to, for any channel: a member or not. OK links it, OK on the linked one takes
+// the link off; a channel another list is linked to says which (one list to a channel, docs/spec/vote-scan.md 2)
+
+#define LINK_SLOTS	32	// the most slots a scan list area has (two erase units of 16)
+static uint16_t link_of[LINK_SLOTS];	// each slot's linked channel, as the picker opened
+
+static void link_enter(void)
+{
+	ui_filter_reset();
+	ui_frame()->focus = ui_filter_count() > 1 ? 1 : 0;
+	for (uint16_t k = 0; k < LINK_SLOTS; k++) {
+		scan_list_vote_t v;
+		link_of[k] = k != cur_slot && ui_svc_scanlist_get_vote(k, &v) ? v.link : 0;
+	}
+}
+
+static int link_other(uint16_t num)
+{
+	for (uint16_t k = 0; num != 0 && k < LINK_SLOTS; k++)
+		if (link_of[k] == num)
+			return (int)k;
+	return -1;
+}
+
+static void link_item(uint16_t i, ui_item_t *it)
+{
+	uint16_t raw = ui_filter_raw(i);
+	sbuf_t b;
+	if (!pick_raw_label(raw, it->label, sizeof it->label))
+		return;
+	sb_init(&b, it->value, sizeof it->value);
+	if (raw == 0) {
+		if (codeplug_zone(pick_zone, &vzone))
+			sb_str(&b, vzone.name);
+		return;
+	}
+	if (!codeplug_zone(pick_zone, &vzone))
+		return;
+	uint16_t num = vzone.channels[raw - 1u];
+	if (num == cur_vote.link) {
+		sb_str(&b, TR(SCANLIST_VALUE_LINKED, "Linked"));
+		it->flags |= UI_ITEM_TEMP;
+	} else if (link_other(num) >= 0) {
+		sb_str(&b, TR(SCANLIST_VALUE_LINKED_ELSEWHERE, "Other list"));
+	}
+}
+
+static void link_select(uint16_t i, bool hold)
+{
+	(void)hold;
+	uint16_t raw = ui_filter_raw(i);
+	if (raw == 0) {
+		ui_push(SCR_SLZONE, 0);
+		return;
+	}
+	if (!codeplug_zone(pick_zone, &vzone) || raw - 1u >= vzone.count)
+		return;
+	uint16_t num = vzone.channels[raw - 1u];
+	scan_list_vote_t v = cur_vote;
+	int at = link_other(num);
+	if (at >= 0) {
+		if (ui_svc_scanlist_get((uint16_t)at, &vzone))
+			toast2(TR(SCANLIST_TOAST_LINK_USED_BY, "Used by "), vzone.name);
+		return;
+	}
+	v.link = num == cur_vote.link ? 0 : num;
+	if (!vote_save(&v))
+		return;
+	if (v.link != 0 && codeplug_channel(num, &vch))
+		toast2(TR(SCANLIST_TOAST_LINKED_TO, "Scan key: "), vch.name);
+	else
+		ui_toast(TR(SCANLIST_TOAST_LINK_OFF, "Scan key link removed"));
+	ui_pop();
+}
+
+const ui_scr_def_t ui_scanlist_link_screen = {
+	.name = "scan-list-link", .flags = SF_LIST | SF_FILTER, .prefix = TRN(SCANLIST_TITLE_LINK, "Scan key"),
+	.hint = TRN(SCANLIST_HINT_LINK, TEXT_ALT_OPEN "OK link  0-9 find  Back" TEXT_ALT_NEXT "OK link  Back" TEXT_ALT_CLOSE),
+	.count = ui_filter_count, .item = link_item, .select = link_select, .title = pick_title, .enter = link_enter,
+	.filter = &(const ui_filter_def_t){ .raw_count = pick_raw_count, .raw_label = pick_raw_label },
+};
+
+static int linked_slot;		// ui_scan_link_here's answer
+static uint16_t linked_chan;	// ... for this channel,
+static uint32_t linked_gen = UINT32_MAX;	// ... as of this list change
+static bool linked_vfo;		// ... in the VFO or not
+
+static const char *linked_refusal(uint16_t slot, scan_list_t *l)
+{
+	int mode;
+	tr_id_t why = ui_svc_scanlist_get(slot, l) ? vote_refusal(l, &mode) : TR_NONE;
+	return why != TR_NONE ? tr(why) : NULL;
+}
+
+bool ui_scan_link_here(const radio_view_t *v)
+{
+	uint32_t gen = ui_svc_scanlist_generation();
+	if (v->channel_number != linked_chan || gen != linked_gen || v->vfo != linked_vfo) {
+		linked_chan = v->channel_number;
+		linked_gen = gen;
+		linked_vfo = v->vfo;
+		scan_list_vote_t vt;
+		linked_slot = !v->vfo && ui_svc_scanlist_slots() > 0 ? ui_svc_scanlist_find_link(v->channel_number, -1) : -1;
+		if (linked_slot >= 0 && !(ui_svc_scanlist_get_vote((uint16_t)linked_slot, &vt) && (vt.flags & SCAN_VOTE_ON)))
+			linked_slot = -1;	// a list with Vote off keeps its link, and does nothing with it
+	}
+	return linked_slot >= 0;
+}
+
+bool ui_scan_linked_start(const radio_view_t *v)
+{
+	if (!ui_scan_link_here(v))
+		return false;
+	const char *why = linked_refusal((uint16_t)linked_slot, &vzone);
+	if (why != NULL) {
+		ui_toast(why);	// the channels changed since Vote was turned on
+		return true;
+	}
+	ui_scan_list((uint8_t)linked_slot, vzone.name, true);
+	return true;
+}
+#endif
 
 #if CONFIG_VOTE_SCAN
 static char voting[CODEPLUG_NAME_LEN + 1];	// the vote list started last, for Home

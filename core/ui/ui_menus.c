@@ -70,7 +70,8 @@ extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_scre
 #endif
 #if CONFIG_SCAN_LIST
 extern const ui_scr_def_t ui_scanlists_screen, ui_scanlist_options_screen, ui_scanlist_delete_screen,
-	ui_scanlist_edit_screen, ui_scanlist_pick_screen, ui_scanlist_zone_screen, ui_scanlist_vote_screen;	// ui_scanlist.c
+	ui_scanlist_edit_screen, ui_scanlist_pick_screen, ui_scanlist_zone_screen, ui_scanlist_vote_screen,
+	ui_scanlist_link_screen;	// ui_scanlist.c
 #endif
 
 static void item_num(ui_item_t *it, uint16_t n)
@@ -8377,7 +8378,7 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 	[SCR_SLDEL] = &ui_scanlist_delete_screen, [SCR_SLEDIT] = &ui_scanlist_edit_screen,
 	[SCR_SLPICK] = &ui_scanlist_pick_screen, [SCR_SLZONE] = &ui_scanlist_zone_screen,
 #if CONFIG_VOTE_SCAN
-	[SCR_SLVOTE] = &ui_scanlist_vote_screen,
+	[SCR_SLVOTE] = &ui_scanlist_vote_screen, [SCR_SLLINK] = &ui_scanlist_link_screen,
 #endif
 #endif
 #if CONFIG_CRASH_SCREEN

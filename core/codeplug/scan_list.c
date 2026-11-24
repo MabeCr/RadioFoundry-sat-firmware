@@ -17,7 +17,9 @@ _Static_assert(CODEPLUG_NAME_LEN == 16, "the record's name field is 16 bytes");
 // Record offsets (docs/spec/scan-list.md 3)
 enum {
 	OFF_MAGIC = 0, OFF_LAYOUT = 4, OFF_FLAGS = 5, OFF_COUNT = 6, OFF_NAME = 8, OFF_CHANNELS = 24,
-	OFF_VOTE = 184,		// threshold (i8), margin, the fixed transmit member (docs/spec/vote-scan.md 3)
+	OFF_VOTE = 184,		// threshold (i8), margin, the fixed transmit member, a reserved byte, the linked channel (u16)
+				// (docs/spec/vote-scan.md 3)
+	VOTE_BYTES = 6,
 };
 
 static volatile uint32_t generation;
@@ -102,6 +104,7 @@ void scan_list_put_vote(uint8_t rec[SCAN_LIST_RECORD], const scan_list_vote_t *v
 	rec[OFF_VOTE] = (uint8_t)v->threshold_dbm;
 	rec[OFF_VOTE + 1] = v->margin_db;
 	rec[OFF_VOTE + 2] = v->tx_member;
+	put16(rec + OFF_VOTE + 4, v->link);
 	put32(rec + CRC_AT, storage_crc32(0, rec, CRC_AT));
 }
 
@@ -111,6 +114,7 @@ void scan_list_get_vote(const uint8_t rec[SCAN_LIST_RECORD], scan_list_vote_t *o
 	out->threshold_dbm = (int8_t)rec[OFF_VOTE];
 	out->margin_db = rec[OFF_VOTE + 1];
 	out->tx_member = rec[OFF_VOTE + 2];
+	out->link = (uint16_t)(rec[OFF_VOTE + 4] | (rec[OFF_VOTE + 5] << 8));
 }
 
 static bool overlaps(uint32_t a, uint32_t alen, uint32_t b, uint32_t blen)
@@ -245,7 +249,7 @@ static bool slot_write(uint16_t i, const uint8_t *rec)
 bool scan_list_read_vote(uint16_t slot, scan_list_vote_t *out)
 {
 	uint32_t a, n;
-	uint8_t flags, vote[3];
+	uint8_t flags, vote[VOTE_BYTES];
 	memset(out, 0, sizeof *out);
 	if (!area(&a, &n) || slot >= n / SCAN_LIST_RECORD || slot_kind(slot) != SLOT_VALID)
 		return false;
@@ -259,7 +263,19 @@ bool scan_list_read_vote(uint16_t slot, scan_list_vote_t *out)
 	out->threshold_dbm = (int8_t)vote[0];
 	out->margin_db = vote[1];
 	out->tx_member = vote[2];
+	out->link = (uint16_t)(vote[4] | (vote[5] << 8));
 	return true;
+}
+
+int scan_list_find_link(uint16_t channel, int skip_slot)
+{
+	uint16_t n = scan_list_slots();
+	for (uint16_t i = 0; channel != 0 && i < n; i++) {
+		scan_list_vote_t v;
+		if ((int)i != skip_slot && scan_list_read_vote(i, &v) && v.link == channel)
+			return (int)i;
+	}
+	return -1;
 }
 
 bool scan_list_write_vote(uint16_t slot, const scan_list_vote_t *v)
@@ -267,7 +283,7 @@ bool scan_list_write_vote(uint16_t slot, const scan_list_vote_t *v)
 	uint32_t a, n;
 	uint8_t b[SCAN_LIST_RECORD];
 	if (!area(&a, &n) || slot >= n / SCAN_LIST_RECORD || scan_list_state() != SCAN_LIST_OURS ||
-	    slot_kind(slot) != SLOT_VALID)
+	    slot_kind(slot) != SLOT_VALID || scan_list_find_link(v->link, slot) >= 0)
 		return false;
 	storage_lock();
 	bool ok = board.flash->read(a + (uint32_t)slot * SCAN_LIST_RECORD, b, sizeof b);
