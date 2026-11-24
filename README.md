@@ -17,6 +17,42 @@ and the [manual steps](docs/user/02-installing.md) are for scripting and for bro
 **[Install](docs/user/02-installing.md)** · **[User manual](docs/user/README.md)** · **[Radios](#radios-and-status)** ·
 **[Features](#features)** · **[Developer docs](docs/dev/README.md)**
 
+## Custom theme packs
+
+Theme packs add named color palettes to a compatible RadioFoundry radio. A pack contains color data only. Uploading one
+does not flash firmware or change the codeplug, channels, or radio settings. The radio must already be running firmware
+with theme-pack support; this fork currently enables it in the DM-32UV satellite build.
+
+### First-time setup
+
+1. **Install compatible firmware first.** Use the firmware installer and the theme-pack-enabled build for your radio.
+   An older build or the standard release firmware will report that theme packs are unsupported.
+2. **Design your palettes.** Copy [`themes/sample-theme-pack.json`](themes/sample-theme-pack.json), then edit the theme
+   names and colors. Each theme needs all 18 color fields listed in [Theme packs](docs/spec/theme-packs.md), written as
+   `#RRGGBB` values. Keep text readable against its background: for example, `fg` on `bg`, `focus_fg` on `focus`,
+   `pill_fg` on `tx`, and `pill_dark_fg` on `rx` and `warn`. A pack can contain 1 to 21 themes; each name can be up to
+   23 UTF-8 bytes.
+3. **Build and check the pack.** From the repository folder, run:
+
+   ```sh
+   python3 tools/theme_pack.py build themes/my-themes.json build/theme-packs/my-themes.rftheme
+   python3 tools/theme_pack.py inspect build/theme-packs/my-themes.rftheme
+   ```
+
+   On Windows, use `py` instead of `python3`.
+4. **Upload it.** Open the **Tools → Theme Packs** page for a deployment of this fork in Chrome or Edge, connect the
+   radio over USB, choose the `.rftheme` file, and select **Install theme pack**. If previewing the website from a local
+   checkout, install its Python requirements (`python3 -m pip install -r site/requirements.txt`) and run
+   `python3 site/build.py --serve`; then open <http://localhost:8000/tools/themes/index.html>. The local website also
+   needs the build tools described in [Website development](docs/dev/website.md).
+5. **Choose the theme.** Wait for the uploader to verify the write, restart the radio, and select the theme in
+   **Settings → Display**.
+
+The radio stores one pack at a time. Uploading another pack replaces the current pack, so put every palette you want to
+keep into the same JSON file before building. **Remove installed pack** deletes the pack and leaves the built-in themes
+available. The official RadioFoundry website does not gain this fork's uploader until the fork's site changes are
+deployed.
+
 <p>
 <img src="docs/ux/screens/240x320i10x5/boot.png" width="200" alt="Boot screen">
 <img src="docs/ux/screens/240x320i10x5/home_dual_two_rx.png" width="200" alt="Dual watch with both channels receiving">
