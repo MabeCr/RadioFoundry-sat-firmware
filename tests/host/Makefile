@@ -990,6 +990,14 @@ SATSTORE := satStoreTest.c $(CORE)/sat/sat_store.c $(CORE)/sat/sat_tle.c $(CORE)
 satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*.h) sim/sim_flash.h
 	$(CC) $(CFLAGS) -I$(ROOT)/hal -I. -Wshadow -Wdouble-promotion -o $@ $(SATSTORE) -lm
 
+# The vote scan engine (core/radio/vote.c) against a simulated system of sites
+TESTS   += voteTest
+voteTest: voteTest.c $(CORE)/radio/vote.c $(CORE)/radio/vote.h
+	$(CC) $(CFLAGS) -Wshadow -o $@ voteTest.c $(CORE)/radio/vote.c
+run: run-vote
+run-vote: voteTest
+	./voteTest
+
 # Stored scan lists (core/codeplug/scan_list.c) on the simulated flash, with power cuts
 TESTS   += scanListTest
 SCANLIST := scanListTest.c $(CORE)/codeplug/scan_list.c $(CORE)/storage/storage.c sim/sim_flash.c

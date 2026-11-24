@@ -20,7 +20,7 @@ picks the best site of a zone with beacons and a survey; vote scan is the simple
 | 1 | The system it serves |
 | 2 | The vote list and its settings |
 | 3 | The record |
-| 4 | Voting while idle |
+| 4 | Voting between calls and at the start of a call |
 | 5 | Voting during a call |
 | 6 | Transmit |
 | 7 | What the user sees |
@@ -82,26 +82,22 @@ choice. The list's options screen (Tools > Scan, a list, then its options) shows
 | Peek during calls | On, Off | On |
 | Transmit | Voted site, or one member (the picker lists them) | Voted site |
 
-## 4. Voting while idle
+## 4. Voting between calls and at the start of a call
 
-The radio keeps one member as the **voted site** and stays on it.
+A conventional repeater transmits only while there is a call, and the sites of a linked system carry each call at the
+same moment. Between calls every site is silent, so there is nothing to compare: the vote happens when a call is on
+the air. The engine is `core/radio/vote.c` (no hardware; `tests/host/voteTest.c` drives it against a simulated system).
 
-| Step | What happens |
+| Phase | What happens |
 |---|---|
-| Start | tune the start site; it is the voted site until a search finds better |
-| Watch | read `hal_radio_t.status().rssi_dbm` every poll (25 ms), averaged over the last second |
-| Trigger a search | the average falls below the threshold, or no reading has been taken for `VOTE_RECHECK_S` (30 s) |
-| Search | visit each other member in turn: retune, skip readings for `SCAN_SETTLE_MS` (50 ms), average for `VOTE_SAMPLE_MS` (100 ms) |
-| Choose | the strongest member wins if it beats the voted site by the hysteresis; else the voted site stays |
-| Back off | after a search that found nothing better, the next waits `VOTE_BACKOFF_S` (5 s) |
+| HOLD | on the voted site between calls. Kept while that site was strong in its last call (at or above the threshold): the next call is heard there at once, nothing lost. After `VOTE_RECHECK_MS` (30 s) with no call, one SWEEP in case a call is on the air that this site doesn't carry to us |
+| SWEEP | the voted site weak or not known yet: each member in turn for `VOTE_SWEEP_DWELL_MS` (150 ms), listening for a call, as a scan does |
+| ROUND | a call heard on a member not known to be strong: each other member for `VOTE_SAMPLE_MS` (100 ms, the 50 ms settle included), then the strongest is voted if it beats the member the call was heard on by the margin. The round costs the start of that call (about 100 ms a member) |
+| CALL | on the voted site while the call lasts: its reading averaged (1/8 a poll); section 5 for peeks. `VOTE_HANG_MS` (1 s) after the call ends, the average is kept as the site's reading and the radio is in HOLD |
 
-A search never runs while the radio transmits or receives a call on the voted site (section 5 covers calls). A call
-heard on another member during a search stops the search there: that member becomes the voted site if it beats the
-current one by the hysteresis, else the radio returns to the voted site, which carries the same call.
-
-A member that reads no carrier is weaker than any that does. Signal strength alone decides; decode quality (section 9)
-may later break ties. A member counts as heard only with its own mode's sync: its NAC (P25), color code (DMR), RAN
-(NXDN) or tone (FM, when the channel has one); a carrier without it is another system and reads as no carrier.
+A member counts as hearing a call only with its own mode's sync: its NAC (P25), color code (DMR), RAN (NXDN) or tone
+(FM, when the channel has one); a carrier without it is another system. A member that reads nothing is weaker than any
+that does.
 
 ## 5. Voting during a call
 
@@ -112,9 +108,9 @@ voice frames for that moment. The design keeps that rare and short:
 |---|---|
 | No peeks while the voted site's average is at or above the threshold | nothing is lost on a good site |
 | Below it, one peek at a time, at most every `VOTE_PEEK_GAP_MS` (2000 ms) | a call loses at most one short gap every two seconds |
-| A peek visits one member (round robin) for `VOTE_PEEK_MS` (60 ms, tuning included) | about three IMBE frames |
+| A peek visits one member (round robin) for `VOTE_PEEK_MS` (60 ms: a 40 ms settle, then readings) | about three IMBE frames |
+| A peeked member that is better stays tuned: the call carries on from it with no second retune | the switch costs nothing more |
 | A peek starts at the mode's frame boundary: after a P25 LDU, in a DMR repeater's other timeslot where it fits, after an NXDN frame; FM has none | the loss falls on whole frames |
-| A peeked member that beats the voted site by the hysteresis is moved to at once | the rest of the call comes from it |
 | Peeks are off when the list's "peek during calls off" flag is set | the safety net the owner asked for: voting then happens only between calls |
 
 The P25 engine plays a lost frame as its own repeat or silence ([p25.md](p25.md)); the length of the gap a peek costs
