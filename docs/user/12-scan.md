@@ -42,6 +42,30 @@ removes it. A list holds up to 80 channels and the radio stores 16 lists.
 - Editing the codeplug (or loading one) while a list scan runs ends the scan.
 - Lists are kept in the radio, not in the codeplug: the editor, a codeplug backup and qdmr do not carry them yet.
 
+### Vote lists
+
+A vote list is for a system whose repeaters all carry the same calls on different frequencies, such as a linked
+conventional P25 network. Instead of stopping on the first channel with activity, the radio measures the sites and
+listens to the strongest. Put one channel for each site in a list, then press **#** on it and **4** (Vote).
+
+- Every channel in the list must be the same mode (all FM, all DMR, all P25 or all NXDN), and none trunked. The radio
+  says "Vote: one mode only" or "Vote: no trunked channels" if not, and while Vote is on it won't add a channel of
+  another mode.
+- **OK** on the list starts it. The state at the left of the status line reads VOTE, in its own color. Home shows the
+  list's name, which site is voted ("2/3") and that site's channel name. **Back** stops it on the voted site.
+- The first channel in the list is where the radio starts.
+
+Once Vote is on, the list's options have four more rows:
+
+| Row | What it does |
+|---|---|
+| Threshold | a site at or above this signal (-50 to -120 dBm, default -90) is good enough: the radio stays on it and doesn't look at the others during a call |
+| Margin | another site must be this much stronger (2 to 20 dB, default 6) before the radio moves to it, so it doesn't flip between two close sites |
+| Peek during calls | On: below the threshold, the radio leaves the call for about 60 ms at most every 2 seconds to measure another site. Off: it only votes at the start of a call. An FM list starts with it off, as a peek is a short hole in FM audio |
+| Transmit | Voted site: PTT transmits on the site you are listening to. Or pick one channel to always transmit on |
+
+The CPS has no setting for this: Vote is set on the radio.
+
 ## How the scan moves
 
 - The scan visits the zone's channels in order, from the one it started on. It skips empty positions and channels

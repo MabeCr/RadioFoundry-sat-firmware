@@ -5,7 +5,7 @@
 #include "config.h"
 #include "debuglink/debuglink.h"
 
-#if CONFIG_DMR_ROAMING
+#if CONFIG_DMR_ROAMING || CONFIG_VOTE_SCAN
 static const char *roam_word(uint8_t v, const char *const *names, uint8_t n)
 {
 	return v < n ? names[v] : "?";
@@ -52,5 +52,32 @@ void debuglink_view_roam(const radio_view_t *v, dl_text_t *t)
 #else
 	(void)v;
 	dl_text(t, "roam.built=0\n");
+#endif
+}
+
+// A vote list (docs/spec/vote-scan.md 8), in the roam section: both choose between sites. The keys only while a list
+// votes (scan=vote in features)
+void debuglink_view_vote(const radio_view_t *v, dl_text_t *t)
+{
+	dl_text(t, "vote.built=%u\n", CONFIG_VOTE_SCAN);
+#if CONFIG_VOTE_SCAN
+	static const char *const vphases[] = { "off", "hold", "sweep", "round", "call", "peek" };
+	const radio_vote_view_t *vv = &v->vote;
+	if (v->scan != 5) {
+		return;
+	}
+	dl_text(t, "vote.phase=%s\nvote.n=%u\nvote.voted=%u\nvote.at=%u\nvote.avg_dbm=%d\n",
+		roam_word(vv->phase, vphases, 6), vv->n, vv->voted, vv->at, vv->avg_dbm);
+	dl_text(t, "vote.rounds=%u\nvote.sweeps=%u\nvote.switches=%u\nvote.peeks=%u\nvote.peek_max_ms=%u\nvote.dbm=",
+		vv->rounds, vv->sweeps, vv->switches, vv->peeks, vv->peek_max_ms);
+	for (uint8_t i = 0; i < vv->n && i < RADIO_VOTE_MAX; i++) {
+		if (vv->last_dbm[i] == -128) {
+			dl_text(t, i == 0 ? "-" : ",-");
+		} else {
+			dl_text(t, i == 0 ? "%d" : ",%d", vv->last_dbm[i]);
+		}
+	}
+	dl_text(t, "\n");
+	dl_text_kv_str(t, "vote.site", vv->voted_name);
 #endif
 }

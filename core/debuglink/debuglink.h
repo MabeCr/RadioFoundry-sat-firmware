@@ -138,6 +138,9 @@ size_t debuglink_cmd_satellite(const uint8_t *req, uint16_t len, uint8_t *out, s
 void debuglink_view_dmr_ext(dl_text_t *t);
 // The roam section (debuglink_view_roam.c); built without CONFIG_DMR_ROAMING it says "roam.built=0"
 void debuglink_view_roam(const radio_view_t *v, dl_text_t *t);
+// A vote list's state, after the roam keys in the same section (docs/spec/vote-scan.md 8): "vote.built=0" without
+// CONFIG_VOTE_SCAN, the vote keys only while a list votes
+void debuglink_view_vote(const radio_view_t *v, dl_text_t *t);
 // APRS (debuglink_aprs.c): the aprs section and the APRS command; without CONFIG_APRS "aprs.built=0" / unavailable
 void debuglink_view_aprs(uint8_t part, dl_text_t *t);	// part 0: state and counters, 1: settings
 size_t debuglink_cmd_aprs(const uint8_t *req, uint16_t len, uint8_t *out, size_t cap);

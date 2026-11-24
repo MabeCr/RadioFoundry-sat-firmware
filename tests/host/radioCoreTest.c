@@ -117,10 +117,28 @@ static void r_tx_off(void) { hw.tx_off_calls++; hw.keyed = false; }
 // (0: on every frequency, no carrier of its own)
 static uint32_t far_hz;
 static bool far_on_air(void);
+// The vote scan tests: a system of sites all carrying the far radio's call, each heard at its own strength (vsites 0: none)
+static struct {
+	uint32_t hz;
+	int16_t dbm;
+} vsite[4];
+static uint8_t vsites;
+static int vsite_at(uint32_t hz)
+{
+	for (uint8_t i = 0; i < vsites; i++)
+		if (vsite[i].hz == hz)
+			return i;
+	return -1;
+}
 static void r_status(radio_status_t *st)
 {
 	*st = hw.st;
-	if (far_hz != 0) {
+	if (vsites != 0) {
+		int i = vsite_at(hw.rx_hz);
+		bool here = i >= 0 && far_on_air();
+		st->noise = here ? 20 : 120;
+		st->rssi_dbm = here ? vsite[i].dbm : -125;
+	} else if (far_hz != 0) {
 		bool here = hw.rx_hz == far_hz && far_on_air();
 		st->noise = here ? 20 : 120;
 		st->rssi_dbm = here ? -80 : -125;
@@ -342,6 +360,9 @@ static void air_deliver(fake_air_t *to, const uint8_t *syms, uint16_t n)
 {
 	if (far_hz != 0 && to == &fair[0] && hw.rx_hz != far_hz) {
 		return;		// the far radio sends on far_hz; the radio is tuned elsewhere
+	}
+	if (vsites != 0 && to == &fair[0] && vsite_at(hw.rx_hz) < 0) {
+		return;		// every site carries the call; between them, nothing
 	}
 #if CONFIG_P25_TRUNK
 	if (site.on && to == &fair[0] && hw.rx_hz != site.voice_hz) {
@@ -4392,6 +4413,16 @@ static void test_job(void *ctx) { (void)ctx; job_runs++; }
 // A scan list across zones (the store itself is scanListTest's): the slot the radio asks for, answered from here
 static scan_list_t fake_list;
 static bool fake_list_ok;
+static scan_list_vote_t fake_vote;	// the list's vote options (0: a plain list)
+bool scan_list_read_vote(uint16_t slot, scan_list_vote_t *out)
+{
+	memset(out, 0, sizeof *out);
+	if (slot != 3 || !fake_list_ok) {
+		return false;
+	}
+	*out = fake_vote;
+	return true;
+}
 bool scan_list_read(uint16_t slot, scan_list_t *out)
 {
 	if (slot != 3 || !fake_list_ok) {
@@ -7874,6 +7905,110 @@ static void test_p25_scan_list(void)
 	p25_defaults();
 }
 #endif
+#if CONFIG_VOTE_SCAN
+// Vote scan (docs/spec/vote-scan.md): three P25 sites in three zones carry the same call at -95, -75 and -100 dBm. The
+// list votes the strongest when the call starts, PTT talks on the voted site (or the fixed member) and the vote goes on,
+// a stop stays on the voted site; a list mixing modes doesn't start
+static void test_p25_vote(void)
+{
+	const radio_p25_view_t *v = &sm.view.p25;
+	const radio_vote_view_t *vv = &sm.view.vote;
+
+	setup_codeplug_p25();
+	add(6, "Site B", 446200000, RADIO_MODE_P25, false, 2);	// zone Two, position 0
+	add(8, "Site C", 446300000, RADIO_MODE_P25, false, 2);	// zone Tones, position 1
+	start();
+	p25_defaults();
+	vsites = 3;
+	vsite[0].hz = 446100000; vsite[0].dbm = -95;
+	vsite[1].hz = 446200000; vsite[1].dbm = -75;
+	vsite[2].hz = 446300000; vsite[2].dbm = -100;
+	req(RREQ_ZONE_POS, 0);
+	const uint16_t sites[] = { 3, 6, 8 };
+	list_set("MV LINK", 3, sites);
+	memset(&fake_vote, 0, sizeof fake_vote);
+	fake_vote.flags = SCAN_VOTE_ON;
+	fake_vote.threshold_dbm = -80;		// -75 is strong: no peeks during the call
+	list_req(3);
+	CHECK(sm.view.scan == SCAN_VOTE && vv->n == 3 && vv->voted == 0);
+	run(2000);				// between calls: the start site unknown, so the radio sweeps
+	CHECK(sm.view.scan == SCAN_VOTE && vv->sweeps >= 1);
+
+	// The call: a round finds the strongest, and the call plays there
+	far_begin(P25_NAC_DEFAULT, 1001, false, 77);
+	CHECK(p25_engine_tx_prepare(&far_eng) && p25_engine_tx_go(&far_eng));
+	far_tx = true;
+	run(3000);
+	CHECK(vv->rounds == 1 && vv->voted == 1 && vv->phase == VOTE_PH_CALL);
+	CHECK(hw.rx_hz == 446200000 && sm.view.channel_number == 6 && strcmp(vv->voted_name, "Site B") == 0);
+	CHECK((v->flags & (RADIO_P25_RX | RADIO_P25_PLAYED)) == (RADIO_P25_RX | RADIO_P25_PLAYED) && v->src == 1001);
+	CHECK(vv->peeks == 0);			// strong: no peeks
+	p25_engine_tx_stop(&far_eng);
+	run(2000);
+	CHECK(sm.view.scan == SCAN_VOTE && vv->voted == 1);
+
+	// PTT talks on the voted site; the vote goes on afterwards
+	req(RREQ_PTT, 1);
+	run(200);
+	CHECK(sm.view.scan == SCAN_VOTE && hw.keyed && hw.tx_hz == 446200000);
+	req(RREQ_PTT, 0);
+	run(1500);
+	CHECK(sm.view.scan == SCAN_VOTE && !hw.keyed);
+
+	// Fixed transmit on member 2: PTT goes there, and back to the voted site after
+	req(RREQ_SCAN, RSCAN_STOP);
+	CHECK(sm.view.scan == SCAN_OFF && sm.view.channel_number == 6);	// a stop stays on the voted site
+	fake_vote.flags = SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX;
+	fake_vote.tx_member = 2;
+	list_req(3);
+	CHECK(sm.view.scan == SCAN_VOTE);
+	req(RREQ_PTT, 1);
+	run(200);
+	CHECK(hw.keyed && hw.tx_hz == 446300000);
+	req(RREQ_PTT, 0);
+	run(1000);
+	CHECK(sm.view.scan == SCAN_VOTE && !hw.keyed && vv->phase != VOTE_PH_OFF);	// voting again (no site known yet: sweeping)
+	far_begin(P25_NAC_DEFAULT, 1002, false, 77);
+	CHECK(p25_engine_tx_prepare(&far_eng) && p25_engine_tx_go(&far_eng));
+	far_tx = true;
+	run(3000);
+	CHECK(vv->voted == 1 && hw.rx_hz == 446200000 && v->src == 1002);	// the next call: the strongest site again
+	{
+		// The debug link: the vote keys while it runs, and the section still fits a reply
+		static char buf[DL_REPLY_MAX - 6 - 16];
+		dl_text_t t;
+		dl_text_init(&t, buf, sizeof buf);
+		debuglink_view_radio(&sm.view, &t);
+		CHECK(!t.full && strstr(buf, "scan=vote\n") != NULL);
+		dl_text_init(&t, buf, sizeof buf);
+		debuglink_view_roam(&sm.view, &t);
+		debuglink_view_vote(&sm.view, &t);
+		CHECK(!t.full && strstr(buf, "vote.built=1\nvote.phase=call\nvote.n=3\nvote.voted=1\n") != NULL);
+		CHECK(strstr(buf, "vote.site=Site B\n") != NULL && strstr(buf, "vote.dbm=") != NULL);
+	}
+	p25_engine_tx_stop(&far_eng);
+	run(1500);
+	req(RREQ_SCAN, RSCAN_STOP);
+
+	// A list mixing modes (an FM channel among the P25 sites) is refused: no scan at all
+	const uint16_t mixed[] = { 3, 6, 1 };
+	list_set("MIXED", 3, mixed);
+	fake_vote.flags = SCAN_VOTE_ON;
+	list_req(3);
+	CHECK(sm.view.scan == SCAN_OFF);
+	// The same list without Vote scans as a plain list
+	fake_vote.flags = 0;
+	list_req(3);
+	CHECK(sm.view.scan == SCAN_LIST);
+	req(RREQ_SCAN, RSCAN_STOP);
+
+	vsites = 0;
+	far_stop();
+	fake_list_ok = false;
+	memset(&fake_vote, 0, sizeof fake_vote);
+	p25_defaults();
+}
+#endif
 #if CONFIG_DUAL_WATCH
 // Dual watch with a stored P25 channel on one side (docs/spec/radio-features.md 2.1): the receiver alternates onto it
 // and the engine runs there for each look; a call that plays holds the watch there until it ends and the delay
@@ -8780,6 +8915,9 @@ static void test_p25(void)
 	test_p25_scan();
 #if CONFIG_SCAN_LIST
 	test_p25_scan_list();
+#if CONFIG_VOTE_SCAN
+	test_p25_vote();
+#endif
 #endif
 #if CONFIG_DUAL_WATCH
 	test_p25_dual();
