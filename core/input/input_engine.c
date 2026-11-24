@@ -52,6 +52,9 @@ void input_engine_step(input_engine_t *e, uint32_t raw, int8_t enc, uint32_t now
 	if (held != e->held || held != 0 || enc != 0) {
 		e->last_activity_ms = now_ms;
 	}
+	if (enc != 0) {
+		e->downs++;
+	}
 	e->held = held;
 	held &= ~e->ignore;
 	uint32_t long_ms = e->long_ms != 0 ? e->long_ms : INPUT_LONG_MS;
@@ -63,6 +66,7 @@ void input_engine_step(input_engine_t *e, uint32_t raw, int8_t enc, uint32_t now
 		bool down = m->bit < 32 && (held & (1u << m->bit)) != 0;
 
 		if (down && !k->down) {
+			e->downs++;
 			k->down = true;
 			k->long_done = false;
 			k->t_down = now_ms;

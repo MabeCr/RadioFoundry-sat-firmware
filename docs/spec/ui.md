@@ -550,6 +550,13 @@ a battery, `CAP_NO_BATTERY`, the battery is drawn nowhere, and Settings > Power 
 warning are left out of their lists. The Battery tool is not present; tools retain their assigned numbers. Only the name part of the title is
 shortened with a middle ellipsis (the prefix stays whole: "Quick COUNTY DMR", not "Quick ..tions").
 
+### 2.7a Wake-only press
+
+Settings > Display > Wake-only press (`UI_SET_WAKE_ONLY`, a toggle, off by default, after Flip screen): with it on, a press
+that begins on a dim screen only wakes it, as one that begins on an off screen always does. The rule and the keys it
+lets through are in [radio-features.md](radio-features.md) 5.3 (`ui_app_swallow_press`). The simulator says how dark the
+screen is with `dark:0|1|2` and the `wakeonly` expect key reads the setting.
+
 ### 2.8 Flip screen
 
 For a radio worn upside down on a belt (`hal_display_t.set_flip`, optional: a display without it has no setting, no tile

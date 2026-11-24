@@ -227,6 +227,32 @@ static void test_encoder_idle(void)
 	CHECK(now - e.last_activity_ms == 0);	// holding a key counts as activity
 }
 
+// The press counter the UI uses to tell whether the screen was dark when a press began (ui.c): it counts at the key going
+// down, before the event at the release, and counts an encoder turn; a hold is one press; a key held at start-up is none
+static void test_downs(void)
+{
+	reset(0);
+	CHECK(e.downs == 0);
+	run(500, 0);
+	CHECK(e.downs == 0);			// nothing pressed: nothing counted
+	keys = 1u << K_OK;
+	run(60, 0);
+	CHECK(e.downs == 1 && nev == 0);	// counted at the press, before its event
+	run(2000, 0);
+	CHECK(e.downs == 1);			// held (the long press and its repeats too): one press
+	keys = 0;
+	run(60, 0);
+	CHECK(e.downs == 1);
+	run(INPUT_SCAN_MS, 1);
+	CHECK(e.downs == 2);			// an encoder turn
+	keys = (1u << K_OK) | (1u << K_5);
+	run(60, 0);
+	CHECK(e.downs == 4);			// two keys, two presses
+	reset(1u << K_OK);
+	run(500, 0);
+	CHECK(e.downs == 0);			// held at power-on: not a press
+}
+
 // DTMF keys (radio-features.md 3.7): their edges go to the callback; a hold it takes sends no gestures
 static bool dtmf_take;
 static char dtmf_log[16];
@@ -355,6 +381,7 @@ int main(void)
 	test_chord();
 	test_held_at_start();
 	test_encoder_idle();
+	test_downs();
 	test_dtmf();
 	test_inject_late_scans();
 	printf("# inputTest: %d checks, %s\n", checks, failures ? "FAILED" : "PASSED");

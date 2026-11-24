@@ -201,6 +201,11 @@ bool input_pending(void)
 	return events != NULL && uxQueueMessagesWaiting(events) != 0;
 }
 
+uint32_t input_downs(void)
+{
+	return engine.downs;
+}
+
 uint32_t input_idle_ms(void)
 {
 	uint32_t now = hal_millis();

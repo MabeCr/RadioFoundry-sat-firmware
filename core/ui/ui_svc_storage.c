@@ -362,6 +362,8 @@ static __attribute__((noinline)) int32_t setting_get_flash(uint8_t id)
 		return (SETTINGS_FIELD(updown_home) & SETTINGS_HOME_LABEL_FIRST) != 0;
 	case UI_SET_FLIP:
 		return (SETTINGS_FIELD(sound_flags) & SETTINGS_SCREEN_FLIP) != 0;
+	case UI_SET_WAKE_ONLY:
+		return (SETTINGS_FIELD(sound_flags) & SETTINGS_WAKE_ONLY) != 0;
 	case UI_SET_LOW_BATTERY:
 		return SETTINGS_FIELD(low_batt_pct);
 	case UI_SET_AUTO_OFF_MIN:
@@ -564,6 +566,12 @@ bool ui_svc_setting_set(uint8_t id, int32_t value)
 		st = settings_begin();
 		st->sound_flags = (uint8_t)(value != 0 ? st->sound_flags | SETTINGS_SCREEN_FLIP :
 					    st->sound_flags & ~SETTINGS_SCREEN_FLIP);
+		settings_end(hal_millis());
+		return true;
+	case UI_SET_WAKE_ONLY:
+		st = settings_begin();
+		st->sound_flags = (uint8_t)(value != 0 ? st->sound_flags | SETTINGS_WAKE_ONLY :
+					    st->sound_flags & ~SETTINGS_WAKE_ONLY);
 		settings_end(hal_millis());
 		return true;
 	case UI_SET_VIBRATE:

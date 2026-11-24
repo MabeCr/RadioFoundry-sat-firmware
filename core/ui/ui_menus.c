@@ -6882,6 +6882,7 @@ static const set_item_t s_display[] = {
 		UI_SET_LABEL_FIRST),
 #endif
 	TOGGLE(TRN(WORD_FLIP_SCREEN, "Flip screen"), "rotate upside down belt clip turn", UI_SET_FLIP),
+	TOGGLE(TRN(SET_LABEL_WAKE_ONLY, "Wake-only press"), "dim dark screen first key press wakes only ignore", UI_SET_WAKE_ONLY),
 	// Last, so the rows above keep their places; its search words are "language" in other languages, for a user who
 	// can't read the English
 	ACTION(TRN(SET_LABEL_LANGUAGE, "Language"), "idioma langue sprache lingua taal jezyk", SA_LANGUAGE),

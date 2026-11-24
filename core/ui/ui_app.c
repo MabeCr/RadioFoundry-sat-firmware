@@ -2131,6 +2131,13 @@ bool ui_app_key_while_dark(const input_event_t *ev)
 	return ev->action == ACT_PTT || ev->action == ACT_MONITOR || ev->action == ACT_EMERGENCY;
 }
 
+bool ui_app_swallow_press(uint8_t dark, const input_event_t *ev)
+{
+	if (dark == UI_DARK_LIT || ui_app_key_while_dark(ev))
+		return false;
+	return dark == UI_DARK_OFF || ui_svc_setting_get(UI_SET_WAKE_ONLY) != 0;
+}
+
 static bool emergency_key(const input_event_t *ev)
 {
 	if (ev->action != ACT_EMERGENCY || ev->gesture != GESTURE_LONG)

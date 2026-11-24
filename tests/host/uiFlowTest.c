@@ -1724,6 +1724,29 @@ static const flow_t flip_flows[] = {
 	{ "Flip: turned, OK still opens the menu", "flipkey", "ok", "screen=hub", 1, false },
 };
 
+// A press on a dark screen (ui.c judges it when it begins: dark:0 lit, dark:1 dim, dark:2 off). Settings > Display >
+// Wake-only press follows Flip screen; on it only wakes a dim screen, an off screen is always only woken
+#define WAKE_ROW_DOWNS	FLIP_ROW_DOWNS " down"
+static const flow_t wake_flows[] = {
+	{ "Wake: off by default", "", "", "wakeonly=0", 0, false },
+	{ "Wake: a lit screen, a press acts", "dark:0", "ok", "screen=hub", 1, false },
+	{ "Wake: an off screen, a press only wakes", "dark:2", "ok", "screen=home", 1, false },
+	{ "Wake: an off screen, then the next press acts", "dark:2 ok dark:0", "ok", "screen=hub", 1, false },
+	{ "Wake: a dim screen acts when the setting is off", "dark:1", "ok", "screen=hub", 1, false },
+};
+// The Display row is on the panels that can turn (its place follows Flip screen's)
+static const flow_t wake_menu_flows[] = {
+	{ "Wake: the row", "ok 7 2 " WAKE_ROW_DOWNS, "ok", "wakeonly=1", 1, false },
+	{ "Wake: on, a dim screen only wakes", "ok 7 2 " WAKE_ROW_DOWNS " ok back back back dark:1", "ok", "screen=home wakeonly=1", 1,
+	  false },
+	{ "Wake: on, a lit screen acts", "ok 7 2 " WAKE_ROW_DOWNS " ok back back back dark:0", "ok", "screen=hub", 1, false },
+	{ "Wake: on, an off screen only wakes", "ok 7 2 " WAKE_ROW_DOWNS " ok back back back dark:2", "ok", "screen=home", 1, false },
+	{ "Wake: on, a side key on a dim screen only wakes", "ok 7 2 " WAKE_ROW_DOWNS " ok back back back dark:1", "scankey",
+	  "scanning=0", 1, false },
+	{ "Wake: on, a side key on a lit screen acts", "ok 7 2 " WAKE_ROW_DOWNS " ok back back back dark:0", "scankey",
+	  "scanning=1", 1, false },
+};
+
 static void run_flow(const flow_t *f, const sim_geom_t *g, sim_map_t map, const char *mapname)
 {
 	char err[300];
@@ -2713,6 +2736,11 @@ int main(void)
 		if (strcmp(runs[r].geom, "240x320") == 0)
 			for (size_t i = 0; i < sizeof flip_flows / sizeof flip_flows[0]; i++)
 				run_flow(&flip_flows[i], g, runs[r].map, runs[r].name);
+		for (size_t i = 0; i < sizeof wake_flows / sizeof wake_flows[0]; i++)
+			run_flow(&wake_flows[i], g, runs[r].map, runs[r].name);
+		if (strcmp(runs[r].geom, "240x320") == 0)
+			for (size_t i = 0; i < sizeof wake_menu_flows / sizeof wake_menu_flows[0]; i++)
+				run_flow(&wake_menu_flows[i], g, runs[r].map, runs[r].name);
 #if CONFIG_SAT
 		// The grid locator on the Tracking screen, on the tall panel; beside the plot it shares the countdown's row only
 		// when it fits, and none of the test displays is wide enough

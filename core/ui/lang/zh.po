@@ -4015,6 +4015,11 @@ msgid "Hint row"
 msgstr "提示行"
 
 #: core/ui/ui_menus.c
+msgctxt "SET_LABEL_WAKE_ONLY"
+msgid "Wake-only press"
+msgstr "仅唤醒屏幕"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_LABEL_LANGUAGE"
 msgid "Language"
 msgstr "语言"

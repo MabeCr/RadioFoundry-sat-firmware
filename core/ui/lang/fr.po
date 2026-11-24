@@ -4013,6 +4013,11 @@ msgid "Hint row"
 msgstr "Ligne d'aide"
 
 #: core/ui/ui_menus.c
+msgctxt "SET_LABEL_WAKE_ONLY"
+msgid "Wake-only press"
+msgstr "Réveil seul"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_LABEL_LANGUAGE"
 msgid "Language"
 msgstr "Langue / Language"
