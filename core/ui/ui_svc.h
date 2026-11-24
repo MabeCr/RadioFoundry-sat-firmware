@@ -587,6 +587,9 @@ typedef enum {
 	// settings_t.sound_flags SETTINGS_SCREEN_FLIP). Up / Down and Left / Right swap with it. Only on a board whose
 	// display has set_flip
 	UI_SET_FLIP,
+	// A press on a dim screen only wakes it, 0 / 1 (Settings > Display > Wake-only press; settings_t.sound_flags
+	// SETTINGS_WAKE_ONLY). A press on an off screen only wakes it whatever this says
+	UI_SET_WAKE_ONLY,
 	UI_SET_COUNT
 } ui_setting_t;
 

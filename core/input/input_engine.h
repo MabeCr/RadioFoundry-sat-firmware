@@ -54,6 +54,8 @@ typedef struct {
 	uint32_t held;		// debounced mask
 	uint32_t ignore;	// keys held at start-up, ignored until released (no TX from a PTT held at power-on)
 	uint32_t last_activity_ms;
+	uint32_t downs;		// key presses (a key going down, an encoder turn) since start: the UI asks whether the screen was dark
+				// when one began, which the event at its release can't say
 	uint16_t long_ms;	// long press threshold, 0 = INPUT_LONG_MS
 	uint16_t repeat_ms;	// repeat period, 0 = INPUT_REPEAT_MS
 	input_dtmf_t dtmf;	// DTMF keys' edges (NULL = none)

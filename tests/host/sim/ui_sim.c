@@ -744,6 +744,15 @@ bool ui_svc_codeplug_answer(uint8_t answer)
 	return true;
 }
 
+// How the screen was when the next press began (ui_app.h UI_DARK_*): ui.c decides this on the radio; a flow says it with
+// dark:0, dark:1 (dim) or dark:2 (off) and every press until the next dark: goes through the same test
+static uint8_t sim_dark;
+static void sim_key(const input_event_t *ev)
+{
+	if (!ui_app_swallow_press(sim_dark, ev))
+		ui_app_key(ev);
+}
+
 // The settings past the stub's RAM table (UI_SET_RAM_COUNT): the firmware keeps them in the codeplug
 // (ui_svc_storage.c); here they are plain values
 static int32_t sim_late[UI_SET_COUNT - UI_SET_RAM_COUNT];
@@ -3009,7 +3018,7 @@ static void step(void)
 	if (ptt_up_at && now_ms >= ptt_up_at) {
 		ptt_up_at = 0;
 		input_event_t ev = { ACT_PTT, GESTURE_UP, 0 };
-		ui_app_key(&ev);
+		sim_key(&ev);
 		ptt(false);
 	}
 	if (view.dmr.reply_active && view.state != RS_TX && reply_until) {
@@ -3078,6 +3087,7 @@ void ui_svc_next_aes_key(channel_t *c)
 void sim_reset(const sim_geom_t *g, sim_map_t map)
 {
 	emergency_on = false;
+	sim_dark = 0;
 	sim_foreign = sim_held = false;
 	disp.width = g->w;
 	disp.height = g->h;
@@ -3086,6 +3096,7 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	disp.inset_top = disp.inset_bottom = g->inset_tb;
 	disp.set_flip = g->w == 240 && g->h == 320 ? d_set_flip : NULL;
 	ui_svc_setting_set(UI_SET_FLIP, 0);
+	ui_svc_setting_set(UI_SET_WAKE_ONLY, 0);
 	disp.fb_safe_area = g->safe;
 	disp.fill_insets = d_fill_insets;
 	font_aa_on = g->aa;
@@ -3327,7 +3338,7 @@ static bool press(const char *name, bool lng, char *err, size_t len)
 		}
 		input_event_t ev = { ACT_ENC_STEP, GESTURE_DOWN, (int8_t)(name[3] == '+' ? 1 : -1) };
 		presses++;
-		ui_app_key(&ev);
+		sim_key(&ev);
 		advance(PRESS_MS);
 		return true;
 	}
@@ -3341,7 +3352,7 @@ static bool press(const char *name, bool lng, char *err, size_t len)
 					     (uint8_t)(lng ? GESTURE_LONG : GESTURE_PRESS), 0 };
 			presses++;
 			advance(lng ? LONG_MS : PRESS_MS / 2);
-			ui_app_key(&ev);
+			sim_key(&ev);
 			advance(PRESS_MS / 2);
 			return true;
 		}
@@ -3362,16 +3373,16 @@ static bool press(const char *name, bool lng, char *err, size_t len)
 			// radio task outranks the UI): the UI reads the view the edge already changed
 			input_event_t ev = { ACT_MONITOR, GESTURE_DOWN, 0 };
 			radio_req_monitor(true);
-			ui_app_key(&ev);
+			sim_key(&ev);
 			advance(lng ? LONG_MS : PRESS_MS);
 			ev.gesture = GESTURE_UP;
 			radio_req_monitor(false);
-			ui_app_key(&ev);
+			sim_key(&ev);
 			return true;
 		}
 		input_event_t ev = { a, (uint8_t)(lng ? GESTURE_LONG : GESTURE_PRESS), 0 };
 		advance(lng ? LONG_MS : PRESS_MS / 2);
-		ui_app_key(&ev);
+		sim_key(&ev);
 		advance(PRESS_MS / 2);
 		return true;
 	}
@@ -3578,6 +3589,7 @@ static bool check(const char *kv, char *err, size_t len)
 	else if (strcmp(key, "aprs_power") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.power);
 	else if (strcmp(key, "aprs_path") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.path);
 	else if (strcmp(key, "flip") == 0) snprintf(got, sizeof got, "%u", ui_app_flip());
+	else if (strcmp(key, "wakeonly") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_WAKE_ONLY));
 	else if (strcmp(key, "aprs_ssid") == 0) snprintf(got, sizeof got, "%u", aprs_sim.cfg.ssid);
 	else if (strcmp(key, "pos_lat") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_POS_FIXED_LAT));
 	else if (strcmp(key, "pos_lon") == 0) snprintf(got, sizeof got, "%d", (int)ui_svc_setting_get(UI_SET_POS_FIXED_LON));
@@ -3613,7 +3625,7 @@ static bool run_token(char *t, char *err, size_t len)
 		}
 		presses++;
 		input_event_t ev = { ACT_PTT, GESTURE_DOWN, 0 };
-		ui_app_key(&ev);
+		sim_key(&ev);
 		if (!ptt_blocked)
 			ptt(true);
 		ptt_up_at = now_ms + ms;
@@ -3623,7 +3635,7 @@ static bool run_token(char *t, char *err, size_t len)
 	if (strcmp(t, "pttdown") == 0) {	// PTT held until pttup (for a look at the TX screen)
 		presses++;
 		input_event_t ev = { ACT_PTT, GESTURE_DOWN, 0 };
-		ui_app_key(&ev);
+		sim_key(&ev);
 		if (!ptt_blocked)
 			ptt(true);
 		advance(1500);
@@ -3659,7 +3671,7 @@ static bool run_token(char *t, char *err, size_t len)
 	}
 	if (strcmp(t, "pttup") == 0) {
 		input_event_t ev = { ACT_PTT, GESTURE_UP, 0 };
-		ui_app_key(&ev);
+		sim_key(&ev);
 		ptt(false);
 		advance(200);
 		return true;
@@ -3730,7 +3742,7 @@ static bool run_token(char *t, char *err, size_t len)
 			presses++;
 		input_event_t ev = { ACT_MONITOR, down ? GESTURE_DOWN : GESTURE_UP, 0 };
 		radio_req_monitor(down);	// the radio first, as on the radio (see `mon`)
-		ui_app_key(&ev);
+		sim_key(&ev);
 		advance(200);
 		return true;
 	}
@@ -4185,6 +4197,10 @@ static bool run_token(char *t, char *err, size_t len)
 		return true;
 	}
 #endif
+	if (strcmp(t, "dark") == 0 && arg != NULL) {	// dark:0 lit, dark:1 dim, dark:2 off: how the screen is for the presses after
+		sim_dark = (uint8_t)atoi(arg);
+		return true;
+	}
 #if CONFIG_SCAN_LIST
 	if (strcmp(t, "scanlists") == 0 && arg != NULL) {	// scanlists:on (an empty store) or scanlists:seed
 		slist_sim.on = true;
@@ -4467,7 +4483,7 @@ static bool run_token(char *t, char *err, size_t len)
 		sim_satellite_predicting = false;
 		input_event_t ev = { ACT_SELECT, GESTURE_PRESS, 0 };
 		presses++;
-		ui_app_key(&ev);
+		sim_key(&ev);
 		advance(200);
 		return true;
 	}

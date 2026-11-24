@@ -17,6 +17,13 @@ void ui_app_init(void);
 void ui_app_key(const input_event_t *ev);
 // A key pressed with the backlight off only wakes the light, except these: they act at once (ui.c)
 bool ui_app_key_while_dark(const input_event_t *ev);
+// Whether a press only wakes the screen and does nothing else. dark: how the screen was when the press began
+// (UI_DARK_LIT, UI_DARK_DIM, UI_DARK_OFF). An off screen always swallows it; a dim one only with Settings > Display >
+// Wake-only press. PTT, Monitor and Emergency always act (ui_app_key_while_dark)
+#define UI_DARK_LIT	0
+#define UI_DARK_DIM	1
+#define UI_DARK_OFF	2
+bool ui_app_swallow_press(uint8_t dark, const input_event_t *ev);
 // Time passes and the radio view may have changed: timeouts, banners, Recent. True if the screen should be redrawn
 bool ui_app_tick(const radio_view_t *v, uint32_t now_ms);
 // Draw the current screen into the frame buffer (no flush)

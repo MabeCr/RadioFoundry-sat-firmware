@@ -425,6 +425,9 @@ static inline void settings_set_crash_contact(settings_t *s, uint16_t num)
 // The picture turned 180 degrees (Settings > Display > Flip screen, hal_display_t.set_flip). Not a sound: a reserved bit
 // of a byte that was free, as settings_t has no spare byte and its copies sit on stacks with none to spare either
 #define SETTINGS_SCREEN_FLIP		0x02u
+// A press on a dim screen only wakes it (Settings > Display > Wake-only press); on an off screen it always does. Another
+// reserved bit of that byte
+#define SETTINGS_WAKE_ONLY		0x04u
 #define SETTINGS_TONES_OFF_SHIFT	4	// radio_settings_t.tones_off, the radio's own copy of the codeplug's tone keys
 #define SETTINGS_TONES_OFF_MASK		0xF0u
 

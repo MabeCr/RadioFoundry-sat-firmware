@@ -18,6 +18,10 @@ bool input_next(input_event_t *ev, uint32_t wait_ms);
 bool input_pending(void);
 // Milliseconds since the last key or encoder activity (backlight time-out)
 uint32_t input_idle_ms(void);
+// Key presses begun since start (a key going down, an encoder turn). A press lights the screen when it begins and its
+// event comes at its release, so the UI compares this count between passes to see whether the screen was dark when a
+// press began (ui.c)
+uint32_t input_downs(void);
 // Raw state for the diagnostics page: physical key bits held now, encoder detents since start
 uint32_t input_raw_keys(void);
 int32_t input_encoder_total(void);

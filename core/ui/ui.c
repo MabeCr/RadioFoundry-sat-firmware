@@ -92,6 +92,33 @@ static uint8_t backlight_target(uint32_t now)
 	return radio_backlight_pct(ui_app_brightness(), idle);
 }
 
+// How dark the screen is now (ui_app.h UI_DARK_*): off, or dimmer than the active level (which a low battery caps)
+static uint8_t dark_now(void)
+{
+#if CONFIG_BACKLIGHT_TEST
+	if (ui_app_backlight_hold() >= 0)
+		return UI_DARK_LIT;	// the backlight tests hold the light: a key doesn't just wake it
+#endif
+	if (backlight_now == 0)
+		return UI_DARK_OFF;
+	return backlight_now < radio_backlight_pct(ui_app_brightness(), 0) ? UI_DARK_DIM : UI_DARK_LIT;
+}
+
+// A press lights the screen when it begins (the input idle time restarts at once), but its event comes at its release,
+// after the light is on. So each press is judged when it is first seen, before the light follows it: press_dark is how
+// the screen was for the press the events now belong to
+static uint8_t press_dark;
+static uint32_t downs_seen;
+
+static void sample_presses(void)
+{
+	uint32_t d = input_downs();
+	if (d != downs_seen) {
+		downs_seen = d;
+		press_dark = dark_now();
+	}
+}
+
 const char *ui_screen_name(void)
 {
 	return status.screen != NULL ? status.screen : "home";
@@ -168,12 +195,9 @@ static void ui_task(void *arg)
 			radio_get_view(&view);
 		}
 		if (got) {
-			bool was_off = backlight_now == 0;
-#if CONFIG_BACKLIGHT_TEST
-			was_off = was_off && ui_app_backlight_hold() < 0;	// a key wakes the light, but not in the tests
-#endif
+			sample_presses();	// a press that began since the last pass: was the screen dark when it did?
 			set_backlight(ui_app_brightness());
-			if (!was_off || ui_app_key_while_dark(&ev))
+			if (!ui_app_swallow_press(press_dark, &ev))
 				ui_app_key(&ev);
 			dirty = true;
 		}
@@ -189,6 +213,7 @@ static void ui_task(void *arg)
 			dirty = true;
 		if (ui_app_take_wake())
 			radio_active_ms = now;
+		sample_presses();	// before the light follows the press, or it would look lit
 		set_backlight(backlight_target(now));
 
 		if (dirty && have_fb && now - last_draw >= FRAME_MIN_MS && !gfx_held(now) &&

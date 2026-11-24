@@ -4028,6 +4028,11 @@ msgid "Hint row"
 msgstr "Riga suggerim."
 
 #: core/ui/ui_menus.c
+msgctxt "SET_LABEL_WAKE_ONLY"
+msgid "Wake-only press"
+msgstr "Solo riattiva"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_LABEL_LANGUAGE"
 msgid "Language"
 msgstr "Lingua/Language"

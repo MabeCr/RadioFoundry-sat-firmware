@@ -657,9 +657,24 @@ dim time with off 0 dims and stays on. The UI's setting (`UI_SET_BACKLIGHT_S`, S
 Dim/Off) carries both in one value: a time T > 0 dims after T and goes off after 4T, 0 is always on, and -T dims after
 T and never goes off (the "T/dim" choices).
 
-Idle time restarts on input and while `radio_view_wakes(view)` holds: something the user would want to see. With the
-backlight off, a key only wakes it, except the ones `ui_app_key_while_dark` lets through (PTT, Monitor, Emergency).
-Emergency sends only its long press, so it must act on the first event.
+Idle time restarts on input and while `radio_view_wakes(view)` holds: something the user would want to see. A press that
+begins on a dark screen only wakes it, except the ones `ui_app_key_while_dark` lets through (PTT, Monitor, Emergency).
+Emergency sends only its long press, so it must act on the first event. "Dark" is judged when the press begins, not
+when its event arrives: a press lights the screen at once (the input idle time restarts at the key going down) but its
+event comes at the release, so a hold longer than a UI pass used to find the screen lit and act. `input_downs()` counts
+presses (a key going down, an encoder turn); the UI task compares it between passes (`sample_presses` in `ui.c`) and keeps
+how dark the screen was for the press (`UI_DARK_OFF`, `UI_DARK_DIM`, `UI_DARK_LIT`), which every event of that hold
+(its long press and repeats too) is judged by (`ui_app_swallow_press`).
+
+| Screen when the press began | The press |
+|---|---|
+| lit | acts |
+| dim | acts; only wakes with Settings > Display > Wake-only press on (`UI_SET_WAKE_ONLY`, `SETTINGS_WAKE_ONLY` in `settings_t.sound_flags`) |
+| off | only wakes |
+
+The dim level is the active level cut to a fifth (at least 5 %); "lit" is the active level, which a low battery caps, so
+a low battery doesn't make every press a wake. The volume knob is not an input event: turning it acts as before.
+The channel knob's turns are presses like any other key.
 
 | State | Wakes | Why |
 |---|---|---|
