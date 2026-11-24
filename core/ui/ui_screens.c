@@ -2374,7 +2374,7 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 // and a caller from the ID database ("callsign first-name more ..."), the callsign takes the first line with the
 // destination, and the rest of the text the lines below (words wrap, the last line ends in an ellipsis); with one
 // line the whole text is cut short beside the destination, then dropped if under four characters
-static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
+static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows, bool names)
 {
 	char buf[64], fit[48];
 	sbuf_t b;
@@ -2386,7 +2386,8 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
 		return;
 	}
 	bool db = false;
-	const char *text = c->src != 0 ? ui_svc_caller_text(c->src, &db) : "";
+	// names: Show talker alias (Settings > Talk & listen), the same choice as DMR's received aliases
+	const char *text = c->src != 0 && names ? ui_svc_caller_text(c->src, &db) : "";
 	const char *rest = "";
 	char head[24], tail[40];
 	sb_init(&b, head, sizeof head);
@@ -2482,7 +2483,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 		air_call_t ac;
 		bool air_rx = air_call(v, &ac);
 		if (!two && air_rx) {
-			air_call_line(&ac, sm, y, 1);	// one line: who calls says more than the meter
+			air_call_line(&ac, sm, y, 1, s->alias_show);	// one line: who calls says more than the meter
 			break;
 		}
 #endif
@@ -2495,7 +2496,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 			break;
 #if CONFIG_AIR
 		if (air_rx) {
-			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h);
+			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h, s->alias_show);
 			break;
 		}
 #endif

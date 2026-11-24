@@ -154,6 +154,7 @@ static const flow_t flows[] = {
 	{ "P25 home: talk group and NAC", "dlmode:p25", "", "screen=home shows=TG_1 shows=NAC_293", 0, false },
 	{ "P25 home: the caller", "dlmode:p25", "p25rx:3101234,7", "screen=home shows=ID_3101234 shows=TG_7", 0, false },
 	{ "P25 home: the caller's name", "dlmode:p25", "p25rx:3101234,7,g,KF8ENC_Doug_Lambert", "screen=home shows=KF8ENC shows=TG_7 hides=ID_3101234", 0, false },
+	{ "P25 home: Show talker alias off shows the ID, not the name", "dlmode:p25 aliasshow:off", "p25rx:3101234,7,g,KF8ENC_Doug_Lambert", "screen=home shows=ID_3101234 shows=TG_7 hides=KF8ENC", 0, false },
 	{ "P25 home: a long database text", "dlmode:p25", "p25rx:3101234,9371,g,KF8ENC_Douglas_Lambertson_Dayton_OH_United_States", "screen=home shows=KF8ENC shows=TG_9371", 0, false },
 	{ "P25 home: a unit call", "dlmode:p25", "p25rx:3101234,3105555,u", "shows=Private_to_3105555", 0, false },
 	{ "P25 home: encrypted", "dlmode:p25", "p25rx:3101234,7,e", "shows=Encrypted:_not_played hides=ID_3101234", 0,
