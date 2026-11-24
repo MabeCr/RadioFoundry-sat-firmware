@@ -277,7 +277,9 @@ typedef struct {
 	uint32_t site_phase_ms[RADIO_ROAM_SITES];	// its last beacon's start in the interval (ms), UINT32_MAX = unknown
 	uint16_t site_fresh16;	// bit i: site i's survey data is fresh
 } radio_roam_view_t;
+#endif
 
+#if CONFIG_VOTE_SCAN
 // A vote list running (radio_view_t.vote, CONFIG_VOTE_SCAN; docs/spec/vote-scan.md 8): the vote engine's state
 #define RADIO_VOTE_MAX	16	// radio/vote.h VOTE_MAX
 typedef struct {
