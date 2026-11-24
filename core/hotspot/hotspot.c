@@ -50,7 +50,6 @@ static bool enter_tried;		// enter() was refused at enter_ms: wait HOTSPOT_ENTER
 static uint32_t enter_ms;
 
 static uint8_t cc = 1;
-static bool simplex = true;
 static uint32_t rx_hz, tx_hz;
 static uint8_t rf_level = 255;
 
@@ -252,7 +251,7 @@ static void send_lc_frame_cmd(uint8_t command, uint8_t data_type, const uint8_t 
 	b.dataType = data_type;
 	b.length = 12;
 	b.flags = 0;
-	dmr_lc_encode_full(lc, (data_type == DT_VOICE_LC_HEADER) ? DMR_RS_MASK_VOICE_HEADER : DMR_RS_MASK_TERMINATOR,
+	dmr_lc_encode_full(lc, (data_type == DMR_TYPE_VOICE_LC_HEADER) ? DMR_RS_MASK_VOICE_HEADER : DMR_RS_MASK_TERMINATOR,
 			   b.payload);
 	dmrDataBurstToFrame(&b, cc, frame);
 	send_frame_cmd(command, (uint8_t)(MMDVM_DMR_SYNC_DATA | data_type), frame, rssi_dbm, heard);
@@ -278,6 +277,23 @@ static void send_voice_cmd(uint8_t command, const uint8_t *voice, uint8_t index,
 static void send_voice(const uint8_t *voice, uint8_t index, int16_t rssi_dbm, bool heard)
 {
 	send_voice_cmd(MMDVM_DMR_DATA2, voice, index, hotspotUplinkLc(&up), rssi_dbm, heard);
+}
+
+// The SFR mode (alt, not a split role, which has no inbound slot to protect) repeats right now. Read from the state
+// itself (single flags), so it's safe from the RF TX interrupt that asks it (hal_radio_t.dmr_direct_query)
+bool hotspot_sfr_repeating(void)
+{
+	const hotspot_alt_t *a = alt;
+	if (!running || (a == NULL) || !a->active()) {
+		return false;
+	}
+#if CONFIG_HOTSPOT_SPLIT
+	const hotspot_alt_t *p = alt_prio;
+	if ((p != NULL) && p->active()) {
+		return false;
+	}
+#endif
+	return true;
 }
 
 // ---- For another mode on the modem (hotspot_alt_t) ----
@@ -349,7 +365,7 @@ void hotspot_up_voice(uint8_t command, const uint8_t *ambe, uint8_t index, const
 
 void hotspot_up_lc(uint8_t command, uint8_t data_type, const uint8_t *lc, int16_t rssi_dbm)
 {
-	if (data_type == DT_VOICE_LC_HEADER) {
+	if (data_type == DMR_TYPE_VOICE_LC_HEADER) {
 		note_call(lc, false);
 		changed();
 	}
@@ -436,7 +452,6 @@ void hotspot_init(const hal_dmr_modem_t *m, hotspot_send_fn send)
 	send_up = send;
 	running = false;
 	cc = 1;
-	simplex = true;
 	rx_hz = 0;
 	tx_hz = 0;
 	rf_level = 255;
@@ -469,7 +484,8 @@ bool hotspot_start(uint32_t now_ms)
 	if ((modem == NULL) || (radio == NULL) || (radio->enter == NULL)) {
 		return false;
 	}
-	if (enter_tried && ((now_ms - enter_ms) < HOTSPOT_ENTER_RETRY_MS)) {
+	if (enter_tried && ((now_ms - enter_ms) < HOTSPOT_ENTER_RETRY_MS) &&
+	    ((radio->active == NULL) || !radio->active())) {
 		return false;	// the radio refused a moment ago: don't hammer it on every frame (enter must not block)
 	}
 	enter_tried = true;
@@ -538,7 +554,8 @@ void hotspot_config(uint8_t color_code, bool is_simplex, uint16_t tx_delay_ms)
 {
 	(void)tx_delay_ms;	// the modem keys from its own slot timing
 	cc = color_code & 0x0F;
-	simplex = is_simplex;	// duplex + RX = TX selects the SFR where it is built (hotspotSfr.c, through mmdvm_ext_t)
+	(void)is_simplex;	// this engine is simplex only: duplex + RX = TX selects the SFR where it is built (hotspotSfr.c,
+				// through mmdvm_ext_t)
 	view.cc = cc;
 	if (running) {
 		dmr_config_t c = modem_config();
@@ -635,7 +652,7 @@ uint8_t hotspot_net_frame(uint8_t control, const uint8_t *frame, uint32_t now_ms
 		uint8_t info[12];
 
 		switch (dt) {
-		case DT_VOICE_LC_HEADER: {
+		case DMR_TYPE_VOICE_LC_HEADER: {
 			dmrFecBptcDecode(frame, info);
 			bool other_call = enq_open && (memcmp(enq_lc, info, LC_LEN) != 0);
 			// Another call's header while one is still queued (it lost its terminator, or the host sends back to
@@ -657,7 +674,7 @@ uint8_t hotspot_net_frame(uint8_t control, const uint8_t *frame, uint32_t now_ms
 			last_net_ms = now_ms;
 			return 0;
 		}
-		case DT_TERMINATOR_WITH_LC:
+		case DMR_TYPE_TERMINATOR_LC:
 			if (!enq_open) {
 				return 0;	// the second and third terminators of a call, or one without a call
 			}
@@ -669,8 +686,8 @@ uint8_t hotspot_net_frame(uint8_t control, const uint8_t *frame, uint32_t now_ms
 			enq_open = false;
 			last_net_ms = now_ms;
 			return 0;
-		case DT_VOICE_PI_HEADER:
-		case DT_IDLE:
+		case DMR_TYPE_PI_HEADER:
+		case DMR_TYPE_IDLE:
 			return 0;		// taken and dropped: the radio makes its own (gotchas 8.2)
 		default: {
 			uint8_t r = hotspotDataQueue(dt, frame, now_ms);
@@ -688,7 +705,7 @@ uint8_t hotspot_net_frame(uint8_t control, const uint8_t *frame, uint32_t now_ms
 	} else if (((c & 0x0F) >= 1) && ((c & 0x0F) <= 5)) {
 		index = c & 0x0F;
 	} else {
-		index = (uint8_t)((enq_index + 1) % 6);	// MMDVMHost's control byte 0: B-F follow in order
+		index = (uint8_t)((enq_index + 1) % 6);	// control byte 0: B-F follow in order
 	}
 
 	if (!enq_open) {
@@ -1016,7 +1033,7 @@ static void rf_burst(const dmr_burst_t *b, uint32_t now_ms)
 	}
 	if (actions & HOTSPOT_UP_HEADER) {
 		// A header heard is sent as heard (with its RSSI); one made from the embedded LC (late entry) is ours
-		send_lc_frame(DT_VOICE_LC_HEADER, lc, b->rssi_dbm, b->kind == DMR_BURST_VOICE_LC_HEADER);
+		send_lc_frame(DMR_TYPE_VOICE_LC_HEADER, lc, b->rssi_dbm, b->kind == DMR_BURST_VOICE_LC_HEADER);
 		note_call(lc, false);
 		dmr_emb_lc_encode(lc, sf_frag);
 	}
@@ -1030,7 +1047,7 @@ static void rf_burst(const dmr_burst_t *b, uint32_t now_ms)
 		send_voice(u.ambe, u.seq, b->rssi_dbm, true);
 	}
 	if (actions & HOTSPOT_UP_TERMINATOR) {
-		send_lc_frame(DT_TERMINATOR_WITH_LC, lc, b->rssi_dbm, true);
+		send_lc_frame(DMR_TYPE_TERMINATOR_LC, lc, b->rssi_dbm, true);
 		alias_pending = false;
 	}
 }

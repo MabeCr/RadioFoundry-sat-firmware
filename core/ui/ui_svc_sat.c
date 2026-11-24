@@ -61,7 +61,69 @@ static void delete_job(void *ctx)
 
 bool ui_svc_sat_delete(uint32_t norad)
 {
-	return storage_job_post(delete_job, (void *)(uintptr_t)norad);
+	if (!storage_job_post(delete_job, (void *)(uintptr_t)norad))
+		return false;
+	(void)ui_svc_sat_alert_set(norad, false);	// its mark goes with it
+	return true;
+}
+
+void ui_svc_sat_pass_alert_toggle(uint32_t norad, uint32_t aos)
+{
+	sat_svc_pass_alert_toggle(norad, aos);
+}
+
+bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
+{
+	return sat_svc_pass_alert_marked(norad, aos);
+}
+
+void ui_svc_sat_alert_poll(void)
+{
+	static ui_sat_alert_t a;
+	static ui_sat_status_t st;
+	static ui_event_t ev;	// static: the UI task's stack has next to nothing to spare
+	if (!ui_svc_sat_alert_take(&a))
+		return;
+	memset(&ev, 0, sizeof ev);
+	ev.kind = UI_EV_SAT_PASS;
+	ev.id = a.norad;
+	ev.index = (uint16_t)(a.max_el < 0 ? 0 : a.max_el);
+	if (ui_svc_sat_status(&st))
+		ev.ms = a.aos > st.utc ? a.aos - st.utc : 0u;
+	static ui_sat_t row;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &row); i++) {
+		if (row.norad == a.norad) {
+			memcpy(ev.name, row.name, sizeof ev.name - 1);
+			break;
+		}
+	}
+	(void)ui_notify(&ev);
+}
+
+uint32_t ui_svc_sat_alert_eta(void)
+{
+	static ui_sat_status_t stt;	// static: the strip is drawn on the UI task's small stack
+	static ui_sat_t row;
+	if (ui_svc_setting_get(UI_SET_SAT_ALERT_LEAD) == 0 || !ui_svc_sat_status(&stt) || stt.utc == 0)
+		return UI_SAT_ETA_NONE;
+	uint32_t best = UI_SAT_ETA_NONE, aos;
+	for (uint8_t i = 0; ui_svc_sat_get(i, &row); i++)
+		if (row.state == UI_SAT_NEXT && row.aos > stt.utc && row.aos - stt.utc < best && ui_svc_sat_alert_get(row.norad))
+			best = row.aos - stt.utc;
+	if (sat_svc_alert_next_mark(stt.utc, &aos) && aos - stt.utc < best)
+		best = aos - stt.utc;
+	return best;
+}
+
+bool ui_svc_sat_alert_take(ui_sat_alert_t *out)
+{
+	sat_svc_alert_t a;
+	if (!sat_svc_alert_take(&a))
+		return false;
+	out->norad = a.norad;
+	out->aos = a.aos;
+	out->max_el = a.max_el;
+	return true;
 }
 
 void ui_svc_sat_open(uint32_t norad)

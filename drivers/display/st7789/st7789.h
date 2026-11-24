@@ -37,6 +37,9 @@ void st7789_write_rows(const st7789_t *p, const uint16_t *fb, uint16_t y0, uint1
 void st7789_write_rows_indexed(const st7789_t *p, const uint8_t *fb, const uint16_t *palette, uint16_t y0, uint16_t y1);
 void st7789_fill(const st7789_t *p, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color);
 void st7789_invert(const st7789_t *p, bool on);
+// Turn the picture 180 degrees: the panel's MADCTL with both address directions reversed (MX and MY). Rows already in
+// the frame memory stay as they are, so the caller sends the whole frame again
+void st7789_set_flip(const st7789_t *p, bool flipped);
 void st7789_display_on(const st7789_t *p, bool on);
 
 // The init command stream (for tests): bytes as { cmd, n, data[n] } entries, ended by cmd 0

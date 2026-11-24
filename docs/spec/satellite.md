@@ -3,6 +3,11 @@
 
 # Satellite tracking
 
+> Two satellite features exist and a build has one of them. This page is `CONFIG_SAT`: the stack in `core/sat` (Tools >
+> Satellites, the Tracking screen, pass alerts, receive sound). The other, `CONFIG_SATELLITE_TLE`, is the
+> upstream TLE feature with its own storage: [satellite-tle.md](satellite-tle.md). `config/features.mk` stops a build
+> with both on, and turns the second off when the first is on.
+
 `CONFIG_SAT` (default off). The radio predicts where an amateur satellite is from its two-line elements (TLE): when it
 rises over the radio's position, where to point the antenna, and how far Doppler moves its uplink and downlink. It
 also keeps a profile per satellite and arms a repeater that needs a wake-up carrier. Which radios build it:
@@ -205,13 +210,15 @@ The Tracking screen ([ui.md](ui.md) 2.6) tunes by hand (phase 1; the automatic m
   touched (a cross-band split stays), and it doesn't count as the user doing something (no auto-off or roaming reset).
   A normal tune (`RREQ_VFO_SET`) ends a reception and would turn a cross-band split into simplex.
 - `*` follows the Doppler (`core/sat/sat_follow.c`): once a draw (about a second) the screen asks
-  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (1.5 kHz) or more from
-  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (5 s) ago or more, and the radio is not transmitting;
+  `sat_follow_step` whether to retune. It says yes when the receiver is `SAT_FOLLOW_THRESHOLD_HZ` (500 Hz) or more from
+  the wanted frequency, the last retune was `SAT_FOLLOW_MIN_MS` (3 s) ago or more, and the radio is not transmitting;
   then the screen calls `radio_req_rx_hz`. The wanted frequency is the corrected downlink plus the dial's nudge, and from
   two minutes before the rise (the service's margin) the shift of the rise, so the receiver is on it when the satellite
   comes up. There is no wait for a gap in the signal: a retune is a click (4.4), and the squelch may be latched open.
-  Against the reference passes (`satFollowTest`) it retunes 12 or 13 times a pass at 437.8 MHz, never further off than
-  1.5 kHz, with at least 14 s between retunes, and the same with a 5 kHz nudge. It ends with Back, or when the radio
+  Against the reference passes (`satFollowTest`) it retunes about 36 times a pass at 437.8 MHz, never further off than
+  about 600 Hz, with at least 5 s between retunes, and the same with a 5 kHz nudge. (It was 12 retunes and 1.5 kHz until the
+  first SO-50 pass on the radio, 2026-11-15, where a signal 1.5 kHz off was too far.) The Tracking screen colors the
+  receive line as a warning at `SAT_FOLLOW_WARN_HZ` (1 kHz, twice the following threshold) behind. It ends with Back, or when the radio
   leaves the VFO.
 - `OK` swaps the base of the downlink between the profile's and one saved for the satellite (`settings_t.sat_alt_norad` / `sat_alt_hz`, typed on the Frequency screen, `1`): the saved one replaces the profile's as the base the Doppler works
   on. The screen works the shift out itself from the live range rate (`sat_doppler_rx_hz`, `sat_doppler.h`), so it needs
@@ -288,6 +295,31 @@ azimuth, range or frequencies, only "Below horizon".
 
 The screen asks for a pass with `sat_svc_track(aos, los)` at every draw. Nothing tells the service the screen has gone, so
 it stops, and drops the results, five seconds after the last request. A new observer or pass starts the path over.
+
+### 5.4 Pass alerts
+
+`sat_alert.c` decides when a marked pass is worth telling the user about (`CONFIG_SAT_ALERT`). It has no hardware, clock or
+RTOS: `sat_svc_poll` gives it the time, and it answers `sat_alert_due`.
+
+| Mark | Kept | Alerts |
+|---|---|---|
+| A satellite, for every pass | `settings_t.sat_alert_norad`, six catalog numbers (Left, Right or `*` on its row in the list) | each of its passes listed, once |
+| One pass | `sat_alert_t.marks`, four slots in RAM, forgotten at power off (Left, Right or `*` on a pass, or Left or Right on Tracking before the rise) | that pass, once; its mark is then spent |
+
+- **When:** `Pass alert` minutes before the rise (Settings > Location; 0 off, default 5), for the satellite's next pass
+  (the list row), while it has not risen. A pass is the same pass as one marked or alerted on when its rise is within
+  10 minutes, so a new element set moving it by seconds neither loses the mark nor alerts twice. The last four alerts are
+  remembered.
+- **Who raises it:** the service's poll sets one alert at a time; the UI task's poll (`ui_svc_sat_alert_poll`) takes it and
+  queues `UI_EV_SAT_PASS`. The alert never costs the satellite task a stack frame for the event.
+- **What shows:** a banner that waits to be answered (`UI_BANNER_SAT_PASS`): the name over "Rises in 5 min, 71°", `#`
+  tracks the pass, Back hides it. The tone and the vibration play unless `Silent pass alerts` is on or the radio is
+  transmitting; while receiving the tone mixes into the received audio, as a message's does.
+- **The strip's icon:** `ui_svc_sat_alert_eta` gives the seconds to the soonest marked pass (a marked satellite by its next pass,
+  plus `sat_svc_alert_next_mark` for single passes); the status strip shows a satellite while there is one, in the warning color
+  once it is within the lead time.
+- **Deleting a satellite** takes its marks with it. A satellite is marked when it shows " *" after its name in the list.
+- Needs the time and the observer like every pass: without them nothing alerts. The radio has to be on.
 
 ## 6. Profiles and repeater arming
 

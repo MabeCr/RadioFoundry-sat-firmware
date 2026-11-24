@@ -4,17 +4,13 @@
 
 The battery, power level and power switch values depend on the radio. The [Radio reference](23-radios.md) has them
 for each radio. A radio without a battery (a mobile on a fixed supply) has none of the battery items in this chapter:
-no battery icon or percentage, no Tools > Battery page, no Battery saver or Low battery warning setting, and no
-battery warnings.
+no battery icon or percentage, no Battery saver or Low battery warning setting, and no battery warnings.
 
 ## Battery level
 
 The status line shows the battery as an icon and a percentage. On a small screen a page's title takes over the
 status line, so the battery shows on Home and on the larger screens' pages. The percentage turns to the warning color at the low
-battery warning level and below. The level is set in **Settings > Power > Low battery warning** (15 % by default).
-
-**OK**, **6**, **9** opens Tools > Battery, which shows the level. At the warning level and below it also shows "charge
-soon".
+battery warning level and below. The level is set in **Settings > Power saving > Low battery warning** (15 % by default).
 
 The radio reads the battery once a second. It doesn't read it while transmitting or for 3 s after, because the
 voltage sags under transmit.
@@ -51,10 +47,14 @@ Power levels use the radio's factory calibration. Use the lowest power that reac
 
 ## Backlight
 
-**Settings > Display > Brightness** sets the backlight level. Quick settings has it too (**\***, **9**).
+**Settings > Display > Brightness** sets the backlight level. Quick settings has it too (**\***, **9**), except on a radio whose display can turn: tile 9 is Flip screen there.
+On some radios a dimmed screen goes to full brightness while transmitting or receiving a signal, to keep the
+backlight out of the audio, and returns to its set level when idle. Key beeps leave the brightness as set.
 
 **Settings > Display > Backlight Dim/Off** sets two times: when the backlight dims to a fifth of the brightness, and
-when it goes off. `30s/2m` dims after 30 s and goes off after 2 minutes. Any key brings it back.
+when it goes off. `30s/2m` dims after 30 s and goes off after 2 minutes. `30s/dim` dims after 30 s and stays on,
+readable at a glance (on a desk or a bench), at the cost of some battery. Any key brings it back; with the
+backlight off, that key only turns it on, except PTT, Monitor and Emergency, which act at once.
 
 The backlight also comes on for what needs you:
 
@@ -67,7 +67,7 @@ The backlight also comes on for what needs you:
 
 ## Battery saver
 
-**Settings > Power > Battery saver** puts the receiver to sleep on an idle FM channel. After 10 s without activity the
+**Settings > Power saving > Battery saver** puts the receiver to sleep on an idle FM channel. After 10 s without activity the
 receiver sleeps and wakes for 100 ms at a time to listen. Any signal in a listening window wakes it fully. It is off
 by default.
 
@@ -79,7 +79,7 @@ These stop the battery saver:
 
 ## Auto power off
 
-**Settings > Power > Auto power off** switches the radio off after a time without use: Off, 30 min, 1 h or 2 h (Off by
+**Settings > Power saving > Auto power off** switches the radio off after a time without use: Off, 30 min, 1 h or 2 h (Off by
 default). A key press, a call received or sent, a scan and hotspot mode count as use. One minute before, the radio
 beeps and shows "Switching off in 1 min / Any key keeps it on". Any key cancels it.
 

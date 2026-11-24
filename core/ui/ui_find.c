@@ -4,7 +4,7 @@
 // The keys are read both as a number and as T9 letters (2 = abc ... 9 = wxyz), matched against the start of each
 // word. Order of the results:
 //  1. a channel at that position in the zone (numbers of up to 3 digits: "12" then OK = channel 12, P1), then the
-//     digits as a frequency in one of the bands, read as VFO entry reads them ("Tune VFO to 461.462"),
+//     digits as a frequency in one of the bands, read as VFO entry reads them ("Tune VFO to 438.250"),
 //  2. channels of the zone, contacts and talkgroups, zones and places / settings whose names match the letters,
 //     contacts whose ID starts with the number (3+ digits),
 //  3. the number itself as a talkgroup and as a private call ("TG 3100 (not saved)", "Private call 3100"), so a
@@ -20,6 +20,9 @@
 #include "i18n.h"
 #include "codeplug/codeplug.h"
 #include "config.h"
+#if CONFIG_DMR_TRUNK_GW
+#include "dmr/trunk/t3_pdu.h"
+#endif
 
 #define FIND_KEYS	12
 #define FIND_MAX	16
@@ -27,24 +30,26 @@
 // Places Find opens by name or synonym; the Tools pages hold settings of their own that aren't in Settings. The
 // synonyms are English search words, not shown
 static const struct {
-	const char *name, *syn;
+	tr_id_t name;
+	const char *syn;
 	uint8_t scr;
 } places[] = {
-	{ TRN("Contacts"), NULL, SCR_CONTACTS }, { TRN("Messages"), NULL, SCR_MESSAGES },
-	{ TRN("Recent"), NULL, SCR_RECENT }, { TRN("Channels"), NULL, SCR_ZONES }, { TRN("Tools"), NULL, SCR_TOOLS },
-	{ TRN("Settings"), NULL, SCR_SETTINGS },
-	{ "VFO", NULL, SCR_ZONES },
+	{ TRN(TITLE_CONTACTS, "Contacts"), NULL, SCR_CONTACTS }, { TRN(TITLE_MESSAGES, "Messages"), NULL,
+		SCR_MESSAGES },
+	{ TRN(TITLE_RECENT, "Recent"), NULL, SCR_RECENT }, { TRN(TITLE_CHANNELS, "Channels"), NULL, SCR_ZONES },
+		{ TRN(TITLE_TOOLS, "Tools"), NULL, SCR_TOOLS },
+	{ TRN(TITLE_SETTINGS, "Settings"), NULL, SCR_SETTINGS },
+	{ TRX(WORD_VFO, "VFO"), NULL, SCR_ZONES },
 #if CONFIG_DMR_ROAMING
-	{ TRN("Roaming"), "roam site survey beacon interval length wake probe lock", SCR_ROAM },
+	{ TRN(TITLE_ROAMING, "Roaming"), "roam site survey beacon interval length wake probe lock", SCR_ROAM },
 #endif
 #if CONFIG_APRS
-	{ "APRS", "beacon smartbeaconing symbol path kiss tnc gps", SCR_APRS },
-	{ TRN("APRS position"), "fixed latitude longitude coordinates", SCR_APRS_POS },
+	{ TRX(WORD_APRS, "APRS"), "beacon smartbeaconing symbol path kiss tnc gps", SCR_APRS },
 #endif
 };
 #define PLACES_N	((uint8_t)(sizeof places / sizeof places[0]))
 
-typedef enum { FR_CHANNEL, FR_ZONE, FR_CONTACT, FR_TG, FR_PRIVATE, FR_SETTING, FR_PLACE, FR_FREQ, FR_NEW_CONTACT }
+typedef enum { FR_CHANNEL, FR_ZONE, FR_CONTACT, FR_TG, FR_PRIVATE, FR_SETTING, FR_PLACE, FR_FREQ, FR_NEW_CONTACT, FR_PHONE }
 	find_kind_t;
 
 typedef struct {
@@ -55,12 +60,17 @@ typedef struct {
 static char query[FIND_KEYS + 1];
 static find_result_t results[FIND_MAX];
 static uint8_t n_results;
+static zone_t zone;		// the current zone's channels, for the search and the rows (one copy: RAM is short)
+#if CONFIG_DMR
+static uint16_t priv_index;	// the private contact whose ID is the digits (its name on that row), 0 for none
+#endif
 
 // Settings and places reachable by name (ui_menus.c)
 uint8_t ui_set_group_count(void);
-const char *ui_set_group_name(uint8_t g);
+tr_id_t ui_set_group_name(uint8_t g);
 uint8_t ui_set_item_count(uint8_t g);
-const char *ui_set_item_name(uint8_t g, uint8_t i, const char **synonyms);
+// The name in the language in use, or in English
+const char *ui_set_item_name(uint8_t g, uint8_t i, bool english, const char **synonyms);
 void ui_open_setting(uint8_t g, uint8_t i);
 
 uint8_t ui_t9_key(char c)
@@ -140,10 +150,39 @@ static bool id_prefix(uint32_t id, const char *keys)
 }
 #endif
 
+#if CONFIG_DMR
+typedef struct {
+	uint32_t num;
+	size_t len;
+	uint8_t found;
+	bool number;	// the digits are an ID: the rows for the number itself follow
+	bool known;	// a contact has the number as its ID
+	uint16_t priv;	// the private contact with it
+} contact_scan_t;
+
+static bool contact_match(uint16_t index, const contact_t *c, void *ctx)
+{
+	contact_scan_t *cs = ctx;
+	if (c == NULL)
+		return true;
+	if (c->id == cs->num) {
+		cs->known = true;
+		if (c->type == CONTACT_PRIVATE && cs->priv == 0)
+			cs->priv = index;
+	}
+	if (cs->found < 6 && (ui_t9_match(c->name, query) || (cs->len >= 3 && id_prefix(c->id, query)))) {
+		add(FR_CONTACT, index);
+		cs->found++;
+	}
+	// To the end while the number's own private contact isn't found: that settles known too, and the row's name
+	// needs no scan of its own each time it is drawn
+	return cs->found < 6 || (cs->number && cs->priv == 0);
+}
+#endif
+
 void ui_find_run(void)
 {
-	static zone_t z;
-	static channel_t ch;
+	char rec_name[CODEPLUG_NAME_LEN + 1];
 	const radio_view_t *v = ui_view();
 	size_t len = strlen(query);
 	uint32_t num = query_number();
@@ -151,9 +190,9 @@ void ui_find_run(void)
 	if (len == 0)
 		return;
 
-	bool have_zone = codeplug_zone(v->zone_index, &z);
+	bool have_zone = codeplug_zone(v->zone_index, &zone);
 	// 1. Channel by position in the zone
-	if (have_zone && len <= 3 && num >= 1 && num <= z.count)
+	if (have_zone && len <= 3 && num >= 1 && num <= zone.count)
 		add(FR_CHANNEL, num - 1u);
 	// The digits as a frequency
 	if (CONFIG_VFO_FM || CONFIG_VFO_DMR) {
@@ -163,49 +202,43 @@ void ui_find_run(void)
 	}
 	// 2. Names: channels in this zone
 	uint8_t found = 0;
-	for (uint16_t i = 0; have_zone && i < z.count && found < 4; i++) {
-		if (codeplug_channel(z.channels[i], &ch) && ui_t9_match(ch.name, query)) {
+	for (uint16_t i = 0; have_zone && i < zone.count && found < 4; i++) {
+		if (codeplug_channel_name(zone.channels[i], rec_name) && ui_t9_match(rec_name, query)) {
 			add(FR_CHANNEL, i);
 			found++;
 		}
 	}
 #if CONFIG_DMR
-	// Contacts and talkgroups: by name, or by ID for 3 digits and more
-	contact_t c;
-	found = 0;
-	bool known = false;	// a contact has the number as its ID
-	for (uint16_t i = 1; i <= CODEPLUG_CONTACTS_MAX; i++) {
-		if (!codeplug_contact(i, &c))
-			continue;
-		known = known || c.id == num;
-		if (found < 6 && (ui_t9_match(c.name, query) || (len >= 3 && id_prefix(c.id, query)))) {
-			add(FR_CONTACT, i);
-			found++;
-		}
-		if (found >= 6 && (known || !CONFIG_CONTACT_EDIT))
-			break;
-	}
+	// Contacts and talkgroups: by name, or by ID for 3 digits and more. One scan, many records per flash read
+	// (codeplug_contacts_each): read one at a time, 1024 slots kept the UI and the idle task busy for 0.7 s a key
+	contact_scan_t cs = { .num = num, .len = len, .number = num >= 1 && num <= 0xFFFFFEu };
+	codeplug_contacts_each(contact_match, &cs);
+	bool known = cs.known;
+	priv_index = cs.priv;
 #endif
 	// Zones by name
 	uint16_t zn = codeplug_zone_count();
 	found = 0;
 	for (uint16_t i = 0; i < zn && found < 2; i++) {
-		if (codeplug_zone(i, &z) && ui_t9_match(z.name, query)) {
+		if (codeplug_zone_name(i, rec_name) && ui_t9_match(rec_name, query)) {
 			add(FR_ZONE, i);
 			found++;
 		}
 	}
-	// Places and settings by name (and synonyms: "promiscuous" finds Hear all)
-	for (uint8_t i = 0; i < PLACES_N; i++)
-		if (len >= 2 && (ui_t9_match(tr(places[i].name), query) || ui_t9_match(places[i].name, query) ||
-				 (places[i].syn && ui_t9_match(places[i].syn, query))))
+	// Places and settings by name, in the language in use and in English (the same text in an English-only build),
+	// and by synonym ("promiscuous" finds Hear all)
+	for (uint8_t i = 0; i < PLACES_N && len >= 2; i++) {
+		const char *name = tr(places[i].name), *en = tr_en(places[i].name);
+		if (ui_t9_match(name, query) || (en != name && ui_t9_match(en, query)) ||
+		    (places[i].syn && ui_t9_match(places[i].syn, query)))
 			add(FR_PLACE, (uint32_t)i << 8 | places[i].scr);
+	}
 	found = 0;
 	for (uint8_t g = 0; g < ui_set_group_count() && len >= 2; g++) {
 		for (uint8_t i = 0; i < ui_set_item_count(g) && found < 3; i++) {
 			const char *syn = NULL;
-			const char *name = ui_set_item_name(g, i, &syn);
-			if (ui_t9_match(tr(name), query) || ui_t9_match(name, query) ||
+			if (ui_t9_match(ui_set_item_name(g, i, false, &syn), query) ||
+			    (CONFIG_LANG_ANY && ui_t9_match(ui_set_item_name(g, i, true, &syn), query)) ||
 			    (syn != NULL && ui_t9_match(syn, query))) {
 				add(FR_SETTING, (uint32_t)g << 8 | i);
 				found++;
@@ -220,6 +253,12 @@ void ui_find_run(void)
 		if (CONFIG_CONTACT_EDIT && !known)
 			add(FR_NEW_CONTACT, num);
 	}
+#endif
+#if CONFIG_DMR_TRUNK_GW
+	// On a trunked system, the digits as a telephone number: a private call to the PSTN gateway, which asks for them
+	// (dmr-trunking.md 7.6). The radio takes the digits when the row is focused or chosen (find_target)
+	if (v->t3.on)
+		add(FR_PHONE, 0);
 #endif
 }
 
@@ -263,10 +302,27 @@ static bool find_target(uint16_t i, ui_target_t *t)
 		t->id = r->ref;
 		t->group = true;
 		return true;
-	case FR_PRIVATE:
-		t->id = r->ref;
-		t->saved = ui_contact_name(r->ref, false, t->name);
+#if CONFIG_DMR_TRUNK_GW
+	case FR_PHONE:
+		// The row focused (PTT talks to it) or chosen: the radio holds these digits for the gateway's request, and
+		// a search typed without calling leaves the system's dial alone
+		t->id = T3_ID_PSTNI;
+		str_copy(t->name, sizeof t->name, query);
+		ui_svc_t3_dial(query);
 		return true;
+#endif
+	case FR_PRIVATE: {
+		t->id = r->ref;
+#if CONFIG_DMR
+		// The contact the search found (no scan here: the row is drawn every frame)
+		contact_t c;
+		if (priv_index != 0 && codeplug_contact(priv_index, &c) && c.id == r->ref && c.type == CONTACT_PRIVATE) {
+			t->saved = true;
+			strcpy(t->name, c.name);
+		}
+#endif
+		return true;
+	}
 	default:
 		return false;
 	}
@@ -274,8 +330,7 @@ static bool find_target(uint16_t i, ui_target_t *t)
 
 static void find_item(uint16_t i, ui_item_t *it)
 {
-	static zone_t z;
-	static channel_t ch;
+	char rec_name[CODEPLUG_NAME_LEN + 1];
 	if (i >= n_results)
 		return;
 	const find_result_t *r = &results[i];
@@ -287,19 +342,20 @@ static void find_item(uint16_t i, ui_item_t *it)
 	switch (r->kind) {
 	case FR_CHANNEL: {
 		const radio_view_t *v = ui_view();
-		sb_str(&b, TR("Ch "));
+		sb_str(&b, TR(FIND_ROW_CH, "Ch "));
 		sb_u32(&b, r->ref + 1u, 1);
-		if (codeplug_zone(v->zone_index, &z) && r->ref < z.count && codeplug_channel(z.channels[r->ref], &ch)) {
+		if (codeplug_zone(v->zone_index, &zone) && r->ref < zone.count &&
+		    codeplug_channel_name(zone.channels[r->ref], rec_name)) {
 			sb_chr(&b, ' ');
-			sb_str(&b, ch.name);
+			sb_str(&b, rec_name);
 		}
-		sb_str(&vb, TR(TEXT_ALT_OPEN "Channel" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
+		sb_str(&vb, TR(FIND_CHIP_CHANNEL, TEXT_ALT_OPEN "Channel" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
 		break;
 	}
 	case FR_ZONE:
-		if (codeplug_zone((uint16_t)r->ref, &z))
-			sb_str(&b, z.name);
-		sb_str(&vb, TR(TEXT_ALT_OPEN "Zone" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
+		if (codeplug_zone_name((uint16_t)r->ref, rec_name))
+			sb_str(&b, rec_name);
+		sb_str(&vb, TR(FIND_CHIP_ZONE, TEXT_ALT_OPEN "Zone" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
 		break;
 	case FR_CONTACT:
 		if (find_target(i, &t)) {
@@ -312,16 +368,16 @@ static void find_item(uint16_t i, ui_item_t *it)
 				sb_chr(&b, ' ');
 				sb_u32(&b, t.id, 1);
 			}
-			sb_str(&vb, TR(TEXT_ALT_OPEN "Contact" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
+			sb_str(&vb, TR(FIND_CHIP_CONTACT, TEXT_ALT_OPEN "Contact" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
 		}
 		break;
 	case FR_TG:
-		sb_str(&b, TR("Talk to TG "));
+		sb_str(&b, TR(FIND_ROW_TALK_TO_TG, "Talk to TG "));
 		sb_u32(&b, r->ref, 1);
-		sb_str(&vb, TR(TEXT_ALT_OPEN "Not saved" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
+		sb_str(&vb, TR(CHIP_NOT_SAVED, TEXT_ALT_OPEN "Not saved" TEXT_ALT_NEXT TEXT_ALT_CLOSE));
 		break;
 	case FR_PRIVATE:
-		sb_str(&b, TR("Private call "));
+		sb_str(&b, TR(FIND_ROW_PRIVATE_CALL, "Private call "));
 		sb_u32(&b, r->ref, 1);
 		if (find_target(i, &t) && t.name[0]) {
 			sb_chr(&b, ' ');
@@ -329,17 +385,21 @@ static void find_item(uint16_t i, ui_item_t *it)
 		}
 		break;
 	case FR_FREQ:
-		sb_str(&b, TR("Tune VFO to "));
+		sb_str(&b, TR(FIND_ROW_TUNE_VFO_TO, "Tune VFO to "));
 		sb_freq(&b, r->ref);
 		sb_str(&vb, TEXT_ALT_OPEN "VFO" TEXT_ALT_NEXT TEXT_ALT_CLOSE);
 		break;
 	case FR_NEW_CONTACT:
-		sb_str(&b, TR("Create contact "));
+		sb_str(&b, TR(FIND_ROW_CREATE_CONTACT, "Create contact "));
 		sb_u32(&b, r->ref, 1);
+		break;
+	case FR_PHONE:
+		sb_str(&b, TR(TRUNK_ROW_PHONE_CALL, "Phone call "));
+		sb_str(&b, query);
 		break;
 	case FR_SETTING: {
 		const char *syn;
-		sb_str(&b, tr(ui_set_item_name((uint8_t)(r->ref >> 8), (uint8_t)r->ref, &syn)));
+		sb_str(&b, ui_set_item_name((uint8_t)(r->ref >> 8), (uint8_t)r->ref, false, &syn));
 		sb_str(&vb, TEXT_ALT_OPEN);	// the group, left out where the setting's name needs the room
 		sb_str(&vb, tr(ui_set_group_name((uint8_t)(r->ref >> 8))));
 		sb_str(&vb, TEXT_ALT_NEXT TEXT_ALT_CLOSE);
@@ -347,7 +407,7 @@ static void find_item(uint16_t i, ui_item_t *it)
 	}
 	case FR_PLACE: {
 		sb_str(&b, tr(places[(r->ref >> 8) % PLACES_N].name));
-		sb_str(&vb, TR("Menu"));
+		sb_str(&vb, TR(FIND_CHIP_MENU, "Menu"));
 		break;
 	}
 	default:
@@ -392,6 +452,10 @@ static void find_select(uint16_t i, bool hold)
 		if (find_target(i, &t))
 			ui_talk(&t, hold);
 		break;
+	case FR_PHONE:
+		if (find_target(i, &t))
+			ui_talk(&t, false);	// a gateway with these digits: never the channel's own target
+		break;
 	case FR_SETTING:
 		ui_open_setting((uint8_t)(r->ref >> 8), (uint8_t)r->ref);
 		break;
@@ -406,10 +470,10 @@ static void find_select(uint16_t i, bool hold)
 static void find_context(uint16_t i)
 {
 	ui_target_t t;
-	if (find_target(i, &t))
+	if (i < n_results && results[i].kind != FR_PHONE && find_target(i, &t))
 		ui_open_actions(&t);
 	else
-		ui_toast(TR("No actions for this result"));
+		ui_toast(TR(FIND_TOAST_NO_ACTIONS, "No actions for this result"));
 }
 
 static bool find_key(const input_event_t *ev)
@@ -440,7 +504,8 @@ static bool find_key(const input_event_t *ev)
 
 const ui_scr_def_t ui_find_screen = {
 	.name = "find", .flags = SF_LIST | SF_FIND | SF_FIELD,
-	.hint = TRN("PTT talk  OK open  # more"), .empty = TRN("No match: Back deletes a key"),
+	.hint = TRN(FIND_HINT, "PTT talk  OK open  # more"),
+	.empty = TRN(LIST_EMPTY_NO_MATCH, "No match: Back deletes a key"),
 	.count = find_count, .item = find_item, .select = find_select, .context = find_context, .target = find_target,
 	.key = find_key,
 };

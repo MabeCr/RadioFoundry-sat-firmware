@@ -8,26 +8,25 @@
 #define RFOUNDRY_DMRDATA_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "config.h"
 
 // Big buffers only the CPU touches: in the board's CPU-only RAM where it has one (config.h RFOUNDRY_CPU_RAM)
 #define DMR_DATA_BUFFER RFOUNDRY_CPU_RAM
 
-// ETSI TS 102 361-1 data types (same values as the hotspot's DT_xxx)
-#ifndef DT_CSBK
-#define DT_VOICE_PI_HEADER		0x00U
-#define DT_VOICE_LC_HEADER		0x01U
-#define DT_TERMINATOR_WITH_LC	0x02U
-#define DT_CSBK					0x03U
-#define DT_MBC_HEADER			0x04U
-#define DT_MBC_CONTINUATION		0x05U
-#define DT_DATA_HEADER			0x06U
-#define DT_RATE_12_DATA			0x07U
-#define DT_RATE_34_DATA			0x08U
-#define DT_IDLE					0x09U
-#define DT_RATE_1_DATA			0x0AU
-#endif
+// ETSI TS 102 361-1 data types
+#define DMR_TYPE_PI_HEADER		0x00U
+#define DMR_TYPE_VOICE_LC_HEADER		0x01U
+#define DMR_TYPE_TERMINATOR_LC		0x02U
+#define DMR_TYPE_CSBK		0x03U
+#define DMR_TYPE_MBC_HEADER		0x04U
+#define DMR_TYPE_MBC_CONT		0x05U
+#define DMR_TYPE_DATA_HEADER		0x06U
+#define DMR_TYPE_RATE_1_2		0x07U
+#define DMR_TYPE_RATE_3_4		0x08U
+#define DMR_TYPE_IDLE		0x09U
+#define DMR_TYPE_RATE_1		0x0AU
 
 // This module has no hardware dependencies, so it can be unit tested on a host (see tests/host)
 
@@ -53,7 +52,7 @@
 
 typedef struct
 {
-	uint8_t dataType;							// DT_xxx from dmrDefines.h
+	uint8_t dataType;							// DMR_TYPE_xxx
 	uint8_t length;
 	uint8_t flags;
 	uint8_t payload[DMR_BURST_PAYLOAD_MAX];
@@ -93,6 +92,30 @@ typedef struct
 #define DMR_UDP_PORT_ARS			4005
 #define DMR_UDP_PORT_TMS			4007
 #define DMR_UDP_PORT_ETSI_TEXT		5016		// ETSI IP text (TS 102 361-3 5.7.1; compressed port ID 1)
+#define DMR_UDP_PORT_NMEA			10110		// NMEA over UDP: the DMR APRS position some radios send (docs/spec/dmr-data.md 3)
+
+// The privacy header: a proprietary second header (TS 102 361-1 8.2.1.4, DPF 15) with the Motorola MFID after the
+// first data header, marking the packet's user data encrypted (docs/spec/dmr-data.md, privacy). Octet 0 SAP | DPF 15,
+// octet 1 MFID 0x10, octet 2 algorithm (bits 6-4) and the encrypted flag (bits 3-0, 1), octet 3 key ID, octets 4-5 0,
+// octets 6-9 the message indicator (big endian), then the header CRC. It counts as one of the first header's blocks to
+// follow. The keystream covers the user data from its first octet: the pad octets and the CRC-32 stay clear, and the
+// CRC-32 (and a confirmed block's CRC-9) is over the encrypted octets
+#define DMR_DATA_ALG_BASIC			0			// static keystream (basic privacy)
+#define DMR_DATA_ALG_RC4			1
+#define DMR_DATA_ALG_DES			2
+#define DMR_DATA_ALG_AES128			4
+#define DMR_DATA_ALG_AES256			5
+#define DMR_DATA_PRIVACY_MFID		0x10
+
+typedef struct
+{
+	bool     present;						// a privacy header came with the packet
+	bool     encrypted;						// ... with the encrypted flag
+	uint8_t  sap;							// its SAP (the user data's when the first header says SAP 9)
+	uint8_t  alg;							// DMR_DATA_ALG_*
+	uint8_t  keyId;
+	uint32_t mi;							// message indicator
+} dmrDataPrivacyHeader_t;
 
 typedef struct
 {
@@ -110,6 +133,8 @@ typedef struct
 	uint8_t  response;						// response packets: class (7-6), type (5-3), status (2-0)
 	uint8_t  dataType;						// DT of the blocks
 	bool     firstTry;						// confirmed: the header's F (full message) flag
+	dmrDataPrivacyHeader_t privacy;			// the privacy header, when one came
+	bool     decrypted;						// the user data was encrypted and is now clear (else still encrypted)
 	uint16_t length;						// user data length
 	uint8_t  data[DMR_DATA_MAX_PACKET];
 } dmrDataPacket_t;
@@ -120,7 +145,7 @@ typedef enum
 	DMR_DATA_RX_PACKET,							// a complete packet is in dmrDataRxPacket
 	DMR_DATA_RX_CSBK,							// a non preamble CSBK is in the burst passed in
 	DMR_DATA_RX_ERROR,							// header or packet CRC failed, reassembly reset
-	// Confirmed data (CONFIG_DMR_CONFIRMED), the header's fields in dmrDataRxPacket:
+	// Confirmed data, the header's fields in dmrDataRxPacket:
 	DMR_DATA_RX_RETRY,							// blocks are missing or failed their CRC-9: a selective ACK asks for
 												// them (dmrDataRxRetryFlags); the packet is held for the retry
 	DMR_DATA_RX_NACK							// every block arrived good but the CRC-32 failed: a NACK
@@ -138,7 +163,7 @@ int dmrDataBuildCSBK(const uint8_t csbk[10], dmrBurst_t *out);
 // The answer from us (ID src) to a received CSBK (its 10 bytes, CRC checked): the ack of a call alert, or the
 // answer to a radio check. 0 if the CSBK isn't one of those, or isn't addressed to us
 int dmrDataBuildCSBKAnswer(const uint8_t *csbk, uint32_t src, dmrBurst_t *out);
-// blockType: DT_RATE_12_DATA, DT_RATE_34_DATA or DT_RATE_1_DATA
+// blockType: DMR_TYPE_RATE_1_2, DMR_TYPE_RATE_3_4 or DMR_TYPE_RATE_1
 int dmrDataBlockLength(uint8_t blockType);
 int dmrDataBuildPacket(uint8_t dpf, uint8_t sap, bool group, uint32_t dst, uint32_t src,
 						const uint8_t *data, int length, uint8_t blockType, int preambles, dmrBurst_t *out, int maxBursts);
@@ -179,6 +204,36 @@ int dmrDataBuildIP(bool group, uint32_t dst, uint32_t src, uint8_t protocol, con
 #define DMR_APP_PORT_FIRST			4000
 #define DMR_APP_PORT_LAST			4099
 void dmrDataSetUdpCompression(uint8_t mode);
+
+// --- Packet data privacy (CONFIG_DMR_PRIVACY; docs/spec/dmr-data.md 13) ---
+// What the channel's privacy scheme does with data. This layer knows no scheme: the scheme's code fills this in
+// (dmrPrivacyDataConfig, core/dmr/dmrPrivacy.h)
+#define DMR_DATA_PRIVACY_CLEAR		0			// no privacy: data goes as it is
+#define DMR_DATA_PRIVACY_ENCRYPT	1			// packets get the privacy header and the scheme's keystream
+#define DMR_DATA_PRIVACY_BLOCK		2			// the scheme has no data form: no data packet is sent
+
+typedef struct dmrDataPrivacy_s
+{
+	uint8_t mode;							// DMR_DATA_PRIVACY_*
+	uint8_t alg;							// ENCRYPT: the privacy header's algorithm (DMR_DATA_ALG_*)
+	// XORs the keystream of algorithm alg with message indicator mi onto a packet's user data (encrypts or decrypts):
+	// false when the scheme can't (another algorithm), the data left as it is
+	bool (*crypt)(const void *ctx, uint8_t alg, uint32_t mi, uint8_t *data, int length);
+	const void *ctx;						// the scheme's key, for crypt
+} dmrDataPrivacy_t;
+
+// The channel's data privacy (copied; NULL or mode CLEAR: off). With ENCRYPT every unconfirmed and confirmed packet we
+// build gets the privacy header and the keystream; received packets with a privacy header are decrypted when crypt
+// takes their algorithm. Without CONFIG_DMR_PRIVACY it is always off
+void dmrDataSetPrivacy(const dmrDataPrivacy_t *privacy);
+// Whether a burst list may go out with the privacy set: with a scheme that encrypts data, only data packets that carry
+// the privacy header (a UDT or short data packet can't); with one that has no data form, no data packet at all.
+// Responses and CSBKs always may: they are never encrypted
+bool dmrDataPrivacyAllows(const dmrBurst_t *bursts, int count);
+// The bursts the privacy header adds to a packet with the privacy set: 0 or 1
+int dmrDataPrivacyBursts(void);
+// Whether a burst list carries a privacy header (a packet in it goes encrypted)
+bool dmrDataPrivacyEncrypted(const dmrBurst_t *bursts, int count);
 uint8_t dmrDataGetUdpCompression(void);
 // True when a datagram between these ports may go compressed under the current mode (false when built without it).
 // The mode decides by the ports only: a packet whose addresses aren't its IDs' CAI addresses still goes with the full
@@ -248,6 +303,12 @@ int dmrDataBuildTMS(bool group, uint32_t dst, uint32_t src, const char *text, ui
 						uint8_t blockType, int preambles, dmrBurst_t *out, int maxBursts);
 // seq: the 7 bit sequence number of the message being acknowledged
 int dmrDataBuildTMSAck(uint32_t dst, uint32_t src, uint8_t seq, int preambles, dmrBurst_t *out, int maxBursts);
+// The same text and ACK as UDP datagrams (header from and to DMR_UDP_PORT_TMS, checksum left 0 for the IPv4 layer,
+// then the TMS octets) into l4: their length. The data service sends individual ones as confirmed data with them
+#define DMR_TMS_UDP_MAX					(8 + 6 + (2 * 140))
+#define DMR_TMS_ACK_UDP_MAX				(8 + 6)
+int dmrDataTMSUDP(const char *text, uint8_t seq, bool ackRequested, uint8_t l4[DMR_TMS_UDP_MAX]);
+int dmrDataTMSAckUDP(uint8_t seq, uint8_t l4[DMR_TMS_ACK_UDP_MAX]);
 #endif
 
 // A position for the location reports, as NMEA gives it
@@ -271,7 +332,7 @@ typedef struct
 // format (80 bits: C, N/S, E/W, Q, speed in knots, latitude and longitude in degrees and minutes, UTC to ten
 // seconds), its CRC-CCITT unmasked, after the preamble CSBKs (none straight after a call of ours: receivers are in sync)
 #define DMR_UDT_FORMAT_NMEA				0x05
-#define DMR_UDT_OPCODE					0x1A	// as rfoundry_sdrbench's builder (C_UDTHU)
+#define DMR_UDT_OPCODE					0x1A	// C_UDTHU
 int dmrDataBuildUDTLocation(bool group, uint32_t dst, uint32_t src, const dmrDataLocation_t *location, int preambles,
 							dmrBurst_t *out, int maxBursts);
 
@@ -298,11 +359,16 @@ int dmrDataBuildEtsiText(bool group, uint32_t dst, uint32_t src, const char *tex
 // The text of a received defined short data (any of the text DD formats above) or UDT text packet, as Latin-1 ('?'
 // for characters outside it). False when the packet isn't one, or its format isn't text
 bool dmrDataDecodeEtsiText(const dmrDataPacket_t *packet, char *text, int textSize);
+// UDT text (UDT_Format ISO 7 bit, ISO 8 bit or UTF-16BE) from bits of appended data, CRC and pad already gone, as
+// Latin-1. False for another format
+bool dmrDataDecodeUdtText(uint8_t format, const uint8_t *d, int bits, char *text, int textSize);
 // ETSI IP text (TS 102 361-3 5.7.1): Latin-1 text (NUL terminated, DMR_ETSI_TEXT_MAX characters at most) as UTF-16BE
 // in UDP from and to DMR_UDP_PORT_ETSI_TEXT, full IPv4 header (SAP 4). 0 if it doesn't fit or the text is empty
 // The same text as the UDP datagram (header, checksum left 0 for the IPv4 layer, then the payload) into l4: its
 // length, 0 if the text is empty. The data service sends an individual one as confirmed data with it
 #define DMR_ETSI_TEXT_UDP_MAX			(8 + (2 * DMR_ETSI_TEXT_MAX))
+// Convert up to maxChars Latin-1 bytes to UTF-16BE, without a terminator. Returns the characters written.
+size_t dmrDataLatin1ToUtf16BE(const char *text, uint8_t *out, size_t maxChars);
 int dmrDataIPTextUDP(const char *text, uint8_t l4[DMR_ETSI_TEXT_UDP_MAX]);
 int dmrDataBuildIPText(bool group, uint32_t dst, uint32_t src, const char *text, uint8_t blockType, int preambles,
 						dmrBurst_t *out, int maxBursts);

@@ -31,6 +31,14 @@ Any way you can:
 - **Donate or lend a radio.** This helps the most, especially older models that are hard to find now, because every
   port needs the hardware on the bench.
 
+**Can I use RadioFoundry in my own project?**
+
+Yes, including commercial and closed-source products. The license has one condition: keep our copyright and
+license notices in the code you copy and with the firmware you ship. We also ask that you give your project its
+own name. If you're adding a feature, we'd be glad to have it here, credited to you, on every radio whose
+hardware can run it: start a [discussion](https://github.com/radiofoundry/radiofoundry/discussions) or send a pull
+request. Details: [using RadioFoundry in your project](../../FORKING.md).
+
 **The web flasher or the Codeplug Editor failed. How do I report it?**
 
 On radiofoundry.org most errors are reported automatically: the message says so and gives a reference. Type what you
@@ -77,6 +85,24 @@ Yes, through a compatibility layer. qdmr's open-firmware driver reads and writes
 Yes. The Codeplug Editor on the project's web site reads and writes the radio from a Chromium-based browser (Chrome,
 Edge, Opera) and builds the DMR ID database from RadioID.net
 ([The Codeplug Editor](04-programming.md#the-codeplug-editor)).
+
+**Can I use a phone?**
+
+Android, yes: Chrome on Android runs the web installer and the Codeplug Editor. Plug the radio's USB cable or the
+programming cable into the phone through a USB OTG adapter.
+
+**Do not switch to another app or let the screen time out while a radio transfer is active.** Android slows a page in the
+background, and a backup or an install then takes much longer and can fail. The pages keep the screen on while the
+radio is connected.
+
+| Point | Why |
+|---|---|
+| Cables with an FTDI chip and radios with their own USB port work. Other USB-serial cables (CH340, CP210x, PL2303) don't yet | Chrome on Android reaches USB serial devices only through WebUSB, and the page brings its own driver for each kind |
+| Accept Android's "Allow Chrome to access ..." prompt after picking the radio or cable in Chrome's list | Without it the page can't open the device |
+| Close any app that opens when the radio or cable is plugged in, and don't pick it in Android's "open with" prompt | An app holding the cable takes the radio's replies; the page then reports that the radio didn't answer |
+| Keep Chrome in front and the screen on (above) | Android slows a page in the background to about one step a second |
+
+iPhone and iPad: no. iOS has no WebUSB or Web Serial.
 
 **Is basic privacy secure?**
 

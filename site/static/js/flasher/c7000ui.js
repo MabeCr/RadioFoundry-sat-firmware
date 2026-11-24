@@ -9,21 +9,21 @@
 //   write     write only the sectors that differ, each read back by CRC; the first sector last
 //   done      restart the radio and ask RadioFoundry on it for its version and codec
 //
-// Redundancy, in order: the boot ROM is in the chip and the bootloader is never written, so the radio can always be
-// loaded again; before a first install the whole program memory is read, kept in this browser and saved as a
-// download; the codec slot is kept in this browser before anything is written; every sector is checked by CRC after
+// Redundancy, in order: the boot ROM is in the chip and the bootloader is never written (on a board the boot ROM starts
+// directly only its flag sector, last), so the radio can always be loaded again; before a first install the whole
+// program memory is read, kept in this browser and saved as a download; the codec slot is kept in this browser before anything is written; every sector is checked by CRC after
 // it is written, and a second pass checks them all; a failed or interrupted install is resumed by running it again
 // (only what still differs is written).
 
-import { h, t, notice, button, panel, progressBar, logBox, download, filePicker, localTime, partNames } from "./dom.js";
+import { h, t, HOME, notice, button, panel, progressBar, logBox, download, filePicker, localTime, partNames } from "./dom.js";
 import { hex, sha256, sleep } from "./bytes.js";
-import { SerialStream, Link, probe, serialSupported, knownRadioPort, grantedPorts } from "./link.js";
-import { Stub, stubImages, StubError, DONE_LED, MEM, ROM_REPEAT } from "./stub.js";
+import { SerialStream, Link, CableError, probe, serialSupported, serialApi, knownRadioPort, grantedPorts, CABLES } from "./link.js";
+import { Stub, stubImages, univForBoard, StubError, DONE_LED, MEM, ROM_REPEAT, hasRomFlag } from "./stub.js";
 import * as c7 from "./c7000.js";
 import { openVendorFile, describe as describeVendorFile, analysisCandidate, whyNot } from "./vendorfile.js";
 import { pickProblem } from "./explain.js";
 import { upgradeSlot } from "./c7000v1.js";
-import { radioTop } from "./radiotop.js";
+import { radioTop, hasNoScreen } from "./radiotop.js";
 import { putBlob, getBlob } from "./codecsave.js";
 import { makeBundle, describeFirmware, bundleName } from "./backup.js";
 import { register } from "./backends.js";
@@ -38,8 +38,6 @@ import * as diag from "../diag.js";
 import { fromSerialInfo, isCh340 } from "./adapter.js";
 import * as crumbs from "./trail.js";
 
-// USB-serial chips found in programming cables (tools/serial_loader.py USB_SERIAL), for the port chooser
-export const CABLES = [0x0403, 0x1A86, 0x10C4, 0x067B].map((usbVendorId) => ({ usbVendorId }));
 const CH340 = 0x1A86;
 const ROM_WAIT = 180000;		// how long the page listens for the boot ROM per try
 const BOOT_MS = 9000;			// a soft reset to RadioFoundry answering its debug link (bench 2026-10-15: 8-9 s)
@@ -81,11 +79,13 @@ const progSize = () => c7.totalSize(C(), boardId());
 const viaIap = () => session().how === "iap";
 // What the radio's screen shows while the stub runs: RadioFoundry's loader screen, whatever the original firmware last drew, or
 // nothing after a boot ROM load
+// A radio without a display: what the page tells the user to look at can't be its screen
+const noScreen = () => hasNoScreen(S().radio);
 const screenNow = () => ({ rfoundry: "loader", usmart: "any" })[session().how] || "off";
 
 export function init(context) {
 	ctx = context;
-	routes = makeStockRoutes({ S, ctx, C, boardId, session, busy, loader: iap, fill: (el, ...p) => fill(el, ...p), stubImage: async () => (await stubs()).image,
+	routes = makeStockRoutes({ S, ctx, C, boardId, session, busy, loader: iap, fill: (el, ...p) => fill(el, ...p), stubImage: boardStub,
 		cableBanner: () => cableBanner() });
 }
 
@@ -109,6 +109,13 @@ async function stubs() {
 	if (!images) images = stubImages(await ctx.stubJson());
 	return images;
 }
+// A board's status LED pins (its stub profile, from pins.h), else the stub's own
+export const ledFor = (c, board) => c.boards[board]?.stub_board?.led || c.led;
+// The stub image sent to a board's radio: its LED pins in the parameter block, so the stub never drives another pin,
+// not even before CONFIG
+export const stubFor = (c, board, image) => univForBoard(image, ledFor(c, board));
+const boardLed = () => ledFor(C(), boardId());
+const boardStub = async () => stubFor(C(), boardId(), (await stubs()).image);
 
 // Keep the computer awake and warn before the page is closed while the radio is being read or written
 let wake = null;
@@ -164,7 +171,7 @@ async function openCable(any = false) {
 	// in (the radio may be off or on its original firmware: the connect step finds out)
 	const known = any ? null : await knownRadioPort(CABLES, (p) => S().board.debuglink_names.includes(p.board));
 	const granted = any || known ? [] : await grantedPorts(CABLES);
-	const port = known?.port || (granted.length === 1 ? granted[0] : await navigator.serial.requestPort(any ? {} : { filters: CABLES }));
+	const port = known?.port || (granted.length === 1 ? granted[0] : await serialApi().requestPort(any ? {} : { filters: CABLES }));
 	c.portInfo = port.getInfo();
 	ctx.useAdapter?.(fromSerialInfo(c.portInfo));
 	c.stream = known?.stream || await SerialStream.open(port);
@@ -201,6 +208,7 @@ const mkStub = () => {
 	c.stub = null;
 	const stub = new Stub(c.stream, { log: (l) => c.log.add(l), cable: USB_SERIAL.has(S().adapter?.chip) ? S().adapter.chip : "" });
 	stub.size.progmem = progSize();
+	stub.size[dataMem()] = c7.dataMemSize(S().radio, dataMem(), MEM[dataMem()].size);
 	return stub;
 };
 
@@ -208,7 +216,8 @@ const mkStub = () => {
 // connect: the cable, then whatever answers; ends with the stub running and the radio identified
 
 // onUpdateMode: what the task does with a radio reached through the vendor update mode (null: the task can't use it)
-function connectPanel(onReady, { onUpdateMode = null } = {}) {
+// restart: the Restart task, which ends the visit by leaving loader mode instead of going on
+function connectPanel(onReady, { onUpdateMode = null, restart = false } = {}) {
 	const c = session();
 	const radio = S().radio;
 	const top = radioTop(radio, { led: "off", screen: "any" });
@@ -256,6 +265,9 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 			await openCable(any);
 		} catch (e) {
 			if (e?.name === "NotFoundError") return cableStep();
+			// the send check found an adapter that takes no data (link.js sendsData), or the port never opened: the
+			// cable's own fault, with what to do and Try Again
+			if (e instanceof CableError) return cableFaulty({ code: e.code });
 			return cableStep(ctx.errorText(e));
 		}
 		// Troubleshooting asked for update mode: nothing else is tried
@@ -271,26 +283,65 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 		await find();
 	};
 
+	// What is wrong with the cable itself, where a step found nothing or failed: it left the computer's USB, its
+	// adapter stopped taking data, or (stub: the loader object that listened) data keeps coming that nothing asked
+	// for. Null for a cable that is only silent, as one on a radio that is off is. A fourth fault shows only in the
+	// boot ROM wait (listen): "oneway", the radio is heard and hears nothing
+	const cableTrouble = (stub = null) => {
+		const s = c.stream;
+		if (s?.lost) return { code: "dropped" };
+		if (s?.fault instanceof CableError) return { code: s.fault.code };
+		if (stub?.noise) return { code: "noise", bytes: stub.noise.bytes, s: Math.max(1, Math.round(stub.noise.ms / 1000)) };
+		return null;
+	};
+	// The cable's fault in words, and what to do about it. Try Again opens the cable afresh (one that was unplugged
+	// and plugged back in is a new port). onAnyway: the search goes on with this cable (a line that only carries
+	// data nobody asked for may still reach a radio)
+	const cableFaulty = async (trouble, onAnyway = null) => {
+		diag.note("cable fault", trouble);
+		// a cable that left the USB or hung is of no more use: the session forgets it before the user's next click
+		if (!onAnyway) await dropC7();
+		show({ led: "off", screen: "any", note: t("flash.c7.visual.cable") },
+			h("div", { class: "notice bad" }, h("p", {}, h("b", {}, t("flash.cable.fault_title"))), h("p", {}, t(`flash.cable.${trouble.code}`, trouble))),
+			h("p", {}, t("flash.cable.fix")), reportLine());
+		act(onAnyway ? button(t("flash.cable.anyway"), onAnyway, { quiet: true }) : null,
+			button(t("flash.c7.connect.try_again"), async () => { await dropC7(); start(false); }, { primary: true }));
+	};
+	// A step failed: a cable fault is said as one, anything else as the step says it
+	const failed = (otherwise) => {
+		const trouble = cableTrouble();
+		return trouble ? cableFaulty(trouble) : otherwise();
+	};
+
 	// a stub from an earlier run, then RadioFoundry, then the boot ROM
 	const find = async () => {
 		show({ led: "off", screen: "any", note: t("flash.c7.visual.cable") }, h("p", { class: "muted c7-big" }, t("flash.c7.connect.looking")));
-		const stub = mkStub();
-		if (await stub.attach()) {
-			c.how = "attach";
-			return ready(t("flash.c7.connect.found_stub"), stub);
+		try {
+			const stub = mkStub();
+			if (await stub.attach()) {
+				c.how = "attach";
+				return ready(t("flash.c7.connect.found_stub"), stub);
+			}
+			const link = new Link(c.stream, { timeout: 1200 });
+			const p = await probe(link);
+			if (p) {
+				c.rfoundry = p;
+				if (!S().board.debuglink_names.includes(p.board))
+					return cableStep({ text: t("flash.err.wrong_board", { board: p.board, name: S().board.name }) });
+				const offer = await Stub.rfoundryOffer(link);
+				if (offer) return fromRFoundry(offer);
+				return await restartRFoundry();
+			}
+			// nothing answered. A cable fault is the reason then, not a radio that is off: asking for a power cycle
+			// through such a cable only fails later, with less to go on
+			const next = () => (stockRadio() || stuckMode() ? stockOrNothing() : powerCycle());
+			const trouble = cableTrouble(stub);
+			if (trouble) return await cableFaulty(trouble, trouble.code === "noise" ? next : null);
+			return await next();
+		} catch (e) {
+			if (gone()) return;
+			await failed(() => cableStep(ctx.errorText(e)));
 		}
-		const link = new Link(c.stream, { timeout: 1200 });
-		const p = await probe(link);
-		if (p) {
-			c.rfoundry = p;
-			if (!S().board.debuglink_names.includes(p.board))
-				return cableStep({ text: t("flash.err.wrong_board", { board: p.board, name: S().board.name }) });
-			const offer = await Stub.rfoundryOffer(link);
-			if (offer) return fromRFoundry(offer);
-			return restartRFoundry();
-		}
-		if (stockRadio() || stuckMode()) return stockOrNothing();
-		return powerCycle();
 	};
 
 	// A radio with a stock console or an update mode that is not RadioFoundry: the original firmware answers its debug console
@@ -336,15 +387,17 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 	const fromRFoundry = async (offer) => {
 		const prog = progressBar();
 		show({ led: "off", screen: "rfoundry" }, h("p", { class: "c7-big" }, h("b", {}, t("flash.c7.connect.rfoundry_found", { git: c.rfoundry.git }))),
-			h("p", {}, t("flash.c7.connect.rfoundry_loading")), prog.el);
+			h("p", {}, t(noScreen() ? "flash.c7.connect.rfoundry_loading_noscreen" : "flash.c7.connect.rfoundry_loading")), prog.el);
 		try {
 			const stub = mkStub();
-			await stub.enterFromRFoundry((await stubs()).image, (d, n) => prog.set(d, n, t("flash.c7.connect.loader")));
+			await stub.enterFromRFoundry(await boardStub(), (d, n) => prog.set(d, n, t("flash.c7.connect.loader")));
 			c.how = "rfoundry";
 			await ready(t("flash.c7.connect.found_rfoundry_stub"), stub);
 		} catch (e) {
-			show({ led: "off", screen: "rfoundry" }, errorNotice(t("flash.c7.connect.rfoundry_failed", { error: ctx.errorText(e) })));
-			act(button(t("flash.c7.connect.power_instead"), () => powerCycle(), { primary: true }));
+			failed(() => {
+				show({ led: "off", screen: "rfoundry" }, errorNotice(t("flash.c7.connect.rfoundry_failed", { error: ctx.errorText(e) })));
+				act(button(t("flash.c7.connect.power_instead"), () => powerCycle(), { primary: true }));
+			});
 		}
 	};
 
@@ -362,7 +415,7 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 			const { answered } = await stub.waitForRom(5000, { repeat: ROM_REPEAT });
 			await load(stub, answered);
 		} catch (e) {
-			powerCycle(t("flash.c7.connect.rfoundry_restart_failed"));
+			failed(() => powerCycle(t("flash.c7.connect.rfoundry_restart_failed")));
 		}
 	};
 
@@ -393,18 +446,25 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 		const t0 = Date.now();
 		const hints = h("div");
 		const clock = h("span", { class: "muted" });
+		// what the cable carried since the wait began: a count that stays at zero through a power cycle shows a cable
+		// that isn't connected to the radio, long before the wait ends
+		const from = heardNow();
+		const heard = () => heardSince(from);
 		const tick = setInterval(() => {
 			if (ac.signal.aborted) return clearInterval(tick);
 			const s = Math.round((Date.now() - t0) / 1000);
-			clock.textContent = t("flash.c7.connect.listening", { s });
-			if (s === 25) hints.replaceChildren(powerHints());
+			const got = heard();
+			clock.textContent = [t("flash.c7.connect.listening", { s }), got && s >= 5 ? t("flash.cable.heard", got) : null].filter(Boolean).join(" ");
+			// this early only a cable that carried nothing at all is named: line errors come with switching the radio
+			// off, before it is on again
+			if (s === 25) hints.replaceChildren(powerHints(got && !got.bytes && !got.errors ? got : null));
 		}, 1000);
 		show({ led: "off", screen: "off", knob: on ? "cycle" : "on" },
 			why ? notice(why, "info") : null,
 			h("ol", { class: "steps c7-big" },
 				on ? h("li", {}, t("flash.c7.connect.step_off")) : null,
 				h("li", {}, t("flash.c7.connect.step_on"))),
-			h("p", {}, t("flash.c7.connect.no_keys")), simPower(), h("p", { class: "small" }, clock), hints, slowNote());
+			h("p", {}, t(noScreen() ? "flash.c7.connect.no_keys_dark" : "flash.c7.connect.no_keys")), simPower(), h("p", { class: "small" }, clock), hints, slowNote());
 		act(button(t("flash.c7.connect.cancel"), () => { ac.abort(); clearInterval(tick); cableStep(); }, { quiet: true }));
 		const stub = mkStub();
 		try {
@@ -415,13 +475,28 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 		} catch (e) {
 			clearInterval(tick);
 			if (ac.signal.aborted && e.message === "stopped") return;
-			romFailed(notice(t(e?.code === "rom-booted" ? "flash.c7.connect.rom_booted" : "flash.c7.connect.no_rom"), "bad"), reportLine());
+			const got = heard();
+			diag.note("boot ROM wait ended", { why: e?.code || String(e?.message || e).slice(0, 80), ...(got || {}) });
+			// the ROM's greeting came through and it took none of the answers already on their way: no other try over
+			// this cable can go better
+			if (e?.code === "rom-deaf" && !cableTrouble()) return cableFaulty({ code: "oneway" });
+			// its greeting and sign-off came in as other bytes: the cable reads the line wrong, and so a try again
+			// with the cable as it is can't go better either
+			if (e?.code === "rom-garbled" && !cableTrouble()) return cableFaulty({ code: "rom_garbled", bytes: got?.bytes ?? 0, errors: got?.errors ?? 0 });
+			failed(() => romFailed(got, notice(t(e?.code === "rom-booted" ? "flash.c7.connect.rom_booted" : "flash.c7.connect.no_rom"), "bad"), reportLine()));
 		}
 	};
+	// The bytes and line errors (breaks, framing errors) the cable's port counted, or null for a port that doesn't count
+	const heardNow = () => (typeof c.stream?.received === "number" ? { bytes: c.stream.received, errors: c.stream.lineErrors || 0 } : null);
+	const heardSince = (from) => {
+		const now = from && heardNow();
+		return now ? { bytes: now.bytes - from.bytes, errors: now.errors - from.errors } : null;
+	};
 
-	// The boot ROM load failed or never started: try again, or the radio's factory update mode where it has one
-	const romFailed = (...parts) => {
-		show({ led: "off", screen: "off" }, ...parts, powerHints(), factoryWay(), ctx.manualKitLine?.(), slowNote());
+	// The boot ROM load failed or never started: try again, or the radio's factory update mode where it has one.
+	// got: what the cable carried during the wait (heardSince), or null
+	const romFailed = (got, ...parts) => {
+		show({ led: "off", screen: "off" }, ...parts, powerHints(got), factoryWay(), ctx.manualKitLine?.(), slowNote());
 		const factory = factoryButton({ primary: true });
 		// [alternative, main]: the factory update mode is the main action where there is one
 		act(button(t("flash.c7.connect.try_again"), () => powerCycle(), { primary: !factory, quiet: !!factory }), factory);
@@ -437,10 +512,15 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 	};
 	const factoryButton = (opts = {}) => toIap && button(t("flash.iap.none.update_mode"), toIap, opts);
 
-	const powerHints = () => {
+	// got: what the cable carried while the page listened (heardSince). Nothing at all, not even the line errors a
+	// radio's power switch makes: the cable isn't connected to the radio. Something, but never the greeting: the
+	// cable reads the radio badly. Either is said first, since the other hints can't help then
+	const powerHints = (got = null) => {
 		const ch340 = c.portInfo?.usbVendorId === CH340;
+		const cable = !got ? null : got.bytes || got.errors ? t("flash.cable.rom_garbled", got) : t("flash.cable.rom_silent");
 		return h("div", { class: "notice info" }, h("p", {}, h("b", {}, t("flash.c7.connect.hints_title"))),
-			h("ul", {}, h("li", {}, t("flash.c7.connect.hint_order")), h("li", {}, t("flash.c7.connect.hint_plug")),
+			h("ul", {}, cable ? h("li", {}, h("b", {}, cable)) : null,
+				h("li", {}, t("flash.c7.connect.hint_order")), h("li", {}, t("flash.c7.connect.hint_plug")),
 				h("li", {}, t("flash.c7.connect.hint_battery")), ch340 ? h("li", {}, t("flash.c7.connect.hint_ch340")) : null));
 	};
 
@@ -451,12 +531,24 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 		try {
 			// one image for every radio, at the boot ROM's address (a first stage takes it there too)
 			const st = await stubs();
-			await stub.loadThroughRom(st.image, st.load, (d, n) => prog.set(d, n, t("flash.c7.connect.loader")), { answered });
+			await stub.loadThroughRom(await boardStub(), st.load, (d, n) => prog.set(d, n, t("flash.c7.connect.loader")), { answered });
 			c.how = answered ? "rom-slow" : "rom";
 			await ready(t("flash.c7.connect.found_rom"), stub);
 		} catch (e) {
-			romFailed(errorNotice(t("flash.c7.connect.load_failed", { error: ctx.errorText(e) })));
+			failed(() => romFailed(null, errorNotice(t("flash.c7.connect.load_failed", { error: ctx.errorText(e) }))));
 		}
+	};
+
+	// The radio was reset out of loader mode: the visit ends here, not at the task's connect step again
+	const restarted = () => {
+		show({ led: "off", screen: c.rfoundry ? "rfoundry" : "any", knob: "cycle" }, notice(t("flash.c7.restart.done"), "ok"), h("p", {}, t(noScreen() ? "flash.c7.restart.wait_noscreen" : "flash.c7.restart.wait")));
+		act(button(t("flash.nav.finish"), () => ctx.reset(), { primary: true }));
+	};
+	// the actions go first: a second click, or Continue, would reach a radio that is already restarting
+	const restartNow = async () => {
+		act();
+		await restartRadio();
+		restarted();
 	};
 
 	// The stub runs (st answered): the LED, both chips, which radio this is. From here the session holds it
@@ -468,7 +560,7 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 		const screen = screenNow();
 		show({ led: "wait", screen }, h("p", { class: "c7-big" }, h("b", {}, how)), h("p", { class: "muted" }, t("flash.c7.connect.checking")));
 		try {
-			const led = C().led;
+			const led = boardLed();
 			// the radio's profile, checked before any write, and its protected regions, which every write checks
 			await st.configure({ ...C().boards[boardId()].stub_board, protect: C().boards[boardId()].protect || [] }, led);
 			await st.setupLed(led.red, led.green);
@@ -480,12 +572,23 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 			if (c.model && c.model !== boardId()) {
 				const other = Object.values(S().data.radios).find((r) => r.flash.board === c.model);
 				show({ led: "wait", screen }, notice(t("flash.c7.connect.wrong_radio", { name: S().radio.name, other: other?.name || c.model }), "bad"));
-				return act(leaveLoaderButton());
+				return act(restart ? button(t("flash.c7.leave"), restartNow, { primary: true }) : leaveLoaderButton());
 			}
 			show({ led: "wait", screen }, h("p", { class: "c7-big" }, h("b", {}, how)),
 				h("dl", { class: "kv-list" },
 					h("dt", {}, t("flash.c7.radio")), h("dd", {}, c.model ? S().radio.name : t("flash.c7.radio_unconfirmed"))),
-				h("p", {}, t({ rfoundry: "flash.c7.connect.led_rfoundry", usmart: "flash.usmart.led" }[c.how] || "flash.c7.connect.led_rom")));
+				h("p", {}, t(noScreen() && c.how !== "usmart" ? "flash.c7.connect.led_rom_noscreen" : { rfoundry: "flash.c7.connect.led_rfoundry", usmart: "flash.usmart.led" }[c.how] || "flash.c7.connect.led_rom")));
+			if (restart) {
+				await sleep(S().fakeC7 ? 400 : 1500);
+				if (gone()) return;
+				return restartNow();
+			}
+			// a loader left running by an earlier visit (an interrupted backup, a closed tab): the user may only want the
+			// radio back, so nothing goes on by itself
+			if (c.how === "attach") {
+				return act(button(t("flash.c7.connect.restart"), restartNow, { quiet: true }),
+					button(t("flash.c7.connect.continue"), () => onReady(), { primary: true }));
+			}
 			await sleep(S().fakeC7 ? 400 : 1500);
 			onReady();
 		} catch (e) {
@@ -513,13 +616,26 @@ function connectPanel(onReady, { onUpdateMode = null } = {}) {
 	return box;
 }
 
-// Leave loader mode: the chip restarts into whatever firmware is in flash
-function leaveLoaderButton(label = t("flash.c7.leave")) {
-	return button(label, async () => {
-		try { await S().c7.stub.resetChip(); } catch (e) { /* the radio may be gone already */ }
-		await dropC7();
+// Leave loader mode: the chip restarts into whatever firmware is in flash. The session forgets its loader and cable
+async function restartRadio() {
+	try { await S().c7.stub.resetChip(); } catch (e) { /* the radio may be gone already */ }
+	await dropC7();
+}
+
+// after: what the task records before the step is drawn again (the backup task's finished screen)
+function leaveLoaderButton(label = t("flash.c7.leave"), after = null) {
+	const b = button(label, async () => {
+		b.disabled = true;	// one reset: a second click would reach a radio that is already restarting
+		await restartRadio();
+		after?.();
 		ctx.render();
 	}, { primary: true });
+	return b;
+}
+
+// The Restart task: a radio left in loader mode goes back to normal operation, with no backup or install
+export function restartView() {
+	return connectPanel(() => {}, { restart: true });
 }
 
 export function connectView() {
@@ -605,7 +721,7 @@ function backupOptions(want, { firstInstall = false, text = (k) => t(`flash.c7.b
 // settings only when asked: the whole data memory at 115200 baud can take many minutes.
 export const backupChoices = (firstInstall, cal) => ({ progmem: firstInstall, cal, q128: false });
 
-const dataSize = () => session().stub?.size?.[dataMem()] || MEM[dataMem()].size;	// a whole data memory read (Stub.dump)
+const dataSize = () => session().stub?.size?.[dataMem()] || c7.dataMemSize(S().radio, dataMem(), MEM[dataMem()].size);	// a whole data memory read (Stub.dump)
 
 // How long reading bytes of a memory takes (c7.readSeconds): from the radio's own count of its blank sectors once
 // there is one, the cable's rate measured on this radio once something was read, else the board's stated rate or the
@@ -953,34 +1069,43 @@ function fwName(c) {
 }
 
 function retryHelp() {
-	return h("div", { class: "notice info" }, h("p", {}, t("flash.c7.retry_safe")),
+	return h("div", { class: "notice info" }, h("p", {}, t(romEntry(C(), boardId()) === null ? "flash.c7.retry_safe" : "flash.c7.retry_safe_rom")),
 		h("p", { class: "small" }, t("flash.c7.retry_how")));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // write
 
-// The program memory as a grid of 4 KB sectors: the bootloader (never written), unchanged, to write, written
+// What a sector's square shows before the write. Below the application: the bootloader, never written; on a board
+// the boot ROM starts directly there is none, so the flag sector is to write (last) and the rest is unused space
+export const startState = (c, board, addr) => addr >= c.app_start ? "" : addr === 0 && romEntry(c, board) !== null ? "todo" : "boot";
+
+// The program memory as a grid of 4 KB sectors: not written, unchanged, to write, written
 function sectorMap(c) {
 	const n = c.progmem_size / c.sector;
-	const cells = Array.from({ length: n }, (_, i) => h("span", { "data-s": i * c.sector < c.app_start ? "boot" : "" }));
+	const cells = Array.from({ length: n }, (_, i) => h("span", { "data-s": startState(c, boardId(), i * c.sector) }));
 	const slot0 = c.boards[boardId()].slot[0] / c.sector;
 	for (let i = slot0; i < n; i++) cells[i].classList.add("slot");
 	const legend = (s, label) => h("li", {}, h("span", { class: "c7-map" }, h("span", { "data-s": s })), label);
 	return {
 		el: h("div", {}, h("div", { class: "c7-map", role: "img", "aria-label": t("flash.c7.write.map_label") }, cells),
-			h("ul", { class: "c7-legend" }, legend("boot", t("flash.c7.write.map_boot")), legend("same", t("flash.c7.write.map_same")),
-				legend("todo", t("flash.c7.write.map_todo")), legend("written", t("flash.c7.write.map_written")),
+			h("ul", { class: "c7-legend" }, legend("boot", t(romEntry(c, boardId()) === null ? "flash.c7.write.map_boot" : "flash.c7.write.map_unused")), legend("same", t("flash.c7.write.map_same")),
+				legend("todo", t("flash.c7.write.map_todo")), legend("written", t("flash.c7.write.map_written")), legend("", t("flash.c7.write.map_untouched")),
 				h("li", {}, t("flash.c7.write.map_slot", { addr: hex(C().progmem_base + c.boards[boardId()].slot[0]) })))),
 		set(addr, state) { cells[addr / c.sector].dataset.s = state; },
 	};
 }
 
-// The SHA-256 of the bootloader's area (the first app_start bytes of the program flash), or null when it can't be read
-// (the write goes on: this is a check, not a gate)
-async function bootloaderHash(stub) {
+// A board the boot ROM starts directly, with no vendor loader (board.toml [flash.stub] rom_entry): the entry address its
+// flag sector at program flash 0 must name for the installed application to run, else null
+export const romEntry = (c, board) => c.boards[board]?.rom_entry ?? null;
+
+// The SHA-256 of the bootloader's area (the program flash below app_start), or null when it can't be read (the write
+// goes on: this is a check, not a gate). On a board the boot ROM starts directly the area's first sector, the boot
+// ROM's flag, is left out: the install and the restore write that one sector (Stub.writeRomFlag), nothing else there
+async function bootloaderHash(stub, c, board) {
 	try {
-		return await sha256(await stub.dump("progmem", 0, C().app_start));
+		return await sha256(await stub.dump("progmem", romEntry(c, board) === null ? 0 : c.sector, c.app_start));
 	} catch (e) {
 		return null;
 	}
@@ -990,11 +1115,11 @@ async function bootloaderHash(stub) {
 // and the bootloader's bytes read before and after show it held. The trail's "write range" line says which flash was
 // written, for a report of a radio that stopped working: also when the write fails part way (bootloader "not checked").
 // write(onWritten) runs the write and calls onWritten(addr) for each sector written
-async function guardedWrite(stub, write) {
+async function guardedWrite(stub, c, board, write) {
 	const sectors = [];
 	const range = (bootloader) => diag.note("write range", { sectors: sectors.length, first: sectors.length ? hex(Math.min(...sectors)) : null,
 		last: sectors.length ? hex(Math.max(...sectors)) : null, bootloader });
-	const before = await bootloaderHash(stub);
+	const before = await bootloaderHash(stub, c, board);
 	let res;
 	try {
 		res = await write((a) => sectors.push(a));
@@ -1002,10 +1127,63 @@ async function guardedWrite(stub, write) {
 		range("not checked");
 		throw e;
 	}
-	const after = before ? await bootloaderHash(stub) : null;
+	const after = before ? await bootloaderHash(stub, c, board) : null;
 	range(!before ? "not checked" : after === before ? "unchanged" : "changed");
 	if (before && after !== before) throw new StubError(t("flash.c7.boot.changed"));
 	return res;
+}
+
+// The flag sector last, on a board the boot ROM starts directly: entry, or a restore's sector. Reported to onSector
+// as any other sector written (0 todo, then written)
+async function romFlagLast(stub, c, board, res, written, onSector, opts) {
+	const entry = romEntry(c, board);
+	if (entry === null) return res;
+	if (!(await stub.writeRomFlag(entry, opts))) {
+		onSector(0, "same");
+		return res;
+	}
+	written(0);
+	onSector(0, "todo");
+	onSector(0, "written");
+	return { ...res, written: res.written + 1 };
+}
+
+// An install's program flash write: the application (and the codec slot) in the application area, each sector
+// verified (Stub.writeProgram), then on a board the boot ROM starts directly its flag sector, made to name the
+// application's entry. Last, so the flag never names a half-written application; an interrupted install still
+// leaves the application area changed (recover through the boot ROM).
+// onSector(addr, state) as writeProgram's. Resolves {written, same}
+export function installWrite(stub, c, board, start, data, onSector = () => {}) {
+	return guardedWrite(stub, c, board, async (written) => {
+		const each = (a, st) => {
+			if (st === "written") written(a);
+			onSector(a, st);
+		};
+		const res = await stub.writeProgram(data, start, { appStart: c.app_start, appEnd: c.app_end, onSector: each });
+		return romFlagLast(stub, c, board, res, written, onSector);
+	});
+}
+
+// A restore's program flash write: a whole program memory backup's application area exactly (carve: a protected
+// sector keeps what the radio has). On a board the boot ROM starts directly the original firmware starts below the
+// application, where nothing is written but the flag sector: the backup must start with the boot ROM's flag, the
+// rest of that area on the radio must already be the backup's (checked by CRC before anything is written), and the
+// backup's flag sector goes back last, so the radio starts its original firmware again
+export async function restoreWrite(stub, c, board, pm, onSector = () => {}) {
+	const [start, data] = c7.restoreTarget(c, pm);
+	if (romEntry(c, board) !== null) {
+		if (!hasRomFlag(pm)) throw new StubError(t("flash.c7.restore.no_rom_flag"));
+		const below = pm.subarray(c.sector, c.app_start);
+		if ((await stub.verify("progmem", below, c.sector)).length) throw new StubError(t("flash.c7.restore.boot_differs"));
+	}
+	return guardedWrite(stub, c, board, async (written) => {
+		const each = (a, st) => {
+			if (st === "written") written(a);
+			onSector(a, st);
+		};
+		const res = await stub.writeProgram(data, start, { appStart: c.app_start, appEnd: c.app_end, carve: true, onSector: each });
+		return romFlagLast(stub, c, board, res, written, onSector, { sector: pm.slice(0, c.sector) });
+	});
 }
 
 export function writeView() {
@@ -1043,6 +1221,7 @@ export function writeView() {
 				h("dt", {}, t("flash.c7.write.codec")), h("dd", {}, what)),
 			d.mode === "none" ? noCodecNotice(c.analysis?.notRead) : null,
 			h("div", { class: "notice" }, h("p", {}, h("b", {}, t("flash.c7.write.careful"))), h("p", {}, t("flash.c7.write.careful_text"))),
+			romEntry(C(), boardId()) !== null ? h("p", { class: "small muted" }, t("flash.c7.write.rom_flag")) : null,
 			prog.el, status, map.el),
 		top.el), h("details", { class: "small" }, h("summary", {}, t("flash.c7.log")), c.log.el));
 	S().forward(go);
@@ -1063,12 +1242,12 @@ export function writeView() {
 		try {
 			await quiet(c);	// a size count still running (backupView) ends before the write uses the stub
 			if (!(await c.stub.attach())) throw new StubError(t("flash.c7.write.lost"));
-			const res = await guardedWrite(c.stub, (written) => c.stub.writeProgram(data, start, { appStart: C().app_start, appEnd: C().app_end, onSector: (a, st) => {
+			const res = await installWrite(c.stub, C(), boardId(), start, data, (a, st) => {
 				map.set(a, st);
 				if (st === "todo") todo++;
-				if (st === "written") { done++; written(a); ctx.flashMark(started, "first_byte"); }
+				if (st === "written") { done++; ctx.flashMark(started, "first_byte"); }
 				prog.set(done, todo, t("flash.c7.write.writing", { done, todo }));
-			} }));
+			});
 			ctx.flashMark(started, "last_byte");
 			prog.set(1, 1, t("flash.c7.write.verified"));
 			c.log.add(`written ${res.written} sectors, ${res.same} unchanged, all verified by CRC`);
@@ -1142,7 +1321,7 @@ export function doneView() {
 		if (!p) {
 			diag.note("verify: no answer", { tries });
 			top.set({ led: "off", screen: "rfoundry", knob: "cycle" });
-			fill(status, notice(t("flash.c7.done.no_answer"), tries > 1 ? "bad" : ""),
+			fill(status, notice(t(noScreen() ? "flash.c7.done.no_answer_noscreen" : "flash.c7.done.no_answer"), tries > 1 ? "bad" : ""),
 				S().fakeC7 ? h("div", { class: "actions" }, button(t("flash.sim.c7_off"), () => S().fakeC7.powerOff()),
 					button(t("flash.sim.c7_on"), () => S().fakeC7.powerOn())) : null,
 				tries > 1 ? ctx.helpLink() : null, tries > 1 ? reportLine() : null);
@@ -1160,11 +1339,93 @@ export function doneView() {
 			c.backupSaved ? h("p", { class: "small muted" }, t(c.rfoundry ? "flash.c7.done.backup_kept_rfoundry" : "flash.c7.done.backup_kept")) : null,
 			// not asked of the radio: any STUB command parks RadioFoundry's codec until the next restart (platform stub_region, core/stubentry)
 			h("p", { class: "small muted" }, t(hasStubEntry() ? "flash.c7.done.next_time" : "flash.c7.done.next_time_power")));
+		if (["install", "update"].includes(S().task) && !S().fakeC7) {
+			const features = new Set([...String(p.features || "").split(","), ...String(S().firmware?.manifest?.features || "").split(",")]);
+			if (features.has("SATELLITE_TLE"))
+				status.append(h("div", { class: "notice info" }, h("p", {}, t("flash.done.satellite_tle_offer")),
+					h("div", { class: "actions" }, button(t("flash.done.satellite_tle_load"), async () => {
+						await dropC7();
+						location.assign(`${HOME}tools/satellite/index.html`);
+					}, { primary: true }))));
+		}
+		if (good) await bringChannels(c, status, left);
+		if (left()) return;
 		S().forward(button(t("flash.nav.finish"), () => ctx.reset(), { primary: true }));
 		await dropC7();
 	};
 	check();
 	return box;
+}
+
+// After an install over the stock firmware, its channels (migrate.js convertPagedStock, writeConverted): the stock
+// codeplug from the area this visit's check step read, else read from the radio now (RadioFoundry never writes there),
+// converted and written through the codeplug interface. A radio whose codeplug has channels already is asked first.
+// A failure leaves RadioFoundry running as it was, and the stock codeplug where it is
+async function bringChannels(c, status, left) {
+	const lay = calLayout();
+	if (S().task !== "install" || c.rfoundry || !lay?.area || !S().radio.codeplug || !c.stream) return;
+	const box = h("div");
+	status.append(box);
+	const prog = progressBar();
+	let m, tr, conv;
+	const from = c.calArea ? "backup" : "radio";
+	try {
+		m = await import("./migrate.js");
+		const { CpsSerial } = await import("../codeplug/transport.js");
+		tr = new CpsSerial(c.stream, { cable: true });
+		let stock = c.calArea;
+		if (!stock) {
+			box.append(prog.el);
+			const r = await tr.link.cpsDump(1, 0, lay.area, { chunk: tr.chunk, progress: (d, n) => prog.set(d, n, t("flash.channels.reading")) });
+			if (!r.complete) throw new Error(`stock area read stopped at ${r.data.length}`);
+			stock = r.data;
+		}
+		conv = m.convertPagedStock(stock);
+	} catch (e) {
+		diag.error("flash/c7 channels read", e);
+		prog.el.remove();
+		box.append(notice(t("flash.channels.read_failed"), "bad"), reportLine());
+		return;
+	}
+	prog.el.remove();
+	diag.note("channels", { from, ...(conv ? conv.counts : { layout: null }) });
+	if (!conv || left()) return;
+	if (!conv.counts.channels) {
+		box.append(notice(t("flash.channels.none"), "info"));
+		return;
+	}
+	const counts = (x) => t("flash.channels.counts", x);
+	const notes = conv.notes.length ? h("ul", { class: "small" }, conv.notes.map((x) => h("li", {}, t(`editor.qdmr.note.${x.code}`, { n: x.n })))) : null;
+	// the user decides when the radio's own codeplug would be replaced
+	const ask = (now) => new Promise((done) => {
+		box.append(h("p", {}, t("flash.c7.channels.replace", { have: counts(now), want: counts(conv.counts) })));
+		S().forward([button(t("flash.c7.channels.keep"), () => done(false), { quiet: true }),
+			button(t("flash.c7.channels.go"), () => done(true), { primary: true })]);
+	});
+	try {
+		box.append(prog.el);
+		const r = await m.writeConverted(tr, Object.values(S().data.radios), conv, {
+			ask: async (now) => {
+				prog.el.remove();
+				const yes = await ask(now);
+				S().forward(null);
+				if (yes) box.append(prog.el);
+				return yes;
+			},
+			progress: (what, d, n) => prog.set(d, n, t(`flash.channels.${what}`)) });
+		prog.el.remove();
+		diag.note("channels written", { written: r.written, ok: r.ok, have: r.have });
+		if (!r.written) return;
+		if (!r.ok) {
+			S().reportResult = "problem";
+			box.append(notice(t("flash.c7.channels.check_failed", { want: counts(conv.counts), have: r.have ? counts(r.have) : "?" }), "bad"), reportLine());
+		} else box.append(notice(t("flash.channels.done", { counts: counts(conv.counts) }), "ok"), notes);
+	} catch (e) {
+		diag.error("flash/c7 channels write", e);
+		prog.el.remove();
+		S().reportResult = "problem";
+		box.append(notice(t("flash.c7.channels.failed"), "bad"), reportLine());
+	}
 }
 
 // Whether the installed build hands over to the loader by itself (CONFIG_STUB_ENTRY), from its manifest or selection
@@ -1184,12 +1445,35 @@ function untriedOffer(c) {
 	if (!c.stockUntried || !c.progmem) return null;
 	const v = c.stockUntried.version || stockVersion(c.progmem) || "unknown";
 	S().stockRead = { name: `program-memory-${S().radio.id}-${v.replace(/[^\w.-]/g, "_")}.bin`, data: c.progmem };
-	return h("div", { class: "notice" }, h("strong", {}, t("flash.variant.send_title")), h("p", {}, t("flash.variant.send", { version: v })),
+	return h("div", { class: "notice report-offer" }, h("strong", {}, t("flash.variant.send_title")), h("p", {}, t("flash.variant.send", { version: v })),
 		reportButton({ quiet: false }));
+}
+
+// The backup is saved and the radio restarted: the task ends here, with the ways on (Update only for a radio that runs
+// RadioFoundry). The next task starts with a new session, as from the start page: its check step reads the radio again.
+// The backup's reads can't stand in for that one: they set no codec slot and keep no copy in this browser before a write
+function backupDoneView() {
+	const c = session();
+	const out = h("div", { class: "flasher" });
+	const go = (task) => () => {
+		S().c7 = null;
+		S().task = task;
+		S().step = 0;
+		ctx.render();
+	};
+	out.append(panel(t("flash.backup.task_title", { name: S().radio.name }),
+		notice(t("flash.c7.backup.done", { name: c.backupName }), "ok"), notice(t("flash.c7.backup.restarted"), "info"),
+		h("p", {}, t("flash.c7.backup.next"))));
+	const rfoundry = c.rfoundry || c.analysis?.firmware === "rfoundry";
+	S().forward([button(t("flash.task.install"), go("install"), { quiet: true }), rfoundry ? button(t("flash.task.update"), go("update"), { quiet: true }) : null,
+		button(t("flash.nav.finish"), () => ctx.reset(), { primary: true })].filter(Boolean));
+	return out;
 }
 
 export function backupView() {
 	const c = session();
+	// backupDone: the radio whose backup ended with Restart Radio (another radio picked meanwhile starts its own)
+	if (c.backupDone === S().radio.id) return backupDoneView();
 	const out = h("div", { class: "flasher" });
 	if (!c.stub || c.stream?.lost) {
 		out.append(connectPanel(() => ctx.render()));
@@ -1224,7 +1508,7 @@ export function backupView() {
 			top.set({ led: "done", screen: screenNow() });
 			fill(status, notice(t("flash.c7.backup.done", { name: c.backupName }), "ok"),
 				c.calCopies && !c.calFound ? notice(t("flash.c7.backup.cal_missing"), "bad") : calOneCopy(c), untriedOffer(c));
-			S().forward(leaveLoaderButton(t("flash.c7.backup.leave")));
+			S().forward(leaveLoaderButton(t("flash.c7.backup.leave"), () => { c.backupDone = S().radio.id; }));
 		} catch (e) {
 			ctx.flashFinished(started, e);
 			fill(status, errorNotice(ctx.errorText(e)), retryHelp());
@@ -1315,15 +1599,18 @@ export function restoreView() {
 			await quiet(c);	// a size count still running (backupView) ends before the restore uses the stub
 			const model = c7.bootloaderModel(C(), pm);
 			if (model && model !== boardId()) throw new Error(t("flash.c7.restore.other_radio"));
-			const [start, data] = c7.restoreTarget(C(), pm);
 			let todo = 0, done = 0;
-			// carve: a protected sector keeps what the radio has, whatever the backup holds
-			const res = await guardedWrite(c.stub, (written) => c.stub.writeProgram(data, start, { appStart: C().app_start, appEnd: C().app_end, carve: true, onSector: (a, st) => {
+			// the codec's space, which a restore right after an install finds as the backup has it: the result says so
+			const [slot0, slot1] = C().boards[boardId()].slot;
+			const slotState = { todo: 0, same: 0 };
+			// a protected sector keeps what the radio has, whatever the backup holds
+			const res = await restoreWrite(c.stub, C(), boardId(), pm, (a, st) => {
 				map.set(a, st === "kept" ? "boot" : st);
+				if (a >= slot0 && a < slot1 && st in slotState) slotState[st]++;
 				if (st === "todo") todo++;
-				if (st === "written") { done++; written(a); ctx.flashMark(started, "first_byte"); }
+				if (st === "written") { done++; ctx.flashMark(started, "first_byte"); }
 				prog.set(done, todo, t("flash.c7.write.writing", { done, todo }));
-			} }));
+			});
 			ctx.flashMark(started, "last_byte");
 			prog.set(1, 1, t("flash.c7.write.verified"));
 			ctx.flashFinished(started);
@@ -1332,7 +1619,11 @@ export function restoreView() {
 			await sleep(1200);
 			await c.stub.resetChip();
 			await dropC7();
-			fill(status, notice(t("flash.c7.restore.done", { written: res.written, same: res.same }), "ok"),
+			// what was written and what was not, in words: a square left "unchanged" on the map alone reads as skipped
+			const slotKept = slotState.same > 0 && !slotState.todo && pm.subarray(slot0, slot1).some((b) => b !== 0xFF);
+			fill(status, h("div", { class: "notice ok" }, h("p", {}, t("flash.c7.restore.done")),
+					h("p", { class: "small" }, t("flash.c7.restore.counts", { written: res.written, same: res.same })),
+					slotKept ? h("p", { class: "small" }, t("flash.c7.restore.slot_same")) : null),
 				S().bundle.parts.get("c7000-data") ? notice(t("flash.c7.restore.data_note"), "info") : null);
 		} catch (e) {
 			ctx.flashFinished(started, e);
@@ -1345,7 +1636,8 @@ export function restoreView() {
 		}
 	}, { primary: true });
 	out.append(panel(t("flash.c7.restore.title"), h("div", { class: "c7-grid" },
-		h("div", {}, cableBanner(), h("p", {}, vendor ? t("flash.c7.restore.lead_vendor", { file: vendor }) : t("flash.c7.restore.lead")), prog.el, status, map.el), top.el)));
+		h("div", {}, cableBanner(), h("p", {}, romEntry(C(), boardId()) !== null ? t("flash.c7.restore.lead_rom")
+			: vendor ? t("flash.c7.restore.lead_vendor", { file: vendor }) : t("flash.c7.restore.lead")), prog.el, status, map.el), top.el)));
 	S().forward(go);
 	return out;
 }
@@ -1372,7 +1664,7 @@ register({
 	available: (radio, fb) => isC7000(radio, fb),		// install and backup, stock firmware or RadioFoundry
 	steps: (task, { recovering }) => (task === "install" ? (recovering ? RECOVER : INSTALL) : task === "update" ? UPDATE : null),
 	stepLabel: (step, task) => (task !== "backup" && step === "done" ? "c7_done" : step),
-	views: { connect: connectView, check: checkView, write: writeView, done: doneView, backup: backupView, restore: restoreView },
+	views: { restart: restartView, connect: connectView, check: checkView, write: writeView, done: doneView, backup: backupView, restore: restoreView },
 	recovery: { first: "fix", stock: "restore", reach: "flash.help.c7_reach", stockText: "flash.help.fix.stock_c7",
 		// the factory update mode: a reinstall that needs nothing to answer on the cable but the radio's own loader. stuck:
 		// a radio without a complete application stays in it (white screen, red LED), a symptom of its own

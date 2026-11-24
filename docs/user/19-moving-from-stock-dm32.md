@@ -71,6 +71,26 @@ python3 dm32_migrate.py restore --workdir ~/RadioFoundry-DM32-migration/20261011
 or a `.yaml`. `dm32_migrate.py import --from FILE` only converts and checks, with no radio needed. Files from Baofeng's
 own CPS aren't supported here. Read the radio with qdmr and save the codeplug from there.
 
+The web installer brings these over by itself at the end of an install from the stock firmware. Without qdmr, the [Codeplug Editor](04-programming.md#the-codeplug-editor) and the Tools page convert the stock codeplug straight from a
+data flash read: the web installer's backup `.zip` taken on the stock firmware, or the `data-memory.bin` or
+`original-channels.bin` in it. They bring over channels with their TX contact, contacts, RX group lists, zones, your
+DMR ID and the boot text. Power, bandwidth, tones, time slot and color code come with each channel. Squelch, TX
+timeout and scan lists stay at RadioFoundry's defaults, and channels past the first 84 are not read yet
+([the format](../spec/dm32-stock-codeplug.md)). qdmr 0.15 doesn't read the stock TX contacts, so this is the way to keep them.
+
+### From a web installer backup
+
+`tools/backup_codeplug.py BACKUP.zip -o DIR` gets the stock codeplug out of the same backup offline, through qdmr's
+`dmrconf` (0.15 or newer), with every channel and the TX contacts dmrconf alone loses put back:
+
+- `<name>-stock.yaml` and `.dfu`: the stock codeplug as qdmr reads it.
+- `<name>-ported.yaml`, `.dfu` and `.bin`: it ported to RadioFoundry. Open the YAML in the Codeplug Editor, or write
+  the `.bin` with `cps_client.py write`.
+- `<name>-rfoundry.yaml`: RadioFoundry's own codeplug, when the backup holds one.
+
+Checked on the owner's radio: the ported codeplug and the one the web installer wrote at the end of an install were the
+same, 24 channels, 5 zones and 21 contacts (the stock codeplug's two empty contacts are left out).
+
 ## What fits
 
 RadioFoundry holds 1024 channels, 68 zones of 80 channels, 1024 contacts and 76 RX group lists, with names of up to 16

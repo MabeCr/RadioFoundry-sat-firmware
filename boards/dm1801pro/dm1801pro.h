@@ -17,8 +17,6 @@ extern const hal_display_t dm1801pro_display;
 extern const hal_input_t dm1801pro_input;
 extern const hal_radio_t dm1801pro_radio;
 extern const hal_power_t dm1801pro_power;
-// The FD6818 set-up tables (rf_tables_dm1801pro.c, hardware-dm1801pro.md 5)
-extern const fd6818_variant_t fd6818_variant_dm1801pro;
 
 // Physical key bits returned by dm1801pro_input.scan(); the matrix positions and the four direct pins are in
 // input_dm1801pro.c (hardware-dm1801pro.md 9.1)
@@ -57,6 +55,7 @@ void dm1801pro_speaker_pcm(bool on);
 #define DM1801PRO_AMP_RADIO	0x01u
 #define DM1801PRO_AMP_BCAST	0x02u
 #define DM1801PRO_AMP_PCM	0x04u
+#define DM1801PRO_AMP_SIDE	0x08u	// the transmitted tone's sidetone
 void dm1801pro_amp(uint8_t who, bool on);
 
 // --- Accelerometer (accel_dm1801pro.c, CONFIG_DIAG): milli-g on x, y, z; false when the chip doesn't answer ---
@@ -66,5 +65,7 @@ int16_t dm1801pro_accel_id(void);	// WHO_AM_I, -1 = no acknowledge
 // --- Diagnostics (diag_dm1801pro.c) ---
 bool dm1801pro_diag_line(uint8_t i, char *buf, uint8_t len);
 void dm1801pro_diag_reset(void);
+
+bool dm1801pro_radio_transmitting(void);	// the radio is keyed (the shared PTT line's gate)
 
 #endif

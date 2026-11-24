@@ -39,11 +39,18 @@ static struct {
 // Requests from the screens
 static volatile bool refresh_asked = true;
 static volatile uint32_t open_asked;
+static volatile uint32_t toggle_norad, toggle_aos;	// a pass the user marked or unmarked for an alert
+static volatile uint32_t forget_norad;	// a satellite deleted: the poll drops its alert marks (the alert state is the poll's)
 static volatile bool open_changed;
 static volatile bool open_pending;	// a satellite was asked for and the poll has not switched to it: what is held is the last one's
 static volatile uint32_t track_aos, track_los;	// the tracked pass, 0 none
 static volatile bool track_changed;
 static volatile bool track_alive;	// asked again since the poll last looked: the screen is still there
+
+// Pass alerts: the marks and what was alerted on (the poll's), and the alert waiting for the screens to take
+static sat_alert_t alert;
+static volatile bool alert_pending;
+static sat_svc_alert_t alert_ev;
 
 // The pass lists of the satellites opened lately, kept so that opening one again doesn't search it all again. A list is
 // valid while the store, the observer and the lowest pass are as they were (any change clears them all); the passes that
@@ -97,6 +104,10 @@ void sat_svc_init(void)
 	refresh_asked = true;
 	open_asked = 0;
 	open_pending = false;
+	forget_norad = 0;
+	toggle_norad = toggle_aos = 0;
+	sat_alert_init(&alert);
+	alert_pending = false;
 	open_changed = false;
 	track_aos = track_los = 0;
 	track_changed = false;
@@ -118,8 +129,46 @@ void sat_svc_refresh(void)
 void sat_svc_delete(uint32_t norad)
 {
 	sat_store_delete(norad);	// the store's generation changes with it: the next poll lists again
+	forget_norad = norad;
 	if (open_asked == norad)	// its passes are open: close them
 		sat_svc_open(0);
+}
+
+bool sat_svc_alert_take(sat_svc_alert_t *out)
+{
+	if (!alert_pending)
+		return false;
+	*out = alert_ev;
+	alert_pending = false;
+	return true;
+}
+
+void sat_svc_pass_alert_toggle(uint32_t norad, uint32_t aos)
+{
+	toggle_aos = aos;
+	toggle_norad = norad;	// last: the poll acts on a nonzero satellite
+}
+
+bool sat_svc_alert_next_mark(uint32_t now, uint32_t *aos)
+{
+	bool any = false;
+	for (unsigned i = 0; i < SAT_ALERT_PASS_MARKS; i++) {
+		uint32_t a = alert.marks[i].aos;
+		if (alert.marks[i].norad != 0 && a > now && (!any || a < *aos)) {
+			*aos = a;
+			any = true;
+		}
+	}
+	return any;
+}
+
+bool sat_svc_pass_alert_marked(uint32_t norad, uint32_t aos)
+{
+	bool m = sat_alert_marked(&alert, norad, aos);
+	uint32_t tn = toggle_norad, ta = toggle_aos;
+	if (tn == norad && norad != 0 && (ta > aos ? ta - aos : aos - ta) <= SAT_ALERT_MATCH_S)
+		m = !m;	// asked for, not done yet
+	return m;
 }
 
 void sat_svc_open(uint32_t norad)
@@ -683,6 +732,15 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		end_write();
 		refresh_asked = true;	// the ages were worked out without the time
 	}
+	if (forget_norad != 0) {	// a delete done on the housekeeping task: its marks go with it
+		uint32_t n = forget_norad;
+		forget_norad = 0;
+		sat_alert_forget(&alert, n);
+	}
+	if (toggle_norad != 0) {
+		sat_alert_toggle(&alert, toggle_norad, toggle_aos);
+		toggle_norad = 0;
+	}
 	bool store_changed = sat_store_generation() != w.generation;
 	bool fresh = refresh_asked || store_changed;
 	if (fresh) {
@@ -701,6 +759,22 @@ bool sat_svc_poll(const sat_svc_in_t *in, unsigned budget)
 		track_start();
 	if (state != SAT_SVC_READY)
 		return false;
+	// An alert due for the next pass of a satellite that is marked, or whose pass is: one at a time, for the screens to take
+	if (!alert_pending && in->alert_lead_s != 0) {
+		for (uint8_t i = 0; i < r.count; i++) {
+			const sat_row_t *row = &r.rows[i];
+			bool always = false;
+			for (unsigned k = 0; k < SAT_ALERT_ALWAYS; k++)
+				always = always || (in->alert_norad[k] == row->norad && row->norad != 0);
+			if (row->state == SAT_ROW_NEXT && sat_alert_due(&alert, in->now, in->alert_lead_s, row->norad, row->aos, always)) {
+				alert_ev.norad = row->norad;
+				alert_ev.aos = row->aos;
+				alert_ev.max_el = row->max_el;
+				alert_pending = true;
+				break;
+			}
+		}
+	}
 
 	double dlat = in->pos_ok ? in->lat - w.lat : 0.0, dlon = in->pos_ok ? in->lon - w.lon : 0.0;
 	if (!w.have_obs || dlat > MOVED_DEG || dlat < -MOVED_DEG || dlon > MOVED_DEG || dlon < -MOVED_DEG ||

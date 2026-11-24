@@ -44,7 +44,7 @@ what the pointer can hold:
 | Call | Targets |
 |---|---|
 | Through a struct field, `board.radio->tx(...)`, `s->cb(...)` | The struct's type is followed from the variable's declaration (a parameter, a local, a file-scope or `extern` variable) through the members. Every function stored into that field of that type: designated or positional initializers, assignments, compound literals |
-| Through a variable or parameter | What is assigned to the variable; for a parameter, what callers pass in that position. A call through a struct field passes to the functions stored in that field, and two files' static functions of one name keep their own parameters. Stores of one pointer into another are followed |
+| Through a variable or parameter | What is assigned to the variable; for a parameter, what callers pass in that position. A call through a struct field passes to the functions stored in that field, and two files' static functions of one name keep their own parameters. Stores of one pointer into another are followed. A conditional `c ? a : b` stores `a` and `b`, not what `c` tests; a comparison or `&&`, `||`, `!` stores a number, no pointer |
 | Inside a macro, `LOCK()` | The macro is expanded first |
 | In an argument, `f(x, p->g())` | GCC files it at the outer call's position; the tool looks inside the arguments |
 
@@ -99,7 +99,11 @@ stack check <b>: every task fits, the least free: prvIdleTask 176 bytes
 
 * Recursion is counted once and listed. RadioFoundry has no deep recursion; the cycles found are mutual calls through callbacks
   (the network stack's `n_*`, the audio mixer).
-* Interrupt handlers aren't checked: they run on the main (STM32) or interrupt (HR_C7000) stack, not a task's.
+* Interrupt handlers on the main stack (STM32) aren't checked: they nest, and the stack has no size of its own (it may
+  grow down to the end of `.bss`). Its canary and `tasks.irq_free` watch it on the radio instead. Where they have a stack of their own and run one at a
+  time (HR_C7000), the platform's `STACK_IRQ` names that stack (its size, or the two linker symbols at its ends so the
+  size is the one linked) and the function that installs a handler: every function passed to it is a root, and the
+  deepest plus the margin must fit (the `irq` line). A handler installed any other way is missed. The interrupt stack's canary and `tasks.irq_free` catch what the check misses on the radio.
 * The code before the scheduler starts (`main`) runs on the main stack and isn't checked.
 * A pointer call whose target is computed at run time (an address from a table the sources don't spell) needs a table
   line.

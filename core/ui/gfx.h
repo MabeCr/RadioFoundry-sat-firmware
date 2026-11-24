@@ -84,6 +84,15 @@ int gfx_text_width(const font_t *f, const char *s);
 size_t gfx_text_alt(const char *s, int level, char *out, size_t cap, bool *more);
 // Copy s into out, shortened from the middle with an ellipsis so it is at most max_w pixels wide
 void gfx_text_fit(const font_t *f, const char *s, int max_w, char *out, size_t out_len);
+#if CONFIG_LANG_ZH
+// A CJK catalog's text is UTF-8 (tools/i18n.py): the code point at s and its length in bytes. Only a three-byte
+// sequence is UTF-8; any other byte is a character of its own (ASCII, one of font.h's glyphs, or a Latin-1 letter a
+// name, a message or another catalog carries), so Latin text keeps working in a build with the CJK face. gfx.c decodes
+// with it, and so does the UI where it wraps or cuts text by character
+uint32_t gfx_utf8_next(const char *s, int *len);
+// The end cut (keep the start): by whole characters when the text has a wide character, at a word for Latin text
+void gfx_text_fit_end(const font_t *f, const char *s, int max_w, char *out, size_t out_len);
+#endif
 #ifdef GFX_FIT_TRACE
 // Host builds only: called whenever gfx_text_fit had to shorten a text (the simulator lists them per screen)
 void gfx_fit_trace(const char *src, const char *out);
@@ -99,6 +108,8 @@ void gfx_icon_battery(int x, int y, int w, int h, uint8_t pct, color_t outline, 
 // Signal bars: count bars of rising height in a w x h box, lit = how many are on
 // A GPS icon d pixels square: a rounded square, solid with a fix and hollow while searching
 void gfx_icon_gps(int x, int y, int d, bool fix, color_t c);
+// A satellite d high and 3 d / 2 wide: a body with a tall solar panel either side
+void gfx_icon_satellite(int x, int y, int d, color_t c);
 void gfx_icon_bars(int x, int y, int w, int h, uint8_t count, uint8_t lit, color_t on, color_t off);
 // A filled pill with text, padded; returns its width
 int gfx_pill(const font_t *f, int x, int y, int h, const char *s, color_t fg, color_t bg);

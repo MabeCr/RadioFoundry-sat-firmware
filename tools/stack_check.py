@@ -10,7 +10,9 @@ and follows the deepest call chain from each task's entry function:
 
   need = deepest chain (sum of frames) + port overhead (what the RTOS port saves on a task stack) + margin
 
-It fails when the need exceeds the task's stack. Calls through function pointers are resolved from the sources: a
+It fails when the need exceeds the task's stack. A platform whose interrupts run one at a time on a stack of their
+own (--irq-stack, or --irq-stack-symbols for its ends in the ELF) names the function that installs a handler (--irq-register): every function passed to it is a root,
+and the deepest of them plus the margin must fit that stack. Calls through function pointers are resolved from the sources: a
 function stored into a struct field (a designated or positional initializer, an assignment) is a target of the calls
 through that field of that struct type; a function stored into a variable or passed as an argument is a target of
 the calls through that variable or parameter. What the sources can't show comes from tools/stack_check_edges.txt.
@@ -267,6 +269,48 @@ def strip_comments(src, keep_strings=False):
 
 
 PAIRS = {"(": ")", "[": "]", "{": "}"}
+
+
+def split_ternary(v):
+    """(then, else) of a conditional expression c ? a : b outside brackets, else None"""
+    depth, q, nested = 0, None, 0
+    for i, c in enumerate(v):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif depth == 0 and c == "?":
+            if q is None:
+                q = i
+            else:
+                nested += 1
+        elif depth == 0 and c == ":" and q is not None:
+            if nested:
+                nested -= 1
+            else:
+                return v[q + 1:i], v[i + 1:]
+    return None
+
+
+def has_truth_operator(v):
+    """Whether v, outside brackets, compares or combines truth values (== != < > <= >= && || !): its value is 0 or 1"""
+    depth = 0
+    for i, c in enumerate(v):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif depth == 0:
+            two = v[i:i + 2]
+            if two in ("==", "!=", "<=", ">=", "&&", "||"):
+                return True
+            if c == "<" and two != "<<" and v[i - 1:i] != "<":
+                return True
+            if c == ">" and two != ">>" and v[i - 1:i] not in (">", "-"):
+                return True
+            if c == "!" and (i == 0 or v[i - 1] in " (") and two != "!=":
+                return True
+    return False
 
 
 def match_close(t, i):
@@ -594,6 +638,13 @@ class CModel:
         v = v.lstrip("&").strip()
         while v.startswith("(") and match_close(v, 0) == len(v) - 1:
             v = v[1:-1].strip()
+        # c ? a : b holds a or b, never what c compares; a comparison or a logical operator yields a truth value, not
+        # a pointer (n = d->count != NULL ? d->count() : 0 stores a number)
+        branches = split_ternary(v)
+        if branches is not None:
+            return self.value_refs(ft, off, branches[0]) + self.value_refs(ft, off, branches[1])
+        if has_truth_operator(v):
+            return []
         if re.fullmatch(CHAIN, v):
             return [self.name_ref(ft, off, v)]
         refs = []
@@ -996,6 +1047,36 @@ def find_tasks(graph, root, files, table, cc, cflags, word):
     return tasks
 
 
+def find_irqs(graph, root, files, registers):
+    """[(handler title, where)]: the functions passed as the last argument of a call to one of `registers` (the
+    platform's "install this interrupt handler") in the compiled sources"""
+    if not registers:
+        return []
+    call = re.compile(r"\b(?:" + "|".join(re.escape(r) for r in registers) + r")\s*\(")
+    out, seen = [], set()
+    for path in files:
+        try:
+            with open(os.path.join(root, path), encoding="utf-8", errors="replace") as fh:
+                t = fh.read()
+        except OSError:
+            continue
+        if not any(r in t for r in registers):
+            continue
+        t = strip_comments(t)
+        for m in call.finditer(t):
+            close = match_close(t, m.end() - 1)
+            if close >= len(t):
+                continue
+            arg = split_top(t[m.end():close], ",")[-1].strip().lstrip("&").strip()
+            if not re.fullmatch(IDENT, arg):
+                continue	# the declaration's parameter list, or a handler held in a variable
+            for title in graph.lookup(arg, path):
+                if title not in seen and graph.defined(title):
+                    seen.add(title)
+                    out.append((title, "%s:%d" % (path, t.count("\n", 0, m.start()) + 1)))
+    return out
+
+
 # ── code without a call graph: the disassembly ───────────────────────────────
 
 REGLIST_RE = re.compile(r"([a-z]+)(\d+)\s*-\s*[a-z]*(\d+)")
@@ -1031,6 +1112,7 @@ class Disasm:
     def __init__(self, dis, sym, fixed=None):
         self.funcs = {}		# address -> [name, frame, set of called addresses]
         self.addr = {}		# symbol name -> address
+        self.syms = {}		# every symbol's address, functions or not (a linker script's stack bounds)
         self.memo = {}
         self.fixed = fixed or {}	# symbol -> bytes, not followed (the table's lib lines)
         cur = None
@@ -1069,6 +1151,8 @@ class Disasm:
                 cur[2].add(int(m.group(1), 16))
         for line in sym.splitlines():
             m = re.match(r"^([0-9a-f]+)\s.*\s(\S+)$", line)
+            if m:
+                self.syms.setdefault(m.group(2), int(m.group(1), 16))
             if m and " F " in line:
                 self.addr.setdefault(m.group(2), int(m.group(1), 16) & ~1)
 
@@ -1264,6 +1348,14 @@ def run(args):
     disasm = None
     if args.objdump and args.elf:
         disasm = Disasm.from_elf(args.objdump, args.elf, table.lib)
+    if args.irq_stack_symbols:
+        # The interrupt stack's size as linked: no number to keep in step with the linker script
+        names = args.irq_stack_symbols.split(",")
+        if disasm is None or len(names) != 2 or any(n not in disasm.syms for n in names):
+            print("stack_check: --irq-stack-symbols %s: not in the ELF (needs --objdump and --elf)" %
+                  args.irq_stack_symbols, file=sys.stderr)
+            return 2
+        args.irq_stack = disasm.syms[names[1]] - disasm.syms[names[0]]
     an = Analysis(graph, model, table, args.lib_default, disasm)
     label = args.label or os.path.basename(os.path.normpath(args.build))
     fails = 0
@@ -1303,6 +1395,32 @@ def run(args):
         else:
             print("      " + " > ".join(graph.display(t) for t, _l in path[:args.path_len]) +
                   (" > ..." if len(path) > args.path_len else ""))
+    if args.irq_stack:
+        irqs = find_irqs(graph, root, files, args.irq_register)
+        if not irqs:
+            print("  interrupts: no handler passed to %s found" % ", ".join(args.irq_register or ["(no --irq-register)"]))
+            fails += 1
+        else:
+            # One handler at a time (the platform's interrupts don't nest): the deepest one decides
+            deep = None
+            for title, where in irqs:
+                worst, path = an.depth(title)
+                reach |= an.reachable(title)
+                if deep is None or worst > deep[0]:
+                    deep = (worst, title, where, path)
+            worst, title, where, path = deep
+            free = args.irq_stack - worst - args.margin
+            status = "ok" if free >= 0 else "OVER"
+            fails += free < 0
+            print("  %-8s %-4s stack %5d  deepest %5d  free %5d  (%s, %s; %d handlers, one at a time)" %
+                  ("irq", status, args.irq_stack, worst, free, graph.display(title), where, len(irqs)))
+            print("      " + " > ".join(graph.display(t) for t, _l in path[:args.path_len]) +
+                  (" > ..." if len(path) > args.path_len else ""))
+            if args.verbose:
+                for t, w in irqs:
+                    print("      %5d  %-28s %s" % (an.depth(t)[0], graph.display(t), w))
+            if least is None or free < least[0]:
+                least = (free, "irq")
     unres = sorted((graph.display(c), loc, e) for (c, loc), e in an.unresolved.items() if c in reach)
     if unres:
         print("  unresolved pointer calls reachable from a task (%d; tools/stack_check_edges.txt can name targets):"
@@ -1374,6 +1492,9 @@ void start(void)
 }
 static int add(int a, int b) { return a + b; }
 static void task_c(void *p) { add(1, dev.ops->go(2)); }
+static void isr_x(void) { leaf(); }
+void irq_install(int n, cb_t fn);
+static void wire(void) { irq_install(3, isr_x); irq_install(4, &deep_isr); }
 """
 
 SELF_CI = """\
@@ -1395,6 +1516,7 @@ edge: { sourcename: "t.c:task_b" targetname: "t.c:run_cb" label: "t.c:15:31" }
 edge: { sourcename: "t.c:task_b" targetname: "__indirect_call" label: "t.c:15:45" }
 node: { title: "start" label: "start\\nt.c:16:6\\n8 bytes (dynamic,bounded)" }
 node: { title: "xTaskCreate" label: "xTaskCreate\\nt.h:1:6" shape : ellipse }
+node: { title: "t.c:isr_x" label: "isr_x\\nt.c:25:13\\n12 bytes (static)" }
 edge: { sourcename: "start" targetname: "xTaskCreate" label: "t.c:19:2" }
 }
 """
@@ -1471,6 +1593,8 @@ def self_test():
         tasks = find_tasks(g, d, files, Table(), None, "", 4)
         check([(t[1], t[2]) for t in tasks] == [("a", None), ("b", 128)],
               "tasks found (without the preprocessor a macro stack stays unknown)")
+        irqs = find_irqs(g, d, files, ["irq_install"])
+        check([t for t, _w in irqs] == ["t.c:isr_x"], "interrupt handlers from the install calls: %s" % irqs)
         an = Analysis(g, model, Table(), DEFAULT_LIB_BYTES)
         b, path = an.depth("t.c:task_a")
         check(b == 8 + 208 and [t for t, _l in path] == ["t.c:task_a", "t.c:deep"],
@@ -1495,6 +1619,19 @@ def self_test():
         kx, ky = (model.chain_key(f, f.code.index("cb();"), "cb") for f in (fx, fy))
         check(kx == ("p", "x.c:start", 1) and ky == ("p", "start", 1),
               "two files' static functions of one name keep their parameters apart: %s %s" % (kx, ky))
+        # what an expression stores into a pointer: the branches of a conditional, never what it compares
+        fv = FileText("v.c", "void f(void)\n{\n}\n")
+
+        def stored(e):
+            return sorted(r[1][-1] for r in model.value_refs(fv, 0, e) if r[0] == "key")
+        check(stored("p != NULL ? a : b") == ["a", "b"], "a conditional stores its branches, not its test: %s" %
+              stored("p != NULL ? a : b"))
+        check(stored("p ? a : q ? b : c") == ["a", "b", "c"], "a nested conditional: %s" % stored("p ? a : q ? b : c"))
+        check(stored("d->count != NULL ? d->count() : 0") == ["d"],
+              "a called member is not stored: %s" % stored("d->count != NULL ? d->count() : 0"))
+        check(stored("a == b") == [] and stored("a->x < b->y") == [] and stored("a && b") == [] and stored("!a") == [],
+              "a comparison or a logical operator stores a number, not a pointer")
+        check(stored("a->go") == ["go"] and stored("(cb_t)a") == ["a"], "a plain chain or a cast is stored as before")
         t = Table()
         t.ptr["go"] = ["leaf"]
         an3 = Analysis(g, model, t, DEFAULT_LIB_BYTES)
@@ -1527,6 +1664,12 @@ def main():
     ap.add_argument("--lib-default", type=int, default=DEFAULT_LIB_BYTES,
                     help="bytes for a function without call graph that the table doesn't list (default %d)" %
                     DEFAULT_LIB_BYTES)
+    ap.add_argument("--irq-stack", type=int, default=0,
+                    help="bytes of the stack the interrupt handlers run on, one at a time (0: not checked)")
+    ap.add_argument("--irq-stack-symbols", metavar="BOTTOM,TOP",
+                    help="that stack's size from two ELF symbols, its ends (instead of --irq-stack)")
+    ap.add_argument("--irq-register", action="append",
+                    help="function whose last argument is an interrupt handler (repeatable)")
     ap.add_argument("--label", help="name in the report (default: the build directory's)")
     ap.add_argument("--report-only", action="store_true", help="report tasks over their stack, exit 0")
     ap.add_argument("--path-len", type=int, default=40)

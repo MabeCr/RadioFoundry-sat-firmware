@@ -9,6 +9,7 @@
 #include "modem/hrc5000/hrc5000.h"
 #include "modem/hrc_common/hrc6000_dmr.h"
 #include "dmr/ambe/ambeFec.h"
+#include "dmr/fec/dmrFec.h"
 
 static int failures;
 
@@ -24,10 +25,21 @@ static xfer_t xlog[8192];
 static int nx;
 static uint8_t rd[8][256];
 
+static int fail_reads, fail_writes;	// this many transfers of each kind fail next (logged all the same)
+
 static bool fake_transfer(void *ctx, const uint8_t *hdr, uint8_t hdr_len, const uint8_t *tx, uint8_t *rx, uint16_t len)
 {
 	uint8_t page = hdr[0] & 7u, reg = hdr[1];
 	bool read = (hdr[0] & 0x80u) != 0;
+	int *fail = read ? &fail_reads : &fail_writes;
+	if (*fail > 0) {
+		(*fail)--;
+		if (nx < (int)(sizeof(xlog) / sizeof(xlog[0]))) {
+			xlog[nx] = (xfer_t){ page, reg, (uint8_t)len, read, { 0 } };
+		}
+		nx++;
+		return false;
+	}
 	if (nx < (int)(sizeof(xlog) / sizeof(xlog[0]))) {
 		xfer_t *x = &xlog[nx];
 		x->page = page;
@@ -150,6 +162,48 @@ static void test_chip(void)
 	nx = 0;
 	CHECK(hrc_set_dmr_id(&c5.hrc, 0x123456u));		// low byte first
 	CHECK(last_write(0, 0x14) == 0x56 && last_write(0, 0x15) == 0x34 && last_write(0, 0x16) == 0x12);
+}
+
+// --- The TX lead for listening between bursts (4:0x12) ---
+
+static void test_tx_lead(void)
+{
+	hrc5000_t c5;
+	hrc5000_attach(&c5, &bus, false);
+	hrc5000_lead_t l = { 0 };
+	rd[0][0x12] = 0xC5;	// bits 7-6 kept; the configuration page is 0 on the wire
+
+	nx = 0;
+	CHECK(hrc5000_tx_lead_on(&c5, &l, 25));
+	CHECK(count_reads(0, 0x12) == 1 && last_write(0, 0x12) == (0xC0 | 25));
+	CHECK(hrc5000_tx_lead_on(&c5, &l, 25) && nx == 2);	// already on: no traffic
+	CHECK(hrc5000_tx_lead_off(&c5, &l) && last_write(0, 0x12) == 0xC5 && !l.on && !l.kept);
+	nx = 0;
+	CHECK(hrc5000_tx_lead_off(&c5, &l) && nx == 0);	// nothing to put back
+
+	// The read fails: nothing written then, and nothing at the end (it once wrote 0 back there)
+	nx = 0;
+	fail_reads = 1;
+	CHECK(!hrc5000_tx_lead_on(&c5, &l, 25) && !l.on && !l.kept);
+	CHECK(count_writes(0, 0x12) == 0);
+	CHECK(hrc5000_tx_lead_off(&c5, &l) && count_writes(0, 0x12) == 0);
+
+	// The write fails: not on, the value read kept; the next call writes again without reading, the end puts it back
+	nx = 0;
+	fail_writes = 1;
+	CHECK(!hrc5000_tx_lead_on(&c5, &l, 25) && !l.on && l.kept);
+	CHECK(hrc5000_tx_lead_on(&c5, &l, 25) && l.on);
+	CHECK(count_reads(0, 0x12) == 1 && count_writes(0, 0x12) == 2);
+	CHECK(hrc5000_tx_lead_off(&c5, &l) && last_write(0, 0x12) == 0xC5);
+
+	// The lead's write fails and so does the first restore: the end tries again
+	nx = 0;
+	fail_writes = 1;
+	CHECK(!hrc5000_tx_lead_on(&c5, &l, 25) && l.kept);
+	fail_writes = 1;
+	CHECK(!hrc5000_tx_lead_off(&c5, &l) && l.kept && !l.on);
+	CHECK(hrc5000_tx_lead_off(&c5, &l) && !l.kept && last_write(0, 0x12) == 0xC5);
+	rd[0][0x12] = 0;
 }
 
 // --- Register traffic ---
@@ -306,11 +360,17 @@ static dmr_tx_burst_t mk(uint8_t kind, uint8_t idx, bool host_crc)
 	return b;
 }
 
+static dmr_event_t evs[256];
+static int nev;
+
 static void drain(void)
 {
 	dmr_event_t ev;
 	dmr_burst_t b;
 	while (hrc6000_dmr_pop(&eng, &ev, &b)) {
+		if (nev < 256) {
+			evs[nev++] = ev;
+		}
 	}
 }
 
@@ -400,6 +460,59 @@ static void test_engine(void)
 	CHECK(count_page(4) == 0);
 }
 
+
+// A BS's outbound RC burst heard between our bursts: the HR_C5000 leaves its 48-bit field (EMB + RC) at page 2 0x30,
+// with bytes after it that change per burst. One DMR_EV_RC per new field, the same RC twice counted twice, another
+// color code's not at all
+static void test_tx_listen_rc_field(void)
+{
+	static const uint8_t cease[6] = { 0x28, 0x70, 0xD0, 0x4F, 0x1F, 0x7E };	// CC 2, cease, as sent on air
+	memset(rd, 0, sizeof(rd));
+	hrc5000_attach(&c5, &bus, false);
+	hrc_t *h = hrc5000_hrc(&c5);
+	CHECK(hrc6000_dmr_enter(h, 0x40, 0x40, 0xC8));
+	t_us = 1000000;
+	hrc6000_dmr_init(&eng, h, &ops);
+	hrc6000_dmr_run(&eng);
+	dmr_config_t cfg = { .own_id = 0x0A0B0C, .cc = 2, .access = DMR_ACCESS_IMPOLITE, .repeater = true };
+	hrc6000_dmr_configure(&eng, &cfg);
+	hrc6000_dmr_set_cc_filter(&eng, 2);
+	drain();
+	nev = 0;
+	CHECK(hrc6000_dmr_tx_begin(&eng, DMR_TIMING_OWN, 2, DMR_ACCESS_IMPOLITE));
+	hrc6000_dmr_tx_listen(&eng);
+	for (int i = 0; i < 8; i++) {
+		dmr_tx_burst_t b = mk(DMR_BURST_IDLE, 0, false);
+		CHECK(hrc6000_dmr_tx_queue(&eng, &b));
+	}
+	hrc6000_dmr_tx_end(&eng);
+	t_us = 6000000;
+	for (int k = 0; k < 30; k++) {
+		if (k == 3 || k == 7 || k == 11) {
+			memcpy(&rd[2][0x30], cease, sizeof cease);
+			rd[2][0x36] = (uint8_t)k;	// the bytes after the field change per burst
+			if (k == 11) {
+				dmrFecRcField(3, DMR_RC_CEASE, &rd[2][0x30]);	// another color code's
+			}
+		}
+		hrc6000_dmr_isr_timeslot(&eng);
+		t_us += 1500;
+		hrc6000_dmr_isr_rftx(&eng);
+		t_us += 28500;
+		drain();
+	}
+	int rc = 0;
+	for (int i = 0; i < nev; i++) {
+		if (evs[i].kind == DMR_EV_RC) {
+			rc++;
+			CHECK(evs[i].arg == dmrFecRcInfo(DMR_RC_CEASE));
+		}
+	}
+	hrc6000_dmr_stats_t st;
+	hrc6000_dmr_stats(&eng, &st);
+	CHECK(rc == 2 && st.rc_tap == 2);
+	CHECK(st.rc_tap_changed == 4);	// the empty area first, then each field
+}
 
 // Received voice on the HR_C5000 (hardware-md380.md 4.8): no report per burst. A call's header starts the decoder
 // (0x22 DecodeStart); the voice port is read at every tick, the slot whose reads carry valid AMBE+2 frames is locked,
@@ -557,6 +670,263 @@ static void test_tick_rx_stale_headers(void)
 	CHECK(st.tr_calls == 1 && st.tr_bursts == 18);
 }
 
+// The tick reads' set-up: an engine running on a channel with no voice heard yet, the port and page 2 empty
+static void tr_setup(void)
+{
+	memset(rd, 0, sizeof(rd));
+	memset(voice_port, 0, sizeof(voice_port));
+	hrc5000_attach(&c5, &bus, false);
+	hrc_t *h = hrc5000_hrc(&c5);
+	CHECK(hrc6000_dmr_enter(h, 0x40, 0x40, 0xC8));
+	t_us = 5000000;
+	hrc6000_dmr_init(&eng, h, &ops);
+	hrc6000_dmr_run(&eng);
+	dmr_config_t cfg = { .own_id = 0x0A0B0C, .cc = 1, .access = DMR_ACCESS_IMPOLITE };
+	hrc6000_dmr_configure(&eng, &cfg);
+	drain();
+	t_us += 30000;
+	hrc6000_dmr_isr_timeslot(&eng);
+}
+
+// A report in the slot now ending: flags in 0x82, 0x51 for a data report
+static void tr_report(uint8_t flags, uint8_t r51)
+{
+	t_us += 3500;
+	rd[0][0x82] = flags;
+	rd[0][0x51] = r51;
+	rd[0][0x52] = 0x10;
+	hrc6000_dmr_isr_sys(&eng);
+	rd[0][0x82] = 0;
+	t_us -= 3500;
+}
+
+// A silent talker's bursts are the same bytes every time (one AMBE+2 silence frame sent throughout), so comparing the
+// port with this slot's last read took every burst after the first for a lost one, and the call ended after six. The
+// port changes at the other slot's ticks as well (hardware-md380.md 4.9): an unchanged read is lost only if the port
+// has not moved since the last tick. Once the call stops, the port keeps its last burst and the call must still end
+static void test_tick_rx_same_bursts(void)
+{
+	tr_setup();
+	memcpy(rd[2], "\x00\x00\x00\x00\x00\x09\x98\x71\x5E", 9);
+	tr_report(0x08, 0x12);		// the header starts the decoder
+	drain();
+	burst(4, true);
+	uint8_t silent[27];
+	memcpy(silent, voice_port, sizeof(silent));
+	int voice = 0, in_order = 0, stop_at = -1;
+	uint8_t want = 0;
+	for (int k = 0; k < 110; k++) {
+		if (k <= 70) {		// from then on the port keeps the last burst
+			if ((k & 1) == 0) {
+				memcpy(voice_port, silent, sizeof(silent));
+			} else {
+				burst((uint8_t)k, false);	// the other slot's tick: no call there
+			}
+		}
+		t_us += 5000;
+		nx = 0;
+		hrc6000_dmr_isr_timeslot(&eng);
+		if (stop_at < 0 && last_write(0, 0x22) == 0x17) {
+			stop_at = k;
+		}
+		t_us += 25000;
+		dmr_event_t ev;
+		dmr_burst_t b;
+		while (hrc6000_dmr_pop(&eng, &ev, &b)) {
+			if (ev.kind == DMR_EV_BURST_RX && b.kind == DMR_BURST_VOICE) {
+				voice++;
+				in_order += b.voice_index == want;
+				want = (uint8_t)((want + 1u) % 6u);
+				CHECK(memcmp(b.payload, silent, sizeof(silent)) == 0);
+			}
+		}
+	}
+	hrc6000_dmr_stats_t st;
+	hrc6000_dmr_stats(&eng, &st);
+	printf("  same bytes: %d of 36 bursts, stopped at %d, misses same %u bad %u\n", voice, stop_at,
+	       (unsigned)st.tr_miss_same, (unsigned)st.tr_miss_bad);
+	CHECK(voice == 36);
+	CHECK(in_order == 36);
+	CHECK(stop_at > 71 && stop_at < 88);	// DecodeStop six frames after the last burst
+	CHECK(st.tr_miss_same == 6 && st.tr_miss_bad == 0);
+	CHECK(!eng.tr_active);
+}
+
+// A call in a dropout, then the chip's late entry reports (one per superframe) with the voice back at the same time
+typedef struct {
+	bool terminator;	// the call ended by its terminator before the gap
+	int gap;		// ticks without voice
+	int reports;		// late entry reports after the gap, a superframe apart
+	const uint8_t *lc2;	// page 2 from the gap on (NULL: the call's LC stays there)
+	const uint8_t *lc3;	// ... from the second report on (NULL: as lc2)
+} resume_opts_t;
+
+typedef struct {
+	int after;		// voice bursts after the gap
+	int lc_at;		// the first of them with an LC (-1 none), counted from 1
+	uint8_t lc[9];
+	int lc_seen;		// LCs handed over after the gap
+} resume_result_t;
+
+static const uint8_t res_lc[9] = { 0, 0, 0, 0, 0, 9, 0x98, 0x71, 0x5E };
+static const uint8_t res_other[9] = { 0, 0, 0, 0, 0, 9, 0x98, 0x71, 0x5F };
+
+static resume_result_t resume_run(const resume_opts_t *o)
+{
+	resume_result_t r = { .lc_at = -1 };
+	tr_setup();
+	memcpy(rd[2], res_lc, 9);
+	tr_report(0x08, 0x12);		// the voice LC header
+	drain();
+	dmr_event_t ev;
+	dmr_burst_t b;
+	uint32_t seed = 10;
+	// 24 bursts of voice on the even ticks, noise on the odd ones
+	for (int k = 0; k < 48; k++) {
+		burst((uint8_t)(seed++), (k & 1) == 0);
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	if (o->terminator) {
+		tr_report(0x08, 0x22);
+		drain();
+	}
+	// The gap: the port keeps its last burst, the decoder stops, the receiver restarts
+	for (int k = 0; k < o->gap; k++) {
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	CHECK(!eng.tr_active);
+	if (o->lc2 != NULL) {
+		memcpy(rd[2], o->lc2, 9);
+	}
+	// Voice again, the first report just before it: the chip acquired the call in the gap's last superframe
+	for (int k = 0; k < 40; k++) {
+		if (k % 12 == 0 && k / 12 < o->reports) {
+			if (k > 0 && o->lc3 != NULL) {
+				memcpy(rd[2], o->lc3, 9);
+			}
+			tr_report(0x10, 0);
+		}
+		burst((uint8_t)(seed++), (k & 1) == 1);
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		while (hrc6000_dmr_pop(&eng, &ev, &b)) {
+			if (ev.kind == DMR_EV_BURST_RX && b.kind == DMR_BURST_VOICE) {
+				r.after++;
+				if (b.lc_valid) {
+					r.lc_seen++;
+					if (r.lc_at < 0) {
+						r.lc_at = r.after;
+						memcpy(r.lc, b.lc, 9);
+					}
+				}
+			}
+		}
+	}
+	printf("  resume: %d bursts, LC at %d (%d)\n", r.after, r.lc_at, r.lc_seen);
+	return r;
+}
+
+// Page 2 is sticky (gotchas 1.4): the same LC there after a gap proves nothing, and the rule that protects a new call
+// from the last one's LC cost an interrupted call two superframes. A late entry report comes when the chip has
+// assembled the LC of what is on air now. Two of them, a superframe apart, both with the interrupted call's LC: the
+// same call. A second report is what makes it proof: the first could be read before the chip wrote the new LC
+static void test_tick_rx_resume(void)
+{
+	// The trace of 2026-11-07: 26 ticks without voice
+	resume_opts_t two = { .gap = 26, .reports = 2 };
+	resume_result_t r = resume_run(&two);
+	CHECK(r.after == 20);
+	CHECK(r.lc_at >= 7 && r.lc_at <= 8);	// the voice after the second report, not the second F (13)
+	CHECK(memcmp(r.lc, res_lc, 9) == 0);
+	hrc6000_dmr_stats_t st;
+	hrc6000_dmr_stats(&eng, &st);
+	CHECK(st.lc_resumed == 1);
+
+	// One report only: nothing proves it, the sticky rule decides (the A after the first whole superframe)
+	resume_opts_t one = { .gap = 26, .reports = 1 };
+	r = resume_run(&one);
+	CHECK(r.lc_at >= 7 && r.lc_at <= 8);
+
+	// Someone else came on in the gap: their LC at the first report, handed over at once (never the old one)
+	resume_opts_t other = { .gap = 26, .reports = 2, .lc2 = res_other };
+	r = resume_run(&other);
+	CHECK(r.lc_at >= 1 && r.lc_at <= 2 && memcmp(r.lc, res_other, 9) == 0);
+
+	// ... and when page 2 lagged at the first report, the second shows them: never handed over as the old call
+	resume_opts_t lag = { .gap = 26, .reports = 2, .lc3 = res_other };
+	r = resume_run(&lag);
+	CHECK(r.lc_at >= 7 && r.lc_at <= 8 && memcmp(r.lc, res_other, 9) == 0);
+
+	// The call ended by its terminator: the same LC after it is a new call, by the sticky LC rule
+	resume_opts_t term = { .terminator = true, .gap = 26, .reports = 2 };
+	r = resume_run(&term);
+	CHECK(r.lc_at >= 7 && r.lc_at <= 8);
+	CHECK(memcmp(r.lc, res_lc, 9) == 0);
+
+	// Too long after the call: a new one
+	resume_opts_t late = { .gap = 70, .reports = 2 };
+	r = resume_run(&late);
+	CHECK(r.lc_at >= 7 && r.lc_at <= 8);
+}
+
+// A post-access read's LC with no reception after it stays out of later receptions: the flag that keeps it for the
+// capture says only what the last read saw. Old LC: a post-access read of res_other that nothing followed, a call with
+// a post-access read inside it, then a late join started by an information report, within reach of that second read
+static void test_tick_rx_stale_post_access(void)
+{
+	tr_setup();
+	memcpy(rd[2], res_other, 9);
+	tr_report(0x10, 0);
+	for (int k = 0; k < 60; k++) {		// nothing follows: the search times out
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	memcpy(rd[2], res_lc, 9);
+	tr_report(0x08, 0x12);
+	drain();
+	uint32_t seed = 10;
+	for (int k = 0; k < 24; k++) {
+		burst((uint8_t)(seed++), (k & 1) == 0);
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	for (int k = 0; k < 10; k++) {		// the voice stops; a post-access read while the reception still counts
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	tr_report(0x10, 0);
+	for (int k = 0; k < 6; k++) {		// the reception is over
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		drain();
+	}
+	tr_report(0x04, 0);			// an information report starts the decoder
+	int wrong = 0, voice = 0;
+	for (int k = 0; k < 16; k++) {
+		burst((uint8_t)(seed++), (k & 1) == 1);
+		t_us += 30000;
+		hrc6000_dmr_isr_timeslot(&eng);
+		dmr_event_t ev;
+		dmr_burst_t b;
+		while (hrc6000_dmr_pop(&eng, &ev, &b)) {
+			if (ev.kind == DMR_EV_BURST_RX && b.kind == DMR_BURST_VOICE) {
+				voice++;
+				wrong += b.lc_valid && memcmp(b.lc, res_other, 9) == 0;
+			}
+		}
+	}
+	printf("  stale post access: %d bursts, %d with the old LC\n", voice, wrong);
+	CHECK(voice > 0);
+	CHECK(wrong == 0);
+}
+
 // Through a repeater (issue 108): 0x52 bit 2 is the last received slot's TC, 1 = TS2 starting. Receive stays open in
 // both slots once locked (closing one freezes the bit), and an aligned start calls tx_slot_found two ticks before its
 // first burst, which goes out in the channel's slot
@@ -654,14 +1024,449 @@ static void test_repeater_slot(void)
 	drain();
 }
 
+// Traffic on both slots of a duplex hotspot (issue 279), the channel on TS1. The chip as measured (4.9, and the tests
+// above): receive stays open in both slots, the TC bit alternates, a slot's header is reported in the next slot, and
+// its voice is in the port one tick after that, so the port holds a burst of one call or the other at every tick.
+// TS1 starts at the even ticks (rep_ts_starting): its headers are reported after the odd ticks and its voice is read
+// at the even ones.
+// Every voice burst taken must keep its call's slot, and the TS1 call must be heard although TS2 is talking
+static void vburst(uint8_t out[27], uint32_t key)
+{
+	uint32_t x = key * 2654435761u + 0x9E3779B9u;
+	for (int f = 0; f < 3; f++) {
+		uint8_t p[AMBE_PARAM_BITS];
+		for (int i = 0; i < AMBE_PARAM_BITS; i++) {
+			x ^= x << 13;
+			x ^= x >> 17;
+			x ^= x << 5;
+			p[i] = (uint8_t)(x & 1u);
+		}
+		ambeFecEncode(p, out + 9 * f);
+	}
+}
+
+#define TWO_KEY(ts, n)	((uint32_t)(ts) << 16 | (uint32_t)(n))
+
+typedef struct {
+	int hdr_from, hdr_to;		// ticks of the call's headers (none when equal)
+	int late_at;			// tick of a late entry report (-1 none)
+	int voice_from, voice_to;	// ticks of its voice
+} two_call_t;
+
+typedef struct {
+	int stale_every;	// one TC read in this many misses its update (0 none)
+	int inv_from, inv_to;	// steps whose TC reads name the other slot
+	int8_t lock_ts;		// rx_lock_slot: 1 a repeater channel on TS1, 0 both slots (a hotspot, hear all)
+	int restart_at;		// step of an rx_restart from the stack (0 none): the slots are forgotten
+	int alias;		// page 2 holds a talker alias block (FLCO 4) for each call's superframes 0, 2, 4... (1) or
+				// 1, 3, 5... (2) instead of its LC (0 never)
+	bool same;		// both calls have the same LC (a group bridged to both slots)
+	int talker_at;		// step from which TS1's call has another talker, with no header (0 never)
+	int mix_sf;		// TS2's superframe after which page 2 holds a mix of both calls' LCs, once (0 never); below
+				// 0, page 2 holds the mix after every F from step -mix_sf on
+} two_opts_t;
+
+typedef struct {
+	int sent[3];		// voice bursts per call slot
+	int heard[3];		// ... taken, with that slot
+	int unknown[3];		// ... taken with no slot number
+	int wrong[3];		// ... taken with the other slot
+	int idx_jump[3];	// ... taken with a burst index out of step with the call's earlier bursts
+	int idx_off[3];		// ... with a burst index that isn't the call's (burst n is index n % 6 from its start)
+	int lc_own[3];		// ... handed over with an LC, the call's own
+	int lc_other[3];	// ... handed over with the other call's LC
+	int lc_new[3];		// ... handed over with TS1's next talker's LC
+	int alias[3];		// ... handed over with the call's own alias block
+	int alias_other[3];	// ... handed over with the other call's alias block
+	int lc_mix[3];		// ... handed over with the mixed LC
+	int tc_wrong;		// ticks with a wrong slot number (0, unknown, isn't)
+	int ctr_wrong;		// voice bursts whose slot counter isn't their report's (the tick before their read)
+} two_result_t;
+
+static const two_opts_t *two_o;	// the run's options
+
+// Each call's LC: group call to TG ts from 0x0n0n0n (TS2's for both with same). Page 2 (not per slot) gets a call's LC
+// with its header, and its embedded LC (or an alias block) by the tick after its F was read (the sticky LC rule's A
+// look): at the other call's F it may hold this one's
+static void two_lc(int ts, uint8_t lc[9])
+{
+	int of = two_o->same ? 2 : ts;
+	uint8_t s = (uint8_t)(of * 0x11);
+	const uint8_t v[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, (uint8_t)of, s, s, s };
+	memcpy(lc, v, 9);
+}
+
+static void two_lc_new(uint8_t lc[9])
+{
+	const uint8_t v[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x77, 0x77, 0x77 };
+	memcpy(lc, v, 9);
+}
+
+static void two_alias(int ts, uint8_t lc[9])
+{
+	const uint8_t v[9] = { 0x04, 0x00, (uint8_t)ts, 'C', 'A', 'L', 'L', '0', (uint8_t)('0' + ts) };
+	memcpy(lc, v, 9);
+}
+
+// Neither call's LC: a mix of both (on the bench: source 12087454, TG 3)
+static void two_lc_mix(uint8_t lc[9])
+{
+	const uint8_t v[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xB8, 0x70, 0x9E };
+	memcpy(lc, v, 9);
+}
+
+// Page 2 after the F of superframe sf of the call on ts, at step k
+static void two_page2(int ts, uint32_t sf, int k, uint8_t lc[9])
+{
+	if ((ts == 2 && two_o->mix_sf > 0 && sf == (uint32_t)two_o->mix_sf) || (two_o->mix_sf < 0 && k >= -two_o->mix_sf)) {
+		two_lc_mix(lc);
+	} else if (two_o->alias != 0 && sf % 2u == (uint32_t)(two_o->alias - 1)) {
+		two_alias(ts, lc);
+	} else if (ts == 1 && two_o->talker_at > 0 && k >= two_o->talker_at) {
+		two_lc_new(lc);
+	} else {
+		two_lc(ts, lc);
+	}
+}
+
+static void two_count_lc(two_result_t *res, int ts, const uint8_t lc[9])
+{
+	uint8_t v[9];
+	two_lc(ts, v);
+	if (memcmp(lc, v, 9) == 0) {
+		res->lc_own[ts]++;
+		return;
+	}
+	two_lc(3 - ts, v);
+	res->lc_other[ts] += memcmp(lc, v, 9) == 0;
+	two_lc_new(v);
+	res->lc_new[ts] += memcmp(lc, v, 9) == 0;
+	two_alias(ts, v);
+	res->alias[ts] += memcmp(lc, v, 9) == 0;
+	two_alias(3 - ts, v);
+	res->alias_other[ts] += memcmp(lc, v, 9) == 0;
+	two_lc_mix(v);
+	res->lc_mix[ts] += memcmp(lc, v, 9) == 0;
+}
+
+// Step k, at the engine's tick t (the one its timeslot interrupt is about to start): is a burst of the call on ts in
+// the port (voice, read at t), or its report due (header, after t)
+static bool two_voice(const two_call_t *c, int ts, int k, uint32_t t)
+{
+	return k >= c->voice_from && k < c->voice_to && rep_ts_starting(t) == ts;
+}
+
+static bool two_report(const two_call_t *c, int ts, int k, uint32_t t)
+{
+	return k >= c->hdr_from && k < c->hdr_to && rep_ts_starting(t - 1u) == ts;
+}
+
+static two_result_t two_slots(const two_call_t *c1, const two_call_t *c2, int ticks, const two_opts_t *o)
+{
+	two_o = o;
+	memset(rd, 0, sizeof(rd));
+	memset(voice_port, 0, sizeof(voice_port));
+	hrc5000_attach(&c5, &bus, false);
+	hrc_t *h = hrc5000_hrc(&c5);
+	CHECK(hrc6000_dmr_enter(h, 0x40, 0x40, 0xC8));
+	t_us = 1000000;
+	hrc6000_dmr_init(&eng, h, &ops);
+	hrc6000_dmr_run(&eng);
+	dmr_config_t cfg = { .own_id = 0x0A0B0C, .cc = 1, .access = DMR_ACCESS_IMPOLITE, .repeater = true };
+	hrc6000_dmr_configure(&eng, &cfg);
+	hrc6000_dmr_rx_lock_slot(&eng, o->lock_ts);
+	drain();
+
+	two_result_t res;
+	memset(&res, 0, sizeof(res));
+	int first_n[3] = { -1, -1, -1 }, first_idx[3] = { 0, 0, 0 };
+	rep_ctl[0] = rep_ctl[1] = 0x50;
+	rep_bit = 0;
+	uint32_t n_burst[3] = { 0, 0, 0 };
+	int f_ts = 0;	// the call whose F was in the port at the last step
+	for (int k = 0; k < ticks; k++) {
+		if (f_ts != 0) {
+			two_page2(f_ts, (n_burst[f_ts] - 1u) / 6u, k, rd[2]);
+		}
+		// The port: this tick's call burst, else what the idle slot leaves (no frame that checks)
+		uint32_t t = eng.tick + 1u;
+		int vts = two_voice(c1, 1, k, t) ? 1 : two_voice(c2, 2, k, t) ? 2 : 0;
+		f_ts = vts != 0 && n_burst[vts] % 6u == 5u ? vts : 0;
+		if (vts != 0) {
+			vburst(voice_port, TWO_KEY(vts, n_burst[vts]++));
+		} else {
+			vburst(voice_port, TWO_KEY(3, (uint32_t)k));
+			voice_port[0] ^= 0x88;
+			voice_port[1] ^= 0x88;
+			voice_port[9] ^= 0x88;
+			voice_port[10] ^= 0x88;
+			voice_port[18] ^= 0x88;
+			voice_port[19] ^= 0x88;
+		}
+		// The TC as rep_tick has it, with a read now and then that missed its update
+		bool stale = o->stale_every > 0 && k % o->stale_every == o->stale_every - 1;
+		if ((rep_ctl[1] & 0x50u) == 0x50u && !stale) {
+			bool inv = k >= o->inv_from && k < o->inv_to;
+			rep_bit = (rep_ts_starting(eng.tick + 1u) == 2) != inv ? 0x04 : 0x00;
+		}
+		rd[0][0x52] = (uint8_t)(0x10 | rep_bit);
+		t_us += 30000;
+		nx = 0;
+		hrc6000_dmr_isr_timeslot(&eng);
+		rep_ctl[1] = rep_ctl[0];
+		for (int i = 0; i < nx; i++) {
+			if (!xlog[i].read && xlog[i].page == 0 && xlog[i].reg == 0x41) {
+				rep_ctl[0] = xlog[i].data[0];
+			}
+		}
+		uint32_t ph = eng.tick & 1u;
+		res.tc_wrong += eng.phase_ts[ph] != 0 && eng.phase_ts[ph] != rep_ts_starting(eng.tick);
+		// Reports: a voice LC header (data) or a late entry, 3.5 ms into the slot after the burst's
+		uint8_t flags = 0;
+		if (two_report(c1, 1, k, t) || two_report(c2, 2, k, t)) {
+			flags = 0x08;
+			rd[0][0x51] = 0x12;
+			two_lc(two_report(c1, 1, k, t) ? 1 : 2, rd[2]);
+		} else if (k == c1->late_at || k == c2->late_at) {
+			flags = 0x10;
+		}
+		if (flags != 0) {
+			t_us += 3500;
+			rd[0][0x82] = flags;
+			hrc6000_dmr_isr_sys(&eng);
+			rd[0][0x82] = 0;
+			t_us -= 3500;
+		}
+		if (o->restart_at > 0 && k == o->restart_at) {
+			hrc6000_dmr_rx_restart(&eng);
+		}
+		dmr_event_t ev;
+		dmr_burst_t b;
+		while (hrc6000_dmr_pop(&eng, &ev, &b)) {
+			if (ev.kind != DMR_EV_BURST_RX || b.kind != DMR_BURST_VOICE) {
+				continue;
+			}
+			res.ctr_wrong += ev.arg != eng.tick - 1u;
+			// Which call's burst this is
+			for (int ts = 1; ts <= 2; ts++) {
+				for (uint32_t n = 0; n < n_burst[ts]; n++) {
+					uint8_t want[27];
+					vburst(want, TWO_KEY(ts, n));
+					if (memcmp(want, b.payload, sizeof(want)) == 0) {
+						res.heard[ts] += ev.ts == ts;
+						if (b.lc_valid) {
+							two_count_lc(&res, ts, b.lc);
+						}
+						res.unknown[ts] += ev.ts == 0;
+						res.wrong[ts] += ev.ts != 0 && ev.ts != ts;
+						if (first_n[ts] < 0) {
+							first_n[ts] = (int)n;
+							first_idx[ts] = b.voice_index;
+						}
+						res.idx_jump[ts] += (b.voice_index + 6 - first_idx[ts]) % 6 !=
+							((int)n - first_n[ts]) % 6;
+						res.idx_off[ts] += b.voice_index != n % 6u;
+					}
+				}
+			}
+		}
+	}
+	for (int ts = 1; ts <= 2; ts++) {
+		res.sent[ts] = (int)n_burst[ts];
+	}
+	return res;
+}
+
+static void two_print(const char *what, const two_result_t *r)
+{
+	printf("  %s: tc %d wrong, slot counter %d wrong\n", what, r->tc_wrong, r->ctr_wrong);
+	for (int ts = 1; ts <= 2; ts++) {
+		printf("    TS%d: %d sent, %d heard, %d unknown, %d wrong; index %d out of step, %d not the call's; LC %d own, "
+		       "%d other's, %d next talker's, %d mixed; alias %d own, %d other's\n", ts, r->sent[ts],
+		       r->heard[ts], r->unknown[ts], r->wrong[ts], r->idx_jump[ts], r->idx_off[ts], r->lc_own[ts],
+		       r->lc_other[ts], r->lc_new[ts], r->lc_mix[ts], r->alias[ts], r->alias_other[ts]);
+	}
+}
+
+#define TWO_CHECK(what, r, cond) do { int f_ = failures; CHECK(cond); if (failures != f_) two_print(what, &(r)); } while (0)
+
+static void test_two_slots(void)
+{
+	const two_opts_t rpt = { 0, 0, 0, 1, 0, 0, false, 0, 0 };
+	const two_call_t none = { 0, 0, -1, 0, 0 };
+
+	// TS2 talking first; a TS1 call starts with its headers while TS2 goes on, and outlasts it
+	two_call_t ts2 = { 20, 30, -1, 30, 200 };
+	two_call_t ts1 = { 80, 90, -1, 90, 240 };
+	two_result_t r = two_slots(&ts1, &ts2, 260, &rpt);
+	TWO_CHECK("TS2 first", r, r.tc_wrong == 0 && r.wrong[1] == 0 && r.wrong[2] == 0 && r.ctr_wrong == 0);
+	TWO_CHECK("TS2 first", r, r.heard[1] == r.sent[1] && r.idx_off[1] == 0);	// all of TS1, A-F in place
+
+	// TS2 already running when the radio comes in (its late entry report only); TS1's headers come mid-stream.
+	// One TC read in seven misses its update
+	two_call_t ts2b = { 0, 0, 6, 0, 200 };
+	two_call_t ts1b = { 40, 50, -1, 50, 160 };
+	const two_opts_t stale = { 7, 0, 0, 1, 0, 0, false, 0, 0 };
+	r = two_slots(&ts1b, &ts2b, 200, &stale);
+	TWO_CHECK("TS2 running", r, r.tc_wrong == 0 && r.wrong[1] == 0 && r.wrong[2] == 0);
+	TWO_CHECK("TS2 running", r, r.heard[1] == r.sent[1] && r.idx_off[1] == 0);
+
+	// One call, joined late on a radio that has heard no header since it started: its slot is the call's too, and
+	// every burst read after the late entry report is taken
+	two_call_t ts1c = { 0, 0, 30, 24, 120 };
+	r = two_slots(&ts1c, &none, 140, &rpt);
+	TWO_CHECK("late entry", r, r.tc_wrong == 0 && r.wrong[1] == 0 && r.heard[1] == 45 && r.idx_jump[1] == 0);
+
+	// A receiver restart mid-call (the stack's rx_restart, a color code change): the slots are forgotten until the TC
+	// locks again, but nothing names the other slot. The call keeps its lock (bursts with no slot number meanwhile)
+	// and its burst index
+	two_call_t ts1d = { 20, 30, -1, 30, 200 };
+	const two_opts_t blip = { 0, 0, 0, 1, 100, 0, false, 0, 0 };
+	r = two_slots(&ts1d, &none, 220, &blip);
+	TWO_CHECK("TC blip", r, r.wrong[1] == 0 && r.heard[1] + r.unknown[1] == r.sent[1] && r.unknown[1] > 0);
+	TWO_CHECK("TC blip", r, r.idx_off[1] == 0);
+
+	// The TC wrong from the start: TS2's call is taken as TS1 (nothing to tell them apart) until the TC comes right
+	// (the lock unwinds one agreement per read: about 60 reads here) and names its phase TS2. Then the lock and
+	// TS2's header phase go, and TS1's call, already talking, is found
+	two_call_t ts2e = { 10, 20, -1, 20, 240 };
+	two_call_t ts1e = { 50, 60, -1, 60, 240 };
+	const two_opts_t wrong = { 0, 0, 70, 1, 0, 0, false, 0, 0 };
+	r = two_slots(&ts1e, &ts2e, 260, &wrong);
+	TWO_CHECK("TC wrong at first", r, r.wrong[1] == 0 && r.heard[1] >= 45 && r.idx_jump[1] == 0);
+
+	// Both slots heard (a hotspot, hear all): a TS2 header with no voice after it (the call's voice lost), then a
+	// TS1 call joined by late entry: the late entry frees the read from the header's phase
+	const two_opts_t both = { 0, 0, 0, 0, 0, 0, false, 0, 0 };
+	two_call_t ts2f = { 20, 30, -1, 0, 0 };
+	two_call_t ts1f = { 0, 0, 40, 34, 150 };
+	r = two_slots(&ts1f, &ts2f, 160, &both);
+	TWO_CHECK("late entry after a header", r, r.tc_wrong == 0 && r.wrong[1] == 0 && r.heard[1] == 55);
+
+	// Both slots heard: TS2 talking with nothing reported, TS1's headers come: the read locks TS1's call, the one its
+	// header started, and names it TS1
+	two_call_t ts2g = { 0, 0, -1, 0, 200 };
+	two_call_t ts1g = { 40, 50, -1, 50, 160 };
+	r = two_slots(&ts1g, &ts2g, 200, &both);
+	TWO_CHECK("both slots", r, r.tc_wrong == 0 && r.wrong[1] == 0 && r.wrong[2] == 0);
+	TWO_CHECK("both slots", r, r.heard[1] == r.sent[1] && r.idx_off[1] == 0);
+
+	// After a quiet period the receiver restarts as the call's single header comes, and the slot is unknown for
+	// its first bursts: they are skipped (on a repeater channel nothing is taken without its slot), but counted, so
+	// the rest come out with their own index
+	two_call_t ts1h = { 20, 22, -1, 22, 120 };
+	r = two_slots(&ts1h, &none, 140, &rpt);
+	TWO_CHECK("header at a restart", r, r.wrong[1] == 0 && r.unknown[1] == 0 && r.heard[1] >= r.sent[1] - 3);
+	TWO_CHECK("header at a restart", r, r.idx_off[1] == 0);
+
+	// The embedded LCs of two calls (page 2 isn't per slot): no voice burst of one call is handed over with the
+	// other's LC, which the core takes for a new call on the channel (HIL: the wanted call went quiet with
+	// the other call's source shown). TS1 talking first, then TS2 with its headers
+	two_call_t ts1i = { 20, 30, -1, 30, 240 };
+	two_call_t ts2i = { 80, 90, -1, 90, 240 };
+	r = two_slots(&ts1i, &ts2i, 260, &rpt);
+	TWO_CHECK("TS1 first, LC", r, r.lc_other[1] == 0 && r.heard[1] == r.sent[1]);
+	// TS2 first, as above
+	r = two_slots(&ts1, &ts2, 260, &rpt);
+	TWO_CHECK("TS2 first, LC", r, r.lc_other[1] == 0);
+	// TS2 with its headers, then TS1 joined by late entry: TS1's own LC is found (at the A after its F) and only that
+	two_call_t ts2j = { 20, 30, -1, 30, 240 };
+	two_call_t ts1j = { 0, 0, 86, 74, 240 };
+	r = two_slots(&ts1j, &ts2j, 260, &rpt);
+	TWO_CHECK("late entry beside a call, LC", r, r.lc_other[1] == 0 && r.lc_own[1] > 0);
+	// Both slots heard (a hotspot, hear all), TS1 first: neither call gets the other's LC
+	two_call_t ts1k = { 20, 30, -1, 30, 240 };
+	two_call_t ts2k = { 50, 60, -1, 60, 240 };
+	r = two_slots(&ts1k, &ts2k, 260, &both);
+	TWO_CHECK("both slots, LC", r, r.lc_other[1] == 0 && r.lc_other[2] == 0);
+	// One call: its embedded LC is still handed over (nothing to hold back)
+	r = two_slots(&ts1c, &none, 140, &rpt);
+	TWO_CHECK("late entry, LC", r, r.lc_own[1] > 0);
+
+	// Talker alias blocks in page 2 every other superframe (FLCO 4). One call with its headers: its alias blocks and
+	// LCs are handed over
+	const two_opts_t alias1 = { 0, 0, 0, 1, 0, 2, false, 0, 0 };
+	r = two_slots(&ts1i, &none, 260, &alias1);
+	TWO_CHECK("one call, alias", r, r.heard[1] == r.sent[1] && r.alias[1] > 0 && r.lc_own[1] > 0);
+	// One call joined late, an alias block in its first superframe: it is never taken for the call's LC
+	const two_opts_t alias0 = { 0, 0, 0, 1, 0, 1, false, 0, 0 };
+	r = two_slots(&ts1c, &none, 140, &alias0);
+	TWO_CHECK("late entry, alias", r, r.heard[1] == 45 && r.lc_own[1] > 0 && r.alias[1] > 0);
+	// Two calls with alias blocks: neither call's go with the other's bursts, and the wanted call keeps its LC
+	r = two_slots(&ts1i, &ts2i, 260, &alias1);
+	TWO_CHECK("two calls, alias", r, r.heard[1] == r.sent[1] && r.lc_own[1] > 0 && r.lc_other[1] == 0);
+	TWO_CHECK("two calls, alias", r, r.alias_other[1] == 0);
+	r = two_slots(&ts1j, &ts2j, 260, &alias1);
+	TWO_CHECK("late entry beside a call, alias", r, r.lc_own[1] > 0 && r.lc_other[1] == 0 && r.alias_other[1] == 0);
+
+	// Both checks pass with the wanted call's own LC: TS2 first, as above
+	r = two_slots(&ts1, &ts2, 260, &rpt);
+	TWO_CHECK("TS2 first, own LC", r, r.heard[1] == r.sent[1] && r.lc_own[1] > 0);
+
+	// The same LC on both slots (a group bridged to both): TS1's call, with its headers, gets it
+	const two_opts_t same = { 0, 0, 0, 1, 0, 0, true, 0, 0 };
+	r = two_slots(&ts1, &ts2, 260, &same);
+	TWO_CHECK("same LC on both slots", r, r.heard[1] == r.sent[1] && r.lc_own[1] > 0);
+
+	// Another talker on TS1 with no header (its terminator missed), the other slot quiet: the new LC is handed over
+	const two_opts_t talker = { 0, 0, 0, 1, 0, 0, false, 150, 0 };
+	r = two_slots(&ts1i, &none, 260, &talker);
+	TWO_CHECK("next talker, no header", r, r.heard[1] == r.sent[1] && r.lc_own[1] > 0 && r.lc_new[1] > 0);
+
+	// A TS2 call heard, then a new frequency (rx_restart), where TS1 carries the same call joined by late entry: the
+	// old frequency's slot LCs are forgotten, so TS1 gets the LC
+	two_call_t ts2m = { 20, 30, -1, 30, 100 };
+	two_call_t ts1m = { 0, 0, 130, 124, 240 };
+	const two_opts_t moved = { 0, 0, 0, 1, 110, 0, true, 0, 0 };
+	r = two_slots(&ts1m, &ts2m, 260, &moved);
+	TWO_CHECK("new frequency, same call", r, r.heard[1] > 0 && r.lc_own[1] > 0);
+
+	// A TS2 call that ended with no terminator heard, then a TS1 call with its headers whose talker changes with no
+	// header and no gap: TS2's call may go on unseen, so the new LC may be a mix of the two and TS1 keeps its own
+	two_call_t ts2n = { 20, 30, -1, 30, 60 };
+	two_call_t ts1n = { 80, 90, -1, 90, 240 };
+	r = two_slots(&ts1n, &ts2n, 260, &talker);
+	TWO_CHECK("next talker after the other call", r, r.heard[1] == r.sent[1] && r.lc_own[1] > 0 && r.lc_new[1] == 0);
+	// ... and a TS1 call with the ended TS2 call's LC, joined by late entry (the same group re-keyed on the other
+	// slot): page 2 shows only that LC at TS1's F, so it is TS1's too after SLOT_LC_ADOPT_READS superframes
+	two_call_t ts1o = { 0, 0, 124, 120, 260 };
+	const two_opts_t same_both = { 0, 0, 0, 0, 0, 0, true, 0, 0 };
+	r = two_slots(&ts1o, &ts2n, 280, &same);
+	TWO_CHECK("late entry, the ended call's LC", r, r.heard[1] > 0 && r.lc_own[1] > 0);
+	r = two_slots(&ts1o, &ts2n, 280, &same_both);
+	TWO_CHECK("late entry, the ended call's LC, both slots", r, r.heard[1] > 0 && r.lc_own[1] > 0);
+
+	// Page 2 once holds neither call's LC (a mix of both), read at TS1's F: a late entry beside the other call, and a
+	// call with its headers, don't take it, and still get their own
+	const two_opts_t mix = { 0, 0, 0, 1, 0, 0, false, 0, 4 };
+	r = two_slots(&ts1j, &ts2j, 260, &mix);
+	TWO_CHECK("late entry, a mixed LC", r, r.lc_mix[1] == 0 && r.lc_other[1] == 0 && r.lc_own[1] > 0);
+	const two_opts_t mix2 = { 0, 0, 0, 1, 0, 0, false, 0, 9 };
+	r = two_slots(&ts1, &ts2, 260, &mix2);
+	TWO_CHECK("headers, a mixed LC", r, r.lc_mix[1] == 0 && r.heard[1] == r.sent[1] && r.lc_own[1] > 0);
+	// ... and on a repeater channel (TS2's voice unseen, so its busy window lapses) a mix that stays in page 2 from
+	// mid-call on (bench): TS1 keeps the LC its headers gave
+	const two_opts_t mix3 = { 0, 0, 0, 1, 0, 0, false, 0, -160 };
+	two_call_t ts2s = { 20, 30, -1, 30, 330 };
+	two_call_t ts1s = { 80, 90, -1, 90, 330 };
+	r = two_slots(&ts1s, &ts2s, 340, &mix3);
+	TWO_CHECK("headers, a mix that stays", r, r.lc_mix[1] == 0 && r.heard[1] == r.sent[1]);
+}
+
 int main(void)
 {
 	test_chip();
+	test_tx_lead();
 	test_modes();
 	test_engine();
 	test_tick_rx();
 	test_tick_rx_stale_headers();
+	test_tick_rx_same_bursts();
+	test_tick_rx_resume();
+	test_tick_rx_stale_post_access();
 	test_repeater_slot();
+	test_two_slots();
+	test_tx_listen_rc_field();
 	printf("hrc5000Test: %s (%d failures)\n", failures ? "FAILED" : "passed", failures);
 	return failures ? 1 : 0;
 }

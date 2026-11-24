@@ -35,6 +35,7 @@ typedef struct {
 	uint16_t listen_list;	// RX group list index, 0 = none
 	uint32_t dmr_id;	// own DMR ID for this channel, 0 = the radio's
 	bool dmo;		// direct mode even when RX and TX differ (open-firmware "force DMO")
+	bool accept_bad_crc;	// control messages and voice LC that fail their check, taken when they repeat (fec/rx_seen.h)
 	uint16_t tot_s;		// TX time-out, 0 = the radio's
 	uint8_t alias_tx;	// talker alias TX: CODEPLUG_ALIAS_TS1_* / _TS2_* bits
 	bool scan_skip;		// left out of zone scans
@@ -42,16 +43,26 @@ typedef struct {
 	bool no_beep;		// no DMR talk permit / call end beeps on this channel
 	bool no_eco;		// no receiver battery saving on this channel
 	bool roam;		// a roaming site (the open-firmware Roaming flag; docs/spec/dmr-roaming.md 5.2), read only
+	bool tone_burst;	// FM: the 1750 Hz access burst at each PTT key-up (repeaters that need it)
 	// SFR (docs/spec/sfr.md 4): flag 1 bit 1 and the two SFR bytes as stored, for sfrChannelDecode(); read only
 	// (the encoder keeps them as read), all 0 when the channel has none
 	uint8_t sfr_flag1;
 	uint8_t sfr_a;
 	uint8_t sfr_b;
+	// A channel tag's (codeplug_tag.h, docs/spec/channel-modes.md): the channel's kind, 0 for a plain FM or DMR
+	// channel, and with a kind its system (0xFF none). rx_only is then the tag's. The kind's own fields are in its
+	// parameter block, which its mode module fetches (codeplug_tag_params); none of them live here
+	uint8_t kind;
+	uint8_t system;
 } channel_t;
 
 // channel_t.alias_tx: what the channel sends as talker alias on each timeslot (text = our radio name)
 #define CODEPLUG_ALIAS_TS1_TEXT	0x01u
 #define CODEPLUG_ALIAS_TS2_TEXT	0x02u
+// ... and whether its calls on that timeslot carry our position (GPS Info, docs/spec/dmr-voice.md 3.1), whatever the
+// radio-wide "Send in DMR calls" setting says. The codeplug's own name for the bit is APRS
+#define CODEPLUG_ALIAS_TS1_GPS	0x04u
+#define CODEPLUG_ALIAS_TS2_GPS	0x08u
 
 #define CODEPLUG_POWER_DEFAULT	0xFF
 
@@ -97,6 +108,20 @@ uint32_t codeplug_channel_errors(void);
 // Zones 0..count-1. With no zones stored there is one zone "All channels" holding every used channel
 uint16_t codeplug_zone_count(void);
 bool codeplug_zone(uint16_t index, zone_t *out);
+// The name alone, false as codeplug_channel / codeplug_zone: a search by name reads 16 bytes a record, not all of it
+bool codeplug_channel_name(uint16_t number, char out[CODEPLUG_NAME_LEN + 1]);
+bool codeplug_zone_name(uint16_t index, char out[CODEPLUG_NAME_LEN + 1]);
+// Channel to's record takes channel from's mode, receive-only bit and bandwidth, the rest of it kept: a copy of a
+// channel whose tag says the record is a channel of its own (codeplug_tag_copy, docs/spec/channel-modes.md 2.4).
+// False when either number holds no channel or the write fails
+bool codeplug_base_copy(uint16_t from, uint16_t to);
+// Whether a channel number holds a channel, from the in-use bitmap: no flash read
+bool codeplug_channel_used(uint16_t number);
+// Every channel 1..codeplug_channel_count() in order with its name, NULL for an empty number, a few records per flash
+// read (as codeplug_contacts_each, whose rules fn follows). names false: only which numbers are used, from the in-use
+// bitmap without a flash read; the name is "" then. False when the codeplug can't be read
+typedef bool (*codeplug_name_fn)(uint16_t number, const char *name, void *ctx);
+bool codeplug_channel_names_each(codeplug_name_fn fn, void *ctx, bool names);
 // true when the zones are stored ones (false: the virtual "All channels" zone)
 bool codeplug_zones_stored(void);
 
@@ -137,7 +162,7 @@ bool codeplug_set_boot_text(const char *line1, const char *line2);
 bool codeplug_quick_keys(uint16_t out[CODEPLUG_QUICK_KEYS]);
 bool codeplug_set_quick_keys(const uint16_t in[CODEPLUG_QUICK_KEYS]);
 
-#if CONFIG_APRS
+#if CONFIG_APRS_AFSK
 // An open-firmware codeplug APRS configuration (open-firmware-cps.md 7.3.8; qdmr writes them): what the APRS engine
 // takes from it. Not read: the fixed position and the frequency (their encodings aren't in the interop spec yet)
 #define CODEPLUG_APRS_CONFIGS	8
@@ -155,6 +180,8 @@ bool codeplug_aprs(uint8_t n, codeplug_aprs_t *out);
 // Rewrite configuration n's two path entries ("WIDE1-1", "" for none), the rest of the record kept; false when the
 // record is empty or unknown (a new record isn't made: its other fields' encodings aren't all known)
 bool codeplug_set_aprs_path(uint8_t n, const char *path1, const char *path2);
+// Rewrite configuration n's SSID (0-15), the same way
+bool codeplug_set_aprs_ssid(uint8_t n, uint8_t ssid);
 #endif
 
 // Re-read everything after the image was written underneath (the CPS); bumps the serial
@@ -192,6 +219,12 @@ typedef struct {
 uint32_t codeplug_dmr_id(void);
 // Contacts 1..CODEPLUG_CONTACTS_MAX; false if empty or unreadable
 bool codeplug_contact(uint16_t index, contact_t *out);
+// Every contact slot in order, many records per flash read: a scan with codeplug_contact (one read per slot) took
+// about 0.7 s for 1024 slots on an HR_C7000 radio and kept the idle task out. fn gets the slot (1-based) and the contact,
+// or NULL for an empty slot, under the storage lock, and returns false to stop. It may call codeplug functions, a
+// nested scan included (that one reads slot by slot). False when the codeplug can't be read
+typedef bool (*codeplug_contact_fn)(uint16_t index, const contact_t *c, void *ctx);
+bool codeplug_contacts_each(codeplug_contact_fn fn, void *ctx);
 // RX group lists 1..CODEPLUG_LISTS_MAX; false if unused or unreadable
 bool codeplug_listen_list(uint16_t index, listen_list_t *out);
 // The contact a channel talks to by default: its TX contact, else the first talkgroup of its RX group list; 0 when
@@ -206,6 +239,8 @@ bool codeplug_delete_listen_list(uint16_t index);
 // The first contact with this ID: group true finds a talkgroup (or all call for 0xFFFFFF), false a private contact.
 // Reads every contact record (24 KB of flash) in the worst case: cache the answer
 bool codeplug_contact_find(uint32_t id, bool group, contact_t *out);
+// The same, its index (0: none, or a contact record that couldn't be read); out may be NULL
+uint16_t codeplug_contact_find_index(uint32_t id, bool group, contact_t *out);
 
 // General DMR settings (open-firmware general settings, docs/spec/open-firmware-cps.md 7.3.2)
 typedef struct {

@@ -15,6 +15,8 @@
 void ui_app_init(void);
 // One logical input event (PTT / MONITOR edges included: the radio core gets those from the input layer directly)
 void ui_app_key(const input_event_t *ev);
+// A key pressed with the backlight off only wakes the light, except these: they act at once (ui.c)
+bool ui_app_key_while_dark(const input_event_t *ev);
 // Time passes and the radio view may have changed: timeouts, banners, Recent. True if the screen should be redrawn
 bool ui_app_tick(const radio_view_t *v, uint32_t now_ms);
 // Draw the current screen into the frame buffer (no flush)
@@ -22,10 +24,17 @@ void ui_app_draw(void);
 // Backlight percent the user chose (Quick settings / Settings > Display); the dim and off times are the radio's
 // settings (ui_svc_apply)
 uint8_t ui_app_brightness(void);
+// The picture is to be shown turned 180 degrees (Settings > Display > Flip screen) and the display can: the UI task
+// sets the panel to it, and Up / Down and Left / Right swap in ui_app_key
+bool ui_app_flip(void);
+// CONFIG_BACKLIGHT_TEST: the percent the backlight tests hold the light at (the task writes no other), -1 when not held
+int16_t ui_app_backlight_hold(void);
+// The hold ended since the last call (then cleared): the task writes its own level again
+bool ui_app_take_backlight_reapply(void);
 // A banner or the emergency screen came up since the last call (then cleared): the backlight comes on for it
 bool ui_app_take_wake(void);
-// Auto power off is due (Settings > Power > Auto power off): the housekeeping task switches the radio off. If the
-// supply stays on, it queues UI_EV_POWER_OFF_FAILED (ui_notify) and the UI waits a whole period again. Any task
+// Auto power off is due (Settings > Power saving > Auto power off): the housekeeping task switches the radio off. If
+// the supply stays on, it queues UI_EV_POWER_OFF_FAILED (ui_notify) and the UI waits a whole period again. Any task
 bool ui_app_power_off_due(void);
 
 // For the debug link and the simulator: what is on screen
@@ -35,12 +44,17 @@ typedef struct {
 	uint16_t focus;		// focused row / tile
 	uint16_t count;		// rows on a list screen
 	bool locked;
+	uint8_t gps;		// UI_GPS_*: the status strip's GPS icon
+	const char *unlock_key;	// the key held to unlock: "quick", "back", or "none" (auto lock never locks then)
 	bool field_use;		// the screen is tagged "field use" (depth rule, usability-tests.md 2)
 	const char *banner;	// banner title, "" = none
 	const char *toast;	// "" = none
 	const char *query;	// Find text so far, "" = none
 	uint32_t draws;		// frames drawn so far
 	bool strip_drawn;	// the last frame drew the status strip with the state pill or a merged title (P2)
+	bool dual;		// the UI runs dual watch: it has taken over a watch the debug link started
+	int8_t volbar;		// the knob's volume bar shows this step, -1 = not shown
+	bool volbar_top;	// ... in the status strip: the last frame drew no hint row
 } ui_app_status_t;
 void ui_app_status(ui_app_status_t *st);
 // The label of the focused row on a list screen ("" otherwise), for scripted checks

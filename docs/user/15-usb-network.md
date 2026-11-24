@@ -42,8 +42,8 @@ The computer gets its address from the radio by DHCP:
 
 | Who | Address |
 |---|---|
-| Your computer | 12.x.y.z, from your DMR ID (for example ID 3101234 is 12.47.82.50) |
-| The radio | Your computer's address with the last bit flipped (12.47.82.51) |
+| Your computer | 12.x.y.z, from your DMR ID (for example ID 9991234 is 12.152.116.66) |
+| The radio | Your computer's address with the last bit flipped (12.152.116.67) |
 | Another radio | 12.x.y.z from its DMR ID |
 | A talkgroup | 225.x.y.z from the talkgroup number |
 
@@ -58,22 +58,33 @@ The debug link, the MMDVM hotspot protocol and the CPS protocol stay reachable o
 address:
 
 ```
-tools/rfoundry_debug.py --port udp:12.47.82.51 version
+tools/rfoundry_debug.py --port udp:12.152.116.67 version
 ```
 
 MMDVMHost connects the same way (`Protocol=udp`, `ModemAddress=<radio address>`, `ModemPort=3334`). qdmr finds radios
 only by their serial USB ID, so program the radio in serial mode.
 
+The project's own tools need no address and no change on the radio:
+
+| Tool | In network mode |
+|---|---|
+| `tools/rfoundry_debug.py`, `tools/cps_client.py`, `rfoundry.py` | With no `--port` and no serial radio plugged in, they find the radio on the network link and use it |
+| `stub/stubtool.py --rfoundry-enter --write-app ...` (no port) | Updates the firmware and restarts the radio, which comes back in network mode |
+| The web installer and the codeplug editor | They ask the radio to become a serial port for the job. Some browsers do it unseen. Otherwise press **Switch the radio to USB serial**: a tab opens on the radio's own page (`http://12.255.255.254/`, every radio's address on its own USB link) and closes again. Then connect. The radio returns to network mode when it restarts |
+
+If the button can't reach the radio (the tab shows an error: the computer hasn't set the adapter up, or sends 12.x
+addresses elsewhere), switch on the radio: **Tools > USB network**.
+
 ## Finding the radio by name
 
 The radio answers Multicast DNS (Bonjour, Avahi) on the network adapter. Its name is `rfoundry-<DMR ID>.local`, for
-example `rfoundry-3101234.local`. It advertises its services. A browser for Bonjour services lists it by your call sign,
-the radio model and your DMR ID, for example "N0CALL XR-100UV (3101234)":
+example `rfoundry-9991234.local`. It advertises its services. A browser for Bonjour services lists it by your call sign,
+the radio model and your DMR ID, for example "Q0TST XR-100UV (9991234)":
 
 ```
-ping rfoundry-3101234.local
+ping rfoundry-9991234.local
 dns-sd -B _rfoundry-debug._udp            # macOS; avahi-browse -r _rfoundry-debug._udp on Linux
-tools/rfoundry_debug.py --port udp:rfoundry-3101234.local version
+tools/rfoundry_debug.py --port udp:rfoundry-9991234.local version
 ```
 
 | Service | Port | What |
@@ -94,8 +105,8 @@ The radio answers at its own address on these TCP ports, over the USB cable only
 
 | Port | Service |
 |---|---|
-| 80 | The radio's front panel. Open `http://<radio address>/` in a browser. It shows the radio with its live screen and LEDs, and the channel, frequency, signal and battery. On a mobile radio its hand microphone is drawn too. Click a key or use the keyboard. Side and top keys also have a labeled button outside the radio's edge, and the arrows over the channel knob turn it one step per click (hold to keep turning). Keyboard keys: digits, `*` and `#`; the arrows; Enter for select (green key or MENU); Esc or Backspace for back (red key or BACK); `[` and `]` (or Page Up and Page Down) turn the channel knob; hold Space to talk. The page lists the keyboard keys your radio has beside the picture. **Listen** plays what the radio receives (on radios with network audio, [Linking audio](#linking-audio-allstarlink-and-dvswitch)); over the programming cable (PPP, below) the page has no Listen, since the cable is too slow for audio. Keys work only from the computer the radio is plugged into; one page at a time controls the radio, and others show the status only. Programs can read `/status` (JSON) and the debug link's sections at `/api/view?section=core` |
-| 8001 | KISS over TCP for APRS programs (APRSdroid, Xastir, YAAC). Set the program's TNC to "KISS over TCP", the radio's address, port 8001. Turn on **KISS on USB** in Tools > APRS first. The radio sends only packets from your own callsign. On a radio that can't receive APRS ([Radio reference](23-radios.md)), programs see only what they send |
+| 80 | The radio's front panel. Open `http://<radio address>/` in a browser. It shows the radio with its live screen and LEDs, and the channel, frequency, signal and battery. On a mobile radio its hand microphone is drawn too. Click a key or use the keyboard. Side and top keys also have a labeled button outside the radio's edge, and the arrows over the channel knob turn it one step per click (hold to keep turning). Keyboard keys: digits, `*` and `#`; the arrows; Enter for select (green key or MENU); Esc or Backspace for back (red key or BACK); `[` and `]` (or Page Up and Page Down) turn the channel knob; hold Space to talk. The page lists the keyboard keys your radio has beside the picture. **Listen** plays what the radio receives (on radios with network audio, [Linking audio](#linking-audio-allstarlink-and-dvswitch)); over the programming cable (PPP, below) the page has no Listen, since the cable is too slow for audio. Keys work only from the computer the radio is plugged into; one page at a time controls the radio, and others show the status only. Programs can read `/status` (JSON) and the debug link's sections at `/api/view?section=core`. Open the page at the radio's address or its `.local` name: at a name of your own (a hosts file entry) the page loads but gets no data. Besides the radio's own page, only pages on radiofoundry.org and pages served on your own computer (`localhost`) can use the radio from a browser |
+| 8001 | KISS over TCP for APRS programs (APRSdroid, Xastir, YAAC). Set the program's TNC to "KISS over TCP", the radio's address, port 8001. Turn on **KISS on USB** in Tools > APRS first. The radio sends only packets from your own callsign, and takes them only from your computer. On a radio that can't receive APRS ([Radio reference](23-radios.md)), programs see only what they send |
 | 4532 | Hamlib rig control for loggers, SDR and satellite programs. Choose "Hamlib NET rigctl" with the radio's address and port 4532, or run `rigctl -m 2 -r <radio address>:4532 f`. Programs can read and set the frequency, read the mode and the S meter, and key the transmitter. Setting the frequency of a channel switches to the VFO. Transmit works only from your computer, at most 3 minutes per keying |
 
 ### APRS-IS from the radio
@@ -106,26 +117,55 @@ traffic on to the Internet:
 ```
 # macOS (en0: your Internet connection)
 sudo sysctl -w net.inet.ip.forwarding=1
-echo "nat on en0 from 12.47.82.51 to any -> (en0)" | sudo pfctl -ef -
+echo "nat on en0 from 12.152.116.67 to any -> (en0)" | sudo pfctl -ef -
 # Linux (eth0: your Internet connection, usb0: the radio)
 sudo sysctl -w net.ipv4.ip_forward=1
-sudo iptables -t nat -A POSTROUTING -s 12.47.82.51/32 -o eth0 -j MASQUERADE
+sudo iptables -t nat -A POSTROUTING -s 12.152.116.67/32 -o eth0 -j MASQUERADE
 sudo iptables -A FORWARD -i usb0 -o eth0 -j ACCEPT
 sudo iptables -A FORWARD -i eth0 -o usb0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 ```
 
-Use your radio's address instead of 12.47.82.51. Then give the radio a server's IP address. The radio can't look up
+Use your radio's address instead of 12.152.116.67. Then give the radio a server's IP address. The radio can't look up
 names. `dig +short rotate.aprs2.net` gives some addresses. You can also give a range in km for the messages and packets it
 receives:
 
 ```
-curl "http://12.47.82.51/api/aprsis?server=44.31.12.34:14580&range=50"
-curl "http://12.47.82.51/api/aprsis"              # the state
-curl "http://12.47.82.51/api/aprsis?server=off"   # stop
+curl "http://12.152.116.67/api/aprsis?server=44.31.12.34:14580&range=50"
+curl "http://12.152.116.67/api/aprsis"              # the state
+curl "http://12.152.116.67/api/aprsis?server=off"   # stop
 ```
 
 The radio logs in with its APRS callsign and the passcode computed from it. Your beacons go to APRS-IS when **KISS on
 USB** and "to APRS-IS" are on (`tools/rfoundry_debug.py aprs set to_is 1`).
+
+## Selecting zones and channels from a program
+
+A device or program on your computer, such as takRF, can choose the radio's zone and channel as a knob would. It
+sends short text messages over UDP to port 4191 at the radio's address. This works without the radio's web page, so
+it is also on firmware built without it. Zones and channels are counted from 0, in the order the radio shows them.
+
+| Message | Does |
+|---|---|
+| `select` | Says where the radio is and what it is on: zone, channel, name, frequency, and on DMR the color code, timeslot and talkgroup |
+| `select?zone=2&pos=5` | The third zone, its sixth channel (without `pos`, its first) |
+| `step?channel=1` | One channel on; `-1` one back; it wraps at the zone's ends. From the VFO, the first step goes back to the channel you came from |
+| `step?zone=1` | One zone on, to its first channel; `-1` one back |
+| `select?notify=0` | Stop the change messages (below) |
+
+The radio answers each message with where it is now. After any message it also sends a short update to the same
+program whenever the zone, channel or talkgroup changes, and every 30 seconds, for two minutes. Send `select` every
+minute to keep the updates coming. `codeplug` in the answer goes up whenever the channels or zones change (on the
+radio, or a codeplug written to it).
+
+Nothing changes while the radio transmits or is a hotspot. Details: [tcp-services.md](../spec/tcp-services.md) 8.
+
+For a quick try on Linux or macOS: `echo select | nc -u -w1 <radio address> 4191`.
+
+> **Warning: send only to the radio's own address.** The radio passes anything else on your network link to the air
+> as DMR data. A message to another address in the radio's range, or to a port the radio doesn't serve, makes the
+> radio transmit, and so does port 4191 on firmware without this feature (check its build options first,
+> [build options](../build-config.md)). Whenever the radio is in network mode, keep an antenna or a dummy load on it
+> and leave it on a channel you may transmit on.
 
 ## Linking audio: AllStarLink and DVSwitch
 
@@ -149,9 +189,9 @@ Which radios can transmit FM this way is in the [Radio reference](23-radios.md);
 The radio runs a TFTP server at its address. Any TFTP client works:
 
 ```
-curl tftp://rfoundry-3101234.local/codeplug.bin -o backup.bin       # read the codeplug
-curl -T edited.bin tftp://rfoundry-3101234.local/codeplug.bin        # write it
-curl tftp://rfoundry-3101234.local/info.txt                          # board, firmware, IDs, addresses
+curl tftp://rfoundry-9991234.local/codeplug.bin -o backup.bin       # read the codeplug
+curl -T edited.bin tftp://rfoundry-9991234.local/codeplug.bin        # write it
+curl tftp://rfoundry-9991234.local/info.txt                          # board, firmware, IDs, addresses
 ```
 
 `codeplug.bin` is the same 716,384-byte image `tools/cps_client.py read` makes. A file from either one can be
@@ -164,8 +204,8 @@ keys, as with the CPS, and re-reads the codeplug right after the write.
 The DMR ID database (the names shown for IDs that aren't contacts) has its own file:
 
 ```
-curl tftp://rfoundry-3101234.local/iddb.bin -o iddb.bin             # read the ID database
-curl -T iddb.bin tftp://rfoundry-3101234.local/iddb.bin              # write it
+curl tftp://rfoundry-9991234.local/iddb.bin -o iddb.bin             # read the ID database
+curl -T iddb.bin tftp://rfoundry-9991234.local/iddb.bin              # write it
 ```
 
 `iddb.bin` holds the database alone. The radio drops its old database as the new one starts arriving and shows names
@@ -186,8 +226,8 @@ The radio answers SNMP version 2c requests at its address, port 161 (not in buil
 small one:
 
 ```
-tools/rfoundry_snmp.py walk 12.47.82.51                 # everything the radio reports
-tools/rfoundry_snmp.py get 12.47.82.51 rfoundryBatteryVoltage.0 rfoundryChannelName.0
+tools/rfoundry_snmp.py walk 12.152.116.67               # everything the radio reports
+tools/rfoundry_snmp.py get 12.152.116.67 rfoundryBatteryVoltage.0 rfoundryChannelName.0
 tools/rfoundry_snmp.py traps                            # events as they happen (needs port 162: root on Linux)
 ```
 
@@ -202,7 +242,7 @@ The read community is `public`. Changing settings needs a write community, which
 
 ```
 tools/rfoundry_debug.py snmp write MySecret             # over the serial port, before switching to network mode
-tools/rfoundry_snmp.py -c MySecret set 12.47.82.51 sysName.0 s:N0CALL
+tools/rfoundry_snmp.py -c MySecret set 12.152.116.67 sysName.0 s:Q0TST
 tools/rfoundry_debug.py snmp status                     # the agent's settings and counters
 ```
 
@@ -267,7 +307,7 @@ Packets to a radio can also go as confirmed data. The other radio acknowledges e
 what didn't arrive. By default it makes 4 tries in all. Name up to two destinations (DMR IDs) or UDP ports:
 
 ```
-tools/rfoundry_debug.py data ip-settings auto rules id=3101234 port=161 tries=4
+tools/rfoundry_debug.py data ip-settings auto rules id=9991234 port=161 tries=4
 ```
 
 Talkgroup packets are never confirmed. A packet to a radio that doesn't answer is sent every try before it is dropped,
@@ -288,10 +328,11 @@ By default the radio carries only addresses that stand for a DMR ID: 12.x.y.z fo
 talkgroup. A packet from the computer to any other address is dropped.
 
 If another radio in your fleet is a gateway to a network (for example a MOTOTRBO control station on a dispatch PC),
-give the radio that radio's DMR ID:
+give the radio that radio's DMR ID in **Settings > Connections > Data services > IP gateway** (0 is off), in the
+[Codeplug Editor](04-programming.md), or over the debug link:
 
 ```
-tools/rfoundry_debug.py data ip-settings auto rules gateway=3100500
+tools/rfoundry_debug.py data ip-settings auto rules gateway=9990500
 tools/rfoundry_debug.py data ip-settings auto rules gateway=0      # off again
 ```
 
@@ -302,7 +343,7 @@ Then add a route on the computer for that network through the radio's address. F
 as `usb0`:
 
 ```
-sudo ip route add 10.20.0.0/16 via 12.0.39.20 dev usb0     # the radio's address (Addresses, above)
+sudo ip route add 10.20.0.0/16 via 12.152.116.67 dev usb0   # the radio's address (Addresses, above)
 ```
 
 Packets to that network go over the air to the gateway radio, with the real destination address in the packet. They

@@ -6,8 +6,9 @@
 // that says "not available", so UI code needs no #if.
 //
 // Typical UI use:
-//   - redraw when dmr_data_serial() changes; dmr_data_last_event() says what happened (a banner / toast:
-//     "Message from 3101234", "Call alert from 3101234", "K1ABC answered", "No answer from 3101234")
+//   - redraw when dmr_data_serial() changes (an event, a message read or deleted); dmr_data_last_event() says what
+//     happened: show it once per new dmrDataEvent_t.serial (a banner / toast: "Message from 9991234", "Call alert
+//     from 9991234", "Q1AAA answered", "No answer from 9991234")
 //   - inbox list: sms_inbox_count(), sms_inbox_get(i) (0 = newest), sms_inbox_mark_read(i), sms_inbox_unread(),
 //     sms_inbox_delete(i)
 //   - send: sms_send() then watch sms_send_state() (or the SMS_SENT / SMS_FAILED events)
@@ -34,7 +35,8 @@ typedef enum {
 	DMR_SMS_FORMAT_TMS = 0,		// Motorola TMS (IP / UDP 4007; CONFIG_DMR_TMS)
 	DMR_SMS_FORMAT_ETSI = 1,	// ETSI defined short data, ISO 8859-1 text (docs/spec/dmr-data.md 5.2)
 	DMR_SMS_FORMAT_ETSI_IP = 2,	// ETSI IP text, UTF-16BE on UDP 5016 (docs/spec/dmr-data.md 5.3): the default
-	DMR_SMS_FORMAT_DEFAULT = 0xFF,	// sms_send only: the radio's setting (dmrDataSettings_t.smsFormat)
+	DMR_SMS_FORMAT_T3_UDT = 3,	// Tier III control-channel short data with UTF-16BE text
+	DMR_SMS_FORMAT_DEFAULT = 0xFF,	// send: use the radio setting; setting: choose the format from the channel
 } dmr_sms_format_t;
 
 // One UDP datagram on the current DMR channel (its only user so far: the crash report, CONFIG_CRASH_REPORT)

@@ -13,8 +13,7 @@
 #include "sat/sat_svc.h"
 #include "settings/settings.h"
 #if CONFIG_APRS
-#include "aprs/aprs.h"
-#include "aprs/aprs_fmt.h"
+#include "position/position.h"
 #endif
 #include "FreeRTOS.h"
 #include "task.h"
@@ -95,25 +94,28 @@ static void rtc_tick(bool first)
 	}
 }
 
+_Static_assert(sizeof(((settings_t *)0)->sat_alert_norad) / sizeof(uint32_t) == SAT_ALERT_ALWAYS, "the settings' list of alert satellites");
+
 static void inputs(sat_svc_in_t *in)
 {
 	in->time_ok = sat_clock_now(&sat_utc, hal_millis(), &in->now);
 	in->pos_ok = false;
-#if CONFIG_APRS
-	int32_t lat, lon;
-	uint32_t err_m;
-	bool dmr_gps;
-	if (aprs_position_now(&lat, &lon, &err_m, &dmr_gps)) {
+#if CONFIG_POSITION
+	// The position in use, exact (the blur a DMR report gets is not for an orbit): the board GPS, the computer's, or the fixed one
+	position_fix_t f;
+	if (position_fix(&f, hal_millis()) != POSITION_SRC_NONE) {
 		in->pos_ok = true;
-		in->lat = lat / 1e7;
-		in->lon = lon / 1e7;
-		aprs_gps_t g;
-		in->alt_m = aprs_gps(&g, hal_millis()) && g.fix && g.alt_m != APRS_ALT_NONE ? (double)g.alt_m : 0.0;
+		in->lat = f.lat / 1e7;
+		in->lon = f.lon / 1e7;
+		in->alt_m = f.alt_m != POSITION_ALT_NONE ? (double)f.alt_m : 0.0;
 	}
 #endif
 	// Read in place: a copy of the settings would cost this task 0.4 KB of stack
 	const settings_t *st = settings_begin();
 	in->min_el = st->sat_min_el == 0 ? SAT_SVC_MIN_EL_DEFAULT : (uint8_t)(st->sat_min_el - 1u);
+	in->alert_lead_s = (st->sat_alert_lead == 0 ? 5u : st->sat_alert_lead - 1u) * 60u;
+	for (unsigned i = 0; i < SAT_ALERT_ALWAYS; i++)
+		in->alert_norad[i] = st->sat_alert_norad[i];
 	settings_end(hal_millis());
 }
 

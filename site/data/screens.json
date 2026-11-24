@@ -40,6 +40,24 @@
     "FM"
    ]
   },
+  "home_gps_off": {
+   "group": "home",
+   "needs": [
+    "GPS"
+   ]
+  },
+  "home_gps_search": {
+   "group": "home",
+   "needs": [
+    "GPS"
+   ]
+  },
+  "home_gps_fix": {
+   "group": "home",
+   "needs": [
+    "GPS"
+   ]
+  },
   "home_dmr": {
    "group": "home",
    "needs": [
@@ -91,18 +109,6 @@
   "home_locked": {
    "group": "home",
    "needs": []
-  },
-  "home_gps_search": {
-   "group": "home",
-   "needs": [
-    "GPS"
-   ]
-  },
-  "home_gps_fix": {
-   "group": "home",
-   "needs": [
-    "GPS"
-   ]
   },
   "home_usb_ip": {
    "group": "home",
@@ -196,6 +202,12 @@
    "group": "calls",
    "needs": []
   },
+  "tx_aprs": {
+   "group": "calls",
+   "needs": [
+    "APRS"
+   ]
+  },
   "tx_private": {
    "group": "calls",
    "needs": [
@@ -218,6 +230,12 @@
    "group": "calls",
    "needs": [
     "DMR"
+   ]
+  },
+  "incoming-call": {
+   "group": "calls",
+   "needs": [
+    "DMR_TRUNK_TX"
    ]
   },
   "caller_actions": {
@@ -273,6 +291,18 @@
    ]
   },
   "message_view": {
+   "group": "messages",
+   "needs": [
+    "DMR_SMS"
+   ]
+  },
+  "message_long": {
+   "group": "messages",
+   "needs": [
+    "DMR_SMS"
+   ]
+  },
+  "message_read": {
    "group": "messages",
    "needs": [
     "DMR_SMS"
@@ -547,6 +577,42 @@
     "SCAN"
    ]
   },
+  "scan_lists": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
+  "scan_list_options": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
+  "scan_list_channels": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
+  "scan_list_add": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
+  "scan_list_zone": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
+  "scan_list_delete": {
+   "group": "tools",
+   "needs": [
+    "SCAN_LIST"
+   ]
+  },
   "home_dual": {
    "group": "home",
    "needs": [
@@ -595,6 +661,12 @@
     "DUAL_WATCH"
    ]
   },
+  "home_dual_vfo_entry": {
+   "group": "home",
+   "needs": [
+    "DUAL_WATCH"
+   ]
+  },
   "home_dual_other_zone": {
    "group": "home",
    "needs": [
@@ -608,6 +680,12 @@
    ]
   },
   "home_dual_large_text": {
+   "group": "home",
+   "needs": [
+    "DUAL_WATCH"
+   ]
+  },
+  "home_dual_vfo_entry_large_text": {
    "group": "home",
    "needs": [
     "DUAL_WATCH"
@@ -687,6 +765,48 @@
     "APRS"
    ]
   },
+  "aprs_station": {
+   "group": "tools",
+   "needs": [
+    "APRS_RX"
+   ]
+  },
+  "aprs_station_evicted": {
+   "group": "tools",
+   "needs": [
+    "APRS_RX"
+   ]
+  },
+  "aprs_station_text": {
+   "group": "tools",
+   "needs": [
+    "APRS_RX"
+   ]
+  },
+    "satellite": {
+     "group": "tools",
+     "needs": [
+        "SATELLITE_TLE"
+     ]
+    },
+    "satellite_passes": {
+     "group": "tools",
+     "needs": [
+        "SATELLITE_TLE"
+     ]
+    },
+    "satellite_passes_predicting": {
+     "group": "tools",
+     "needs": [
+        "SATELLITE_TLE"
+     ]
+    },
+    "satellite_tle_text": {
+     "group": "tools",
+     "needs": [
+        "SATELLITE_TLE"
+     ]
+    },
   "gps_sky": {
    "group": "tools",
    "needs": [
@@ -711,7 +831,7 @@
     "SAT"
    ]
   },
-  "satellite_passes": {
+  "sat_passes": {
    "group": "tools",
    "needs": [
     "SAT"
@@ -727,6 +847,27 @@
    "group": "tools",
    "needs": [
     "SAT"
+   ]
+  },
+  "home_pass_marked": {
+   "group": "home",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
+   ]
+  },
+  "satellite_alert_mark": {
+   "group": "tools",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
+   ]
+  },
+  "satellite_alert_banner": {
+   "group": "tools",
+   "needs": [
+    "SAT",
+    "SAT_ALERT"
    ]
   },
   "satellite_delete": {
@@ -814,6 +955,18 @@
     "UI_SETTINGS"
    ]
   },
+  "settings_sound": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
+  "settings_sound_tones": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
   "settings_display": {
    "group": "settings",
    "needs": [
@@ -857,6 +1010,25 @@
   "volume_muted": {
    "group": "settings",
    "needs": []
+  },
+  "volume_bar": {
+   "group": "home",
+   "needs": [
+    "VOLUME_BAR"
+   ]
+  },
+  "volume_bar_call": {
+   "group": "calls",
+   "needs": [
+    "VOLUME_BAR",
+    "DMR"
+   ]
+  },
+  "volume_bar_quick": {
+   "group": "home",
+   "needs": [
+    "VOLUME_BAR"
+   ]
   },
   "factory_reset": {
    "group": "settings",
@@ -902,6 +1074,24 @@
   "about": {
    "group": "settings",
    "needs": []
+  },
+  "settings_signaling": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
+  "signaling_steps": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
+  },
+  "signaling_step_edit": {
+   "group": "settings",
+   "needs": [
+    "UI_SETTINGS"
+   ]
   }
  }
 }
