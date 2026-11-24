@@ -62,7 +62,9 @@ The lists are not part of the codeplug image: the CPS, the TFTP codeplug and a c
 | 8 | 16 | name, NUL padded, bytes as in a codeplug name; no terminator when it uses all 16 |
 | 24 | 160 | 80 channel numbers (u16, 1-based); the entries past the count are 0 |
 | 184 | 3 | vote scan: threshold, margin, fixed transmit member ([vote-scan.md](vote-scan.md) 3), 0 for a plain list |
-| 187 | 65 | reserved, 0 |
+| 187 | 1 | reserved, 0 |
+| 188 | 2 | vote scan: the linked channel (u16, 1-based), 0 for none ([vote-scan.md](vote-scan.md) 3) |
+| 190 | 62 | reserved, 0 |
 | 252 | 4 | CRC-32 of bytes 0 to 251 |
 
 A list is valid when it has a name, at most 80 channels, no channel 0 and no channel twice. A free slot is all 0xFF.

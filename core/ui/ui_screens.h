@@ -117,6 +117,9 @@ typedef struct {
 	uint8_t diag_first;	// first board line on the diagnostics page
 	bool locked;		// keys locked (long QUICK)
 	bool scanning;
+#if CONFIG_VOTE_SCAN
+	bool vote_link;		// the Scan key votes on this channel (a vote list is linked to it): Home's hint says so
+#endif
 	uint8_t usb_net;	// UI_USB_NET_*: the status strip's USB network word and link arrows
 	uint8_t gps;		// UI_GPS_*: the status strip's GPS icon
 	bool hints;		// the hint row is shown (Settings > Display)

@@ -637,6 +637,18 @@
     "VOTE_SCAN"
    ]
   },
+  "scan_list_link": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "home_vote_link": {
+   "group": "home",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
   "home_dual": {
    "group": "home",
    "needs": [

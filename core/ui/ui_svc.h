@@ -291,6 +291,9 @@ bool ui_svc_scanlist_start(uint16_t slot);		// scan it (radio_req_scan_list). Fa
 // A list's vote options (docs/spec/vote-scan.md 3): false and all 0 for a free slot. The put is a job like the list's own
 bool ui_svc_scanlist_get_vote(uint16_t slot, scan_list_vote_t *out);
 bool ui_svc_scanlist_put_vote(uint16_t slot, const scan_list_vote_t *v);	// False: busy
+// The slot of the list whose Scan key channel is channel (scan_list_vote_t.link), not counting skip_slot (-1: none); -1
+// when none
+int ui_svc_scanlist_find_link(uint16_t channel, int skip_slot);
 #endif
 #endif
 

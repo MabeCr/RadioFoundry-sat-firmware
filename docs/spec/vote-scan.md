@@ -24,7 +24,7 @@ picks the best site of a zone with beacons and a survey; vote scan is the simple
 | 4 | Voting between calls and at the start of a call |
 | 5 | Voting during a call |
 | 6 | Transmit |
-| 7 | What the user sees |
+| 7 | What the user sees, and the Scan key |
 | 8 | The debug link and tests |
 | 9 | Open questions |
 
@@ -69,6 +69,7 @@ the first reserved bytes; a firmware without vote scan reads the same record as 
 | 185 | 1 | hysteresis, dB; 0 = default | 6 dB |
 | 186 | 1 | fixed transmit member index (0-based) when flags bit 2 is set | 0: the first member |
 | 187 | 1 | reserved, 0 | |
+| 188 | 2 | the linked channel (u16, 1-based): the channel whose Scan key starts this list (section 7) | 0: none |
 
 A record from a firmware that set none of these reads with every default: Vote off.
 
@@ -82,6 +83,11 @@ choice. The list's options screen (Tools > Scan, a list, then its options) shows
 | Margin (hysteresis) | 2, 3, 4, 5, 6, 8, 10, 12, 15 or 20 dB on the radio (the record takes 1 to 20) | 6 dB |
 | Peek during calls | On, Off | On |
 | Transmit | Voted site, or one member (the picker lists them) | Voted site |
+| Scan key | any channel of the codeplug, a member or not (the zone and channel picker; OK on the linked one takes the link off) | None |
+
+One list to a channel: the picker refuses a channel another list is linked to ("Used by <list>"), and the store refuses
+the same write (`scan_list_write_vote`), so a record never holds two lists on one channel. `scan_list_find_link` finds
+the list for a channel (the lowest slot should a record from elsewhere hold two).
 
 ## 4. Voting between calls and at the start of a call
 
@@ -137,6 +143,8 @@ the transmission. Transmit checks (TX inhibit, band, RX only) apply to the membe
 | Activity | the call as on any P25 channel (caller, talk group) |
 | Tools > Scan | the list shows "Vote" beside its channel count; OK starts it ("Voting " and its name) |
 | Back | stops voting and stays on the voted site, as Back ends a scan ("Vote stopped") |
+| Scan key on a linked channel | a channel with a vote list linked to it (and Vote on) starts that list when the Scan key is pressed with no scan running, in place of the zone scan: "Voting <list>". The hint row on that channel says "Scan: vote". The same checks as OK on the list apply; if they fail the toast says why and nothing starts. In the VFO the key does what it always did. A press while scanning stops the scan, as before |
+| Leaving a linked channel | nothing is started by turning to a channel: only the Scan key starts a vote, so scrolling through the zone never does. After Back the radio stays on the voted site, which is not the linked channel: a second Scan press there is a zone scan (turn back to the linked channel to vote again) |
 
 The screens are in [ui.md](ui.md) 2.7.1.
 

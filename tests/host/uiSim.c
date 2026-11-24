@@ -194,6 +194,8 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "scan_list_vote_options", "scanlists:vote ok 6 1 down down down ctx" },
 	{ "scan_list_vote_threshold", "scanlists:vote ok 6 1 down down down ctx 5" },
 	{ "home_vote", "scanlists:vote ok 6 1 down down down ok wait:3000" },
+	{ "scan_list_link", "scanlists:linked ok 6 1 down down down ctx 9" },	// the Scan key channel, 3, marked Linked
+	{ "home_vote_link", "scanlists:linked wait:1000" },	// Home on that channel: the hint says the Scan key votes
 #endif
 #endif
 #if CONFIG_DUAL_WATCH

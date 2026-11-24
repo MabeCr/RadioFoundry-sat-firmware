@@ -52,8 +52,8 @@ typedef enum {
 #endif
 	// Tools > Scan with CONFIG_SCAN_LIST (ui_scanlist.c): the lists, a list's options (arg = its slot), its delete
 	// question, its channels, the picker that adds channels (arg = slot) and the zone it lists; with CONFIG_VOTE_SCAN, a
-	// vote option's values (arg = the option)
-	SCR_SLISTS, SCR_SLOPT, SCR_SLDEL, SCR_SLEDIT, SCR_SLPICK, SCR_SLZONE, SCR_SLVOTE,
+	// vote option's values (arg = the option), and the channel whose Scan key starts the list (arg = slot)
+	SCR_SLISTS, SCR_SLOPT, SCR_SLDEL, SCR_SLEDIT, SCR_SLPICK, SCR_SLZONE, SCR_SLVOTE, SCR_SLLINK,
 	SCR_COUNT
 } ui_scr_t;
 
@@ -175,6 +175,14 @@ bool sb_channel_row(sbuf_t *b, uint16_t num, const channel_t *ch);
 #if CONFIG_SCAN_LIST
 // Scan the stored list in slot (ui_scanlist.c): Home, with a toast naming it; vote: a vote list ("Voting <name>")
 void ui_scan_list(uint8_t slot, const char *name, bool vote);
+#if CONFIG_VOTE_SCAN
+// The Scan key on a channel some vote list is linked to (ui_scanlist.c): starts that list and says so. False when the
+// channel has none, or in the VFO: the key then does what it always did. A list that can't vote says why and starts
+// nothing, and the press is still taken
+bool ui_scan_linked_start(const radio_view_t *v);
+// Whether the Scan key votes on the channel the view is on (the same test, cached by channel and list change)
+bool ui_scan_link_here(const radio_view_t *v);
+#endif
 // The text entry (ui_menus.c) with something to do once the text is kept
 void ui_text_open_done(char *target, uint8_t max, void (*done)(void));
 #endif

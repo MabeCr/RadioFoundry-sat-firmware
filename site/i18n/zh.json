@@ -2413,5 +2413,7 @@
  "screen.scan_lists_vote": "扫描列表：带表决的列表",
  "screen.scan_list_vote_options": "表决列表的选项：门限、余量、探测、发射",
  "screen.scan_list_vote_threshold": "表决门限：足够强的信号",
- "screen.home_vote": "表决时的主页：列表和选中的站点"
+ "screen.home_vote": "表决时的主页：列表和选中的站点",
+ "screen.scan_list_link": "其扫描键启动表决列表的信道",
+ "screen.home_vote_link": "已关联信道上的主页：扫描键进行表决"
 }

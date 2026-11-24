@@ -797,7 +797,7 @@ msgctxt "VALUE_30_MIN"
 msgid "30 min"
 msgstr "30 min"
 
-#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_screens.c
+#: core/ui/ui_aprs.c core/ui/ui_menus.c core/ui/ui_scanlist.c core/ui/ui_screens.c
 msgctxt "VALUE_NONE"
 msgid "None"
 msgstr "Ninguno"
@@ -4838,6 +4838,11 @@ msgid "Transmit"
 msgstr "Transmitir"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_LINK"
+msgid "Scan key"
+msgstr "Tecla Escanear"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_VOTE_OFF"
 msgid "Vote off"
 msgstr "Votación desactivada"
@@ -4891,6 +4896,41 @@ msgstr "En lista"
 msgctxt "SCANLIST_TITLE_ADD_TO"
 msgid "Add to"
 msgstr "Añadir a"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_LINKED"
+msgid "Linked"
+msgstr "Enlazado"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_LINKED_ELSEWHERE"
+msgid "Other list"
+msgstr "Otra lista"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINK_USED_BY"
+msgid "Used by "
+msgstr "Usado por "
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINKED_TO"
+msgid "Scan key: "
+msgstr "Tecla Escanear: "
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_LINK_OFF"
+msgid "Scan key link removed"
+msgstr "Enlace de la tecla Escanear quitado"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TITLE_LINK"
+msgid "Scan key"
+msgstr "Tecla Escanear"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_HINT_LINK"
+msgid "{OK link  0-9 find  Back|OK link  Back}"
+msgstr "{OK enlazar  0-9 buscar  Atrás|OK enlazar  Atrás}"
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_VOTING"
@@ -5541,6 +5581,11 @@ msgstr "Atrás parar votación"
 msgctxt "HOME_HINT_SCANNING"
 msgid "# skip  Back stop scan"
 msgstr "# saltar  Atrás parar"
+
+#: core/ui/ui_screens.c
+msgctxt "HOME_HINT_VOTE_LINK"
+msgid "Scan: vote"
+msgstr "Escanear: votar"
 
 #: core/ui/ui_screens.c
 msgctxt "HOME_HINT_REPLY"

@@ -386,6 +386,8 @@
  "screen.scan_list_vote_options": "Opzioni di una lista di voto: soglia, margine, sonde e trasmissione",
  "screen.scan_list_vote_threshold": "Soglia di voto: il segnale sufficiente",
  "screen.home_vote": "Home durante il voto: la lista e il sito votato",
+ "screen.scan_list_link": "Il canale il cui tasto Scan avvia una lista di voto",
+ "screen.home_vote_link": "Home su un canale collegato: il tasto Scan vota",
  "screen.home_dual": "Doppio ascolto: A e B, PTT su A",
  "screen.home_dual_rx_b": "Doppio ascolto: una chiamata in arrivo su B",
  "screen.home_dual_heard": "Doppio ascolto: le ultime chiamate, con il loro canale",

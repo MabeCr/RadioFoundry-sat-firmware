@@ -2415,6 +2415,10 @@ static const char *home_hint(const radio_view_t *v, const ui_state_t *s)
 #endif
 		return TR(HOME_HINT_SCANNING, "# skip  Back stop scan");
 	}
+#if CONFIG_VOTE_SCAN
+	if (s->vote_link && !v->vfo)
+		return TR(HOME_HINT_VOTE_LINK, "Scan: vote");
+#endif
 	if (board_hwopt_pending() != NULL)
 		return hwopt_action();
 #if CONFIG_DMR

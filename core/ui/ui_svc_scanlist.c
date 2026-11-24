@@ -90,6 +90,11 @@ bool ui_svc_scanlist_get_vote(uint16_t slot, scan_list_vote_t *out)
 	return scan_list_read_vote(slot, out);
 }
 
+int ui_svc_scanlist_find_link(uint16_t channel, int skip_slot)
+{
+	return scan_list_find_link(channel, skip_slot);
+}
+
 bool ui_svc_scanlist_put_vote(uint16_t slot, const scan_list_vote_t *v)
 {
 	if (op.busy)

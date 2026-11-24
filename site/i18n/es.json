@@ -386,6 +386,8 @@
  "screen.scan_list_vote_options": "Opciones de una lista de votación: umbral, margen, sondeos y transmisión",
  "screen.scan_list_vote_threshold": "Umbral de votación: la señal que basta",
  "screen.home_vote": "Inicio durante la votación: la lista y el sitio votado",
+ "screen.scan_list_link": "El canal cuya tecla Escanear inicia una lista de votación",
+ "screen.home_vote_link": "Inicio en un canal enlazado: la tecla Escanear vota",
  "screen.home_dual": "Doble escucha: A y B, PTT en A",
  "screen.home_dual_rx_b": "Doble escucha: una llamada entrando por B",
  "screen.home_dual_heard": "Doble escucha: las últimas llamadas, con su canal",
