@@ -4611,6 +4611,61 @@ static uint8_t list_resolve(radio_sm_t *sm, const scan_list_t *l)
 }
 #endif
 
+#if CONFIG_VOTE_SCAN
+// Tune vote member m (its stop in the list) and tell the engine; a stop that can't be read now keeps the channel, and
+// the engine moves on all the same
+static void vote_go(radio_sm_t *sm, uint8_t m, uint32_t now_ms)
+{
+	uint8_t k = sm->vote_k[m];
+	uint16_t r = sm->list_ref[k];
+	if (list_go(sm, LIST_ZONE(r), LIST_POS(r), now_ms)) {
+		sm->list_at = k;
+	}
+	vote_tuned(&sm->vote, m, now_ms);
+}
+
+static int8_t vote_dbm8(int16_t dbm)
+{
+	return dbm == VOTE_NONE || dbm < -127 ? (int8_t)-128 : dbm > 127 ? (int8_t)127 : (int8_t)dbm;
+}
+
+// The engine's state into the view: at once when the phase, the member or a counter changes; the readings, which change
+// every poll during a call, at most once a second
+static void vote_publish(radio_sm_t *sm, uint32_t now_ms)
+{
+	const vote_t *v = &sm->vote;
+	radio_vote_view_t n;
+	memset(&n, 0, sizeof n);
+	n.phase = v->phase;
+	n.n = v->cfg.n;
+	n.voted = v->voted;
+	n.at = v->at;
+	n.rounds = (uint16_t)v->rounds;
+	n.sweeps = (uint16_t)v->sweeps;
+	n.switches = (uint16_t)v->switches;
+	n.peeks = (uint16_t)v->peeks;
+	n.peek_max_ms = v->peek_max_ms;
+	memcpy(n.voted_name, sm->view.vote.voted_name, sizeof n.voted_name);
+	if (v->phase != VOTE_PH_OFF && v->at == v->voted) {
+		memcpy(n.voted_name, sm->view.ch.name, sizeof n.voted_name);
+	}
+	n.avg_dbm = sm->view.vote.avg_dbm;
+	memcpy(n.last_dbm, sm->view.vote.last_dbm, sizeof n.last_dbm);
+	bool stale = now_ms - sm->vote_pub_ms >= 1000u;
+	if (stale) {
+		n.avg_dbm = vote_dbm8(v->avg_dbm);
+		for (uint8_t i = 0; i < RADIO_VOTE_MAX; i++) {
+			n.last_dbm[i] = i < v->cfg.n ? vote_dbm8(v->last_dbm[i]) : (int8_t)-128;
+		}
+		sm->vote_pub_ms = now_ms;
+	}
+	if (memcmp(&n, &sm->view.vote, sizeof n) != 0) {
+		sm->view.vote = n;
+		changed(sm);
+	}
+}
+#endif
+
 // Dual watch (SCAN_DUAL): the receiver alternates between two channels, dual[0] and dual[1], skip flags ignored. With
 // CONFIG_DUAL_WATCH each is a channel of any zone or the VFO, and PTT talks on the selected one without ending the
 // watch; without it, two channels of the current zone (the debug link's) and PTT ends it as any scan
@@ -4962,6 +5017,15 @@ static void scan_stop(radio_sm_t *sm, bool cancel, uint32_t now_ms)
 		rx2_release(sm);
 		dual_busy_set(sm, 0);
 	}
+#if CONFIG_VOTE_SCAN
+	if (kind == SCAN_VOTE) {
+		if (!cancel && sm->vote.at != sm->vote.voted) {
+			vote_go(sm, sm->vote.voted, now_ms);	// a stop ends on the voted site, not on a peek
+		}
+		vote_end(&sm->vote);
+		vote_publish(sm, now_ms);
+	}
+#endif
 #if CONFIG_DMR
 	bool hear_all = hear_all_on(sm);	// never in dual watch (hear_all_on)
 #endif
@@ -4977,7 +5041,7 @@ static void scan_stop(radio_sm_t *sm, bool cancel, uint32_t now_ms)
 				tune(sm, now_ms);
 			}
 #if CONFIG_SCAN_LIST
-		} else if (kind == SCAN_LIST) {
+		} else if (kind == SCAN_LIST || kind == SCAN_VOTE) {
 			if (!sm->view.vfo && (sm->view.zone_index != sm->list_home_zone || sm->view.zone_pos != sm->list_home_pos)) {
 				list_go(sm, sm->list_home_zone, sm->list_home_pos, now_ms);
 			}
@@ -5215,6 +5279,102 @@ static void scan_start(radio_sm_t *sm, uint8_t kind, uint32_t lo_hz, uint32_t hi
 #if CONFIG_SCAN_LIST
 // Scan the list in slot from the channel in use. Nothing happens when it can't be read or fewer than two of its channels
 // are in a zone (a scan of one channel only retunes it)
+#if CONFIG_VOTE_SCAN
+// A vote list (docs/spec/vote-scan.md 2): its members are the list's channels found in a zone, all of one mode and none
+// trunked; a list that breaks that, or has fewer than two, is refused (no scan). True when slot is a vote list
+static bool vote_start(radio_sm_t *sm, uint16_t slot, uint32_t now_ms)
+{
+	scan_list_vote_t o;
+	if (!scan_list_read_vote(slot, &o) || (o.flags & SCAN_VOTE_ON) == 0) {
+		return false;
+	}
+	uint8_t n = 0, mode = 0xFF;
+	bool ok = true;
+	for (uint8_t k = 0; k < sm->list_n && n < VOTE_MAX; k++) {
+		channel_t ch;
+		if (sm->list_ref[k] == LIST_NONE || !channel_read(list_cur.channels[k], &ch)) {
+			continue;
+		}
+		if (ch.kind == CODEPLUG_KIND_P25_TRUNK || ch.kind == CODEPLUG_KIND_DMR_TRUNK) {
+			ok = false;
+		}
+		if (mode == 0xFF) {
+			mode = ch.mode;
+		} else if (ch.mode != mode) {
+			ok = false;
+		}
+		sm->vote_k[n++] = k;
+	}
+	if (!ok || n < 2) {
+		return true;
+	}
+	scan_t *sc = &sm->scan;
+	scan_cfg_t cfg;
+	scan_config(sm, SCAN_LIST, &cfg);
+	sm->list_home_zone = sm->view.zone_index;
+	sm->list_home_pos = sm->view.zone_pos;
+	sc->origin_vfo = false;
+	sc->origin_pos = 0;
+	sc->origin_hz = sm->view.ch.rx_hz;
+	sc->lo_hz = sc->hi_hz = 0;
+	scan_begin(sc, SCAN_VOTE, &cfg, now_ms);
+	vote_cfg_t vc = {
+		.n = n, .threshold_dbm = (int16_t)scan_vote_threshold_of(&o), .margin_db = (uint8_t)scan_vote_margin_of(&o),
+		.peeks = (o.flags & SCAN_VOTE_NO_PEEK) == 0,
+	};
+	vote_begin(&sm->vote, &vc, 0, now_ms);
+	sm->vote_fixed = (o.flags & SCAN_VOTE_FIXED_TX) != 0;
+	sm->vote_tx = o.tx_member;
+	sm->vote_pub_ms = 0;
+	activity(sm, now_ms);
+	vote_go(sm, 0, now_ms);
+	vote_publish(sm, now_ms);
+	scan_publish(sm);
+	return true;
+}
+
+// A call of the member's own kind on the channel the receiver is on: its NAC or RAN (P25, NXDN), its color code (DMR),
+// the squelch open with its tone (FM)
+static bool vote_call_heard(radio_sm_t *sm, uint32_t now_ms)
+{
+#if CONFIG_DMR
+	if (sm->view.ch.mode == RADIO_MODE_DMR) {
+		uint32_t heard_ms;
+		return sm->view.dmr.state == RDMR_RX ||
+		       (dmr_call_last_activity(&heard_ms) && (int32_t)(heard_ms - sm->vote.tuned_ms) >= VOTE_SETTLE_MS &&
+			now_ms - heard_ms <= RADIO_SCAN_DMR_SYNC_AGE_MS && sm->view.dmr.state != RDMR_RX_OTHER);
+	}
+#endif
+#if CONFIG_AIR
+	if (air_mode(sm->view.ch.mode)) {
+		uint8_t h = air_heard(sm);
+		return h == AIR_HEARD_PLAYED || h == AIR_HEARD_PENDING;
+	}
+#endif
+	(void)now_ms;
+	return sm->view.state == RS_RX;
+}
+
+// Every poll of a vote list (scan_service): the engine reads the member it is on; it names the next one to tune.
+// Nothing moves while the radio transmits; after a transmission on a fixed member it goes back to the voted one
+static void vote_service(radio_sm_t *sm, const radio_status_t *st, uint32_t now_ms)
+{
+	vote_t *v = &sm->vote;
+	if (sm->ptt || sm->view.state == RS_TX) {
+		return;
+	}
+	if ((v->phase == VOTE_PH_HOLD || v->phase == VOTE_PH_CALL) && v->at != v->voted) {
+		vote_go(sm, v->voted, now_ms);
+	} else {
+		int m = vote_poll(v, now_ms, st->rssi_dbm, vote_call_heard(sm, now_ms));
+		if (m >= 0) {
+			vote_go(sm, (uint8_t)m, now_ms);
+		}
+	}
+	vote_publish(sm, now_ms);
+}
+#endif
+
 static void list_start(radio_sm_t *sm, uint16_t slot, uint32_t now_ms)
 {
 	scan_t *sc = &sm->scan;
@@ -5224,6 +5384,11 @@ static void list_start(radio_sm_t *sm, uint16_t slot, uint32_t now_ms)
 	if (sm->view.vfo || !sm->have_channels || !scan_list_read(slot, &list_cur) || list_resolve(sm, &list_cur) < 2) {
 		return;
 	}
+#if CONFIG_VOTE_SCAN
+	if (vote_start(sm, slot, now_ms)) {
+		return;			// a vote list: voting, or refused
+	}
+#endif
 	scan_cfg_t cfg;
 	scan_config(sm, SCAN_LIST, &cfg);
 	sm->list_home_zone = sm->view.zone_index;
@@ -5438,6 +5603,13 @@ static bool dmr_strength_heard(const radio_sm_t *sm, int16_t rssi_dbm)
 static void scan_service(radio_sm_t *sm, const radio_status_t *st, uint32_t now_ms)
 {
 	scan_t *sc = &sm->scan;
+#if CONFIG_VOTE_SCAN
+	if (sc->kind == SCAN_VOTE) {
+		vote_service(sm, st, now_ms);
+		scan_publish(sm);
+		return;
+	}
+#endif
 #if CONFIG_DUAL_WATCH
 	if (sc->kind == SCAN_DUAL && board.rx2 != NULL && rx2_service(sm, now_ms)) {
 		scan_publish(sm);
@@ -5577,7 +5749,7 @@ static void scan_request(radio_sm_t *sm, const radio_req_t *req, uint32_t now_ms
 		}
 		break;
 	case RSCAN_NUISANCE:
-		if (scan_on(&sm->scan) && !dual_running(sm)) {	// dual watch: both channels were picked
+		if (scan_on(&sm->scan) && !dual_running(sm) && sm->scan.kind != SCAN_VOTE) {	// dual watch: both channels were picked; a vote list has no nuisance delete
 			bool ok = sm->scan.kind == SCAN_VFO ? scan_nuisance_hz(&sm->scan, sm->view.ch.rx_hz)
 #if CONFIG_SCAN_LIST
 				: sm->scan.kind == SCAN_LIST ? scan_nuisance_pos(&sm->scan, sm->list_at)
@@ -7134,6 +7306,15 @@ static void ptt_down(radio_sm_t *sm, uint32_t now_ms)
 		dual_talk(sm, now_ms);
 	} else
 #endif
+#if CONFIG_VOTE_SCAN
+	if (scan_on(&sm->scan) && sm->scan.kind == SCAN_VOTE) {
+		// A vote list goes on: PTT talks on the voted site (steering) or the list's fixed member
+		uint8_t m = vote_tx_member(&sm->vote, sm->vote_fixed, sm->vote_tx);
+		if (sm->vote.at != m) {
+			vote_go(sm, m, now_ms);
+		}
+	} else
+#endif
 	if (scan_on(&sm->scan)) {
 		// On a signal: talk back on it. Still searching: back to the start channel
 		bool on_signal = sm->scan.phase == SCAN_PH_HOLD || sm->scan.phase == SCAN_PH_RESUME;
@@ -8386,7 +8567,7 @@ static void reload(radio_sm_t *sm, uint32_t now_ms)
 #endif
 	sm->reload_pending = false;
 #if CONFIG_SCAN_LIST
-	if (sm->scan.kind == SCAN_LIST && sm->codeplug_serial != codeplug_serial()) {
+	if ((sm->scan.kind == SCAN_LIST || sm->scan.kind == SCAN_VOTE) && sm->codeplug_serial != codeplug_serial()) {
 		scan_stop(sm, false, now_ms);	// its stops are zone positions found at the start
 	}
 #endif

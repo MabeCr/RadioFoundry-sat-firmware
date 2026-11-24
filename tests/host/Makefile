@@ -302,7 +302,7 @@ T3RADIO := $(CORE)/radio/radio_trunk.c $(CORE)/radio/radio_trunk_cp.c $(CORE)/co
            $(CORE)/dmr/trunk/t3_ms.c $(CORE)/dmr/trunk/t3_pdu.c $(CORE)/dmr/trunk/t3_sys.c \
            $(CORE)/dmr/trunk/t3_plan.c sim/codeplug_copy_stub.c $(RXSEEN)
 # With the DMR call stack, the AMBE voice glue and the simulated modem behind board.dmr
-RFEAT   := $(CORE)/radio/scan.c $(CORE)/radio/beep.c $(CORE)/radio/sigtone.c $(CORE)/radio/battery.c $(CORE)/radio/roam.c $(CORE)/radio/radio_am.c $(CORE)/radio/radio_bcast.c \
+RFEAT   := $(CORE)/radio/scan.c $(CORE)/radio/vote.c $(CORE)/radio/beep.c $(CORE)/radio/sigtone.c $(CORE)/radio/battery.c $(CORE)/radio/roam.c $(CORE)/radio/radio_am.c $(CORE)/radio/radio_bcast.c \
            $(CORE)/radio/vibe.c $(CORE)/radio/mic_gain.c $(CORE)/radio/ref_trim.c $(CORE)/radio/pa_keyup.c $(CORE)/codeplug/codeplug_talk.c $(CORE)/codeplug/zone_shift.c \
            $(CORE)/codeplug/zone_settle.c \
            $(CORE)/radio/radio_sfr.c $(CORE)/radio/radio_cwid.c $(CORE)/radio/tx_limit.c $(T3RADIO)
@@ -316,7 +316,7 @@ RCORE   := radioCoreTest.c $(CORE)/radio/radio_sm.c $(CORE)/codeplug/codeplug_ke
            $(CORE)/hotspot/hotspotSfr.c $(CORE)/dmr/sfrRunner.c $(CORE)/dmr/sfr.c \
            $(CORE)/ui/ui_svc_radio.c $(CORE)/ui/ui_svc_storage.c $(CORE)/ui/ui_svc_data.c \
            $(CORE)/ui/ui_svc_emergency.c $(CORE)/input/keyassign.c sim/sim_flash.c \
-           $(CORE)/debuglink/debuglink_view_radio.c $(CORE)/debuglink/dl_fmt.c $(CORE)/codeplug/zone_edit.c \
+           $(CORE)/debuglink/debuglink_view_radio.c $(CORE)/debuglink/debuglink_view_roam.c $(CORE)/debuglink/dl_fmt.c $(CORE)/codeplug/zone_edit.c \
            $(CORE)/radio/pa_sweep.c $(CORE)/radio/pa_keyrun.c \
            $(POSLIB) $(CORE)/ui/ui_svc_position.c $(CORE)/ui/i18n.c
 
@@ -993,7 +993,7 @@ satStoreTest: $(SATSTORE) sat_ref.h $(wildcard $(CORE)/sat/*.h $(CORE)/storage/*
 # The vote scan engine (core/radio/vote.c) against a simulated system of sites
 TESTS   += voteTest
 voteTest: voteTest.c $(CORE)/radio/vote.c $(CORE)/radio/vote.h
-	$(CC) $(CFLAGS) -Wshadow -o $@ voteTest.c $(CORE)/radio/vote.c
+	$(CC) $(CFLAGS) -Wshadow -DCONFIG_VOTE_SCAN=1 -o $@ voteTest.c $(CORE)/radio/vote.c
 run: run-vote
 run-vote: voteTest
 	./voteTest

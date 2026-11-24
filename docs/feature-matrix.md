@@ -82,6 +82,7 @@ is `tools/bringup.py list --radio <id>`.
 | `scan` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | partial, needs re-run |
 | `dual_watch` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | ✕ |
 | `scan_list` | off | not written | not written | not written | not written | not written | not written | not written |
+| `vote_scan` | off | off | off | off | off | off | off | off |
 | `beep` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | partial, needs re-run |
 | `signaling_tones` | not recorded | not recorded | not recorded | not recorded | off | not recorded | not recorded | not recorded |
 | `vibrate` | off | ✕ | not recorded | ✕ | ✕ | ✕ | ✕ | ✕ |
@@ -275,6 +276,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `UI_SETTINGS` | ● | ● | ● | ● | ● | ● | ● | ✕ |
 | `SCAN` | ● | ● | ● | ● | ● | ● | ● | ● |
 | `SCAN_LIST` | ○ | … | … | … | … | … | … | … |
+| `VOTE_SCAN` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | `DUAL_WATCH` | ● | ● | ● | ● | ● | ● | ● | ✕ |
 | `BEEP` | ● | ● | ● | ● | ● | ● | ● | ● |
 | `SIG_TONES` | ● | ● | ● | ● | ○ | ● | ● | ● |
@@ -395,6 +397,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | Pass alerts: a banner and tone before a marked satellite's or pass's rise, the marks, the alert settings | `SAT_ALERT` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash, 40 bytes in each of six copies of the settings. Untried on a real pass ([satellite](spec/satellite.md)) |
 | The boot splash's mark as the Tracking screen's sky plot | `SAT_SPLASH` | — | — | Needs `SAT`; on with it. Not on a radio yet ([ui](spec/ui.md)) |
 | Scan lists: named channel lists from any zone, scanned without a zone; Tools > Scan's lists, their editor | `SCAN_LIST` | — | — | Needs `SCAN` and `CHANNEL_EDIT`. Off by default; on in the DM-32UV satellite build. Needs a scan list area in the board's flash map: the DM-32UV only. Some 5 KB of flash and 0.5 KB of RAM (an estimate; built for no radio here), and not tried on the radio ([scan-list](spec/scan-list.md)) |
+| Vote scan: a scan list marked Vote keeps the radio on the strongest site of a multi-site system; the vote engine, PTT on the voted site or a fixed member, the debug link keys | `VOTE_SCAN` | — | — | Needs `SCAN_LIST`, and follows it: on in the DM-32UV satellite build. The list options screen and the VOTE pill are not written yet. About 2 KB of flash (an estimate), and not tried on the radio ([vote-scan](spec/vote-scan.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB
