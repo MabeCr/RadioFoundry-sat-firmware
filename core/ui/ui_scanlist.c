@@ -11,6 +11,7 @@
 #include "fmt.h"
 #include "i18n.h"
 #include "codeplug/codeplug.h"
+#include "codeplug/codeplug_modes.h"
 
 // ======================= The lists (Tools > Scan) =======================
 // Row 0 scans the zone (the band in the VFO) as Tools > Scan did before; then the stored lists; then "New scan list"
@@ -18,6 +19,7 @@
 typedef struct {
 	uint8_t slot;
 	uint8_t count;
+	bool vote;		// a vote list (docs/spec/vote-scan.md 2)
 	char name[CODEPLUG_NAME_LEN + 1];
 } row_t;
 
@@ -31,6 +33,40 @@ static uint8_t cur_slot;
 static char new_name[CODEPLUG_NAME_LEN + 1];	// a name being typed
 static char msg[CODEPLUG_NAME_LEN + 24];		// the toasts
 static uint16_t pick_zone;			// the zone the channel picker lists
+#if CONFIG_VOTE_SCAN
+static scan_list_vote_t cur_vote;		// the open list's vote options
+
+// A channel's mode as a vote list sees it: a stored P25 or NXDN channel by its kind; -1 for a trunked channel (never a
+// member) or one the codeplug no longer has
+static int vote_mode(uint16_t num)
+{
+	static channel_t ch;
+	if (!codeplug_channel(num, &ch) || codeplug_kind_trunked(ch.kind))
+		return -1;
+	return ch.kind == CODEPLUG_KIND_P25 ? RADIO_MODE_P25 : ch.kind == CODEPLUG_KIND_NXDN ? RADIO_MODE_NXDN : ch.mode;
+}
+
+// Why l can't vote (docs/spec/vote-scan.md 2), TR_NONE when it can: two channels or more the codeplug has, all of one
+// mode, none trunked. *mode: theirs
+static tr_id_t vote_refusal(const scan_list_t *l, int *mode)
+{
+	uint8_t found = 0;
+	*mode = -1;
+	for (uint8_t k = 0; k < l->count; k++) {
+		static channel_t ch;
+		if (!codeplug_channel(l->channels[k], &ch))
+			continue;
+		int m = vote_mode(l->channels[k]);
+		if (m < 0)
+			return TRN(SCANLIST_WHY_VOTE_TRUNKED, "Vote: no trunked channels");
+		if (*mode >= 0 && m != *mode)
+			return TRN(SCANLIST_WHY_VOTE_ONE_MODE, "Vote: one mode only");
+		*mode = m;
+		found++;
+	}
+	return found < 2 ? TRN(SCANLIST_WHY_NEEDS_TWO_CHANNELS, "Add two channels first") : TR_NONE;
+}
+#endif
 
 // The stored lists, read again whenever the area changed (ui_svc_scanlist_generation)
 static void refresh(void)
@@ -49,6 +85,12 @@ static void refresh(void)
 		r->slot = (uint8_t)s;
 		r->count = l.count;
 		str_copy(r->name, sizeof r->name, l.name);
+#if CONFIG_VOTE_SCAN
+		scan_list_vote_t v;
+		r->vote = ui_svc_scanlist_get_vote(s, &v) && (v.flags & SCAN_VOTE_ON) != 0;
+#else
+		r->vote = false;
+#endif
 	}
 	if (focus_name[0] && ui_frame()->scr == SCR_SLISTS) {
 		for (uint8_t i = 0; i < nrows; i++)
@@ -98,6 +140,10 @@ static void lists_item(uint16_t i, ui_item_t *it)
 	sb_u32(&b, r->count, 1);
 	sb_chr(&b, ' ');
 	sb_str(&b, TR(SCANLIST_UNIT_CH, "ch"));
+	if (r->vote) {
+		sb_str(&b, "  ");
+		sb_str(&b, TR(SCANLIST_VALUE_VOTE, "Vote"));
+	}
 }
 
 static void new_named(void)
@@ -147,7 +193,18 @@ static void lists_select(uint16_t i, bool hold)
 		ui_toast(TR(SCANLIST_WHY_NEEDS_TWO_CHANNELS, "Add two channels first"));
 		return;
 	}
-	ui_scan_list(r->slot, r->name);
+#if CONFIG_VOTE_SCAN
+	if (r->vote) {
+		static scan_list_t l;
+		int mode;
+		tr_id_t why = ui_svc_scanlist_get(r->slot, &l) ? vote_refusal(&l, &mode) : TR_NONE;
+		if (why != TR_NONE) {
+			ui_toast(tr(why));	// the radio core would refuse it too (the channels changed since Vote was turned on)
+			return;
+		}
+	}
+#endif
+	ui_scan_list(r->slot, r->name, r->vote);
 }
 
 static void lists_enter(void)
@@ -165,25 +222,114 @@ const ui_scr_def_t ui_scanlists_screen = {
 
 // ======================= A list's options (arg: its slot) =======================
 
-enum { LO_EDIT, LO_RENAME, LO_DELETE, LO_COUNT };
+enum { LO_EDIT, LO_RENAME, LO_DELETE, LO_VOTE, LO_THRESHOLD, LO_MARGIN, LO_PEEK, LO_TX, LO_ALL };
 
 static void opt_enter(void)
 {
 	cur_slot = (uint8_t)ui_frame()->arg;
 	if (!ui_svc_scanlist_get(cur_slot, &cur))
 		ui_pop();	// gone (deleted elsewhere)
+#if CONFIG_VOTE_SCAN
+	ui_svc_scanlist_get_vote(cur_slot, &cur_vote);
+#endif
 }
 
-static uint16_t opt_count(void) { return LO_COUNT; }
+// Edit, rename, delete; with vote scan, Vote, and once it is on the vote's own rows (docs/spec/vote-scan.md 3)
+static uint16_t opt_count(void)
+{
+#if CONFIG_VOTE_SCAN
+	return (cur_vote.flags & SCAN_VOTE_ON) ? LO_ALL : LO_VOTE + 1u;
+#else
+	return LO_VOTE;
+#endif
+}
+
+#if CONFIG_VOTE_SCAN
+// The transmit choice: the voted site, or one member by its channel name
+static void sb_vote_tx(sbuf_t *b)
+{
+	static channel_t ch;
+	if (!(cur_vote.flags & SCAN_VOTE_FIXED_TX) || cur_vote.tx_member >= cur.count ||
+	    !codeplug_channel(cur.channels[cur_vote.tx_member], &ch)) {
+		sb_str(b, TR(SCANLIST_VALUE_VOTED_SITE, "Voted site"));
+		return;
+	}
+	sb_str(b, ch.name);
+}
+#endif
 
 static void opt_item(uint16_t i, ui_item_t *it)
 {
-	static const tr_id_t names[LO_COUNT] = { TRN(SCANLIST_ROW_EDIT_CHANNELS, "Edit channels"), TRN(ZONE_ROW_RENAME, "Rename"), TRN(MSG_ROW_DELETE, "Delete") };
+	static const tr_id_t names[LO_ALL] = {
+		TRN(SCANLIST_ROW_EDIT_CHANNELS, "Edit channels"), TRN(ZONE_ROW_RENAME, "Rename"), TRN(MSG_ROW_DELETE, "Delete"),
+		TRN(SCANLIST_ROW_VOTE, "Vote"), TRN(SCANLIST_ROW_THRESHOLD, "Threshold"), TRN(SCANLIST_ROW_MARGIN, "Margin"),
+		TRN(SCANLIST_ROW_PEEK, "Peek during calls"), TRN(SCANLIST_ROW_TRANSMIT, "Transmit"),
+	};
 	str_copy(it->label, sizeof it->label, tr(names[i]));
 	item_num_set(it, (uint16_t)(i + 1u));
 	if (i == LO_DELETE)
 		it->flags |= UI_ITEM_WARN;
+#if CONFIG_VOTE_SCAN
+	sbuf_t b;
+	sb_init(&b, it->value, sizeof it->value);
+	switch (i) {
+	case LO_VOTE:
+		sb_str(&b, (cur_vote.flags & SCAN_VOTE_ON) ? TR(VALUE_ON, "On") : TR(VALUE_OFF, "Off"));
+		break;
+	case LO_THRESHOLD:
+		sb_i32(&b, scan_vote_threshold_of(&cur_vote));
+		sb_str(&b, " dBm");
+		break;
+	case LO_MARGIN:
+		sb_u32(&b, (uint32_t)scan_vote_margin_of(&cur_vote), 1);
+		sb_str(&b, " dB");
+		break;
+	case LO_PEEK:
+		sb_str(&b, (cur_vote.flags & SCAN_VOTE_NO_PEEK) ? TR(VALUE_OFF, "Off") : TR(VALUE_ON, "On"));
+		break;
+	case LO_TX:
+		sb_vote_tx(&b);
+		break;
+	default:
+		break;
+	}
+#endif
 }
+
+#if CONFIG_VOTE_SCAN
+static bool vote_save(const scan_list_vote_t *v)
+{
+	if (!ui_svc_scanlist_put_vote(cur_slot, v)) {
+		ui_toast(TR(TOAST_BUSY_SAVING, "Busy saving: try again"));
+		return false;
+	}
+	cur_vote = *v;
+	return true;
+}
+
+// Vote on (after the mode rule) or off. An FM list starts with peeks off: a peek is a hole in FM audio
+static void vote_toggle(void)
+{
+	scan_list_vote_t v = cur_vote;
+	if (v.flags & SCAN_VOTE_ON) {
+		v.flags = (uint8_t)(v.flags & ~SCAN_VOTE_ON);
+		if (vote_save(&v))
+			ui_toast(TR(SCANLIST_TOAST_VOTE_OFF, "Vote off"));
+		return;
+	}
+	int mode;
+	tr_id_t why = vote_refusal(&cur, &mode);
+	if (why != TR_NONE) {
+		ui_toast(tr(why));
+		return;
+	}
+	if (v.threshold_dbm == 0 && v.margin_db == 0 && mode == RADIO_MODE_FM)
+		v.flags |= SCAN_VOTE_NO_PEEK;	// a list made a vote list for the first time
+	v.flags |= SCAN_VOTE_ON;
+	if (vote_save(&v))
+		toast2(TR(SCANLIST_TOAST_VOTE_ON, "Vote on: "), cur.name);
+}
+#endif
 
 static void renamed(void)
 {
@@ -205,17 +351,120 @@ static void opt_select(uint16_t i, bool hold)
 	} else if (i == LO_RENAME) {
 		str_copy(new_name, sizeof new_name, cur.name);
 		ui_text_open_done(new_name, CODEPLUG_NAME_LEN, renamed);
-	} else {
+	} else if (i == LO_DELETE) {
 		ui_push(SCR_SLDEL, cur_slot);
+#if CONFIG_VOTE_SCAN
+	} else if (i == LO_VOTE) {
+		vote_toggle();
+	} else if (i == LO_PEEK) {
+		scan_list_vote_t v = cur_vote;
+		v.flags ^= SCAN_VOTE_NO_PEEK;
+		vote_save(&v);
+	} else {
+		ui_push(SCR_SLVOTE, i);	// Threshold, Margin or Transmit: the values to pick from
+#endif
 	}
 }
 
 static const char *opt_title(void) { return cur.name; }
 
 const ui_scr_def_t ui_scanlist_options_screen = {
-	.name = "scan-list", .flags = SF_LIST | SF_NUMBERED, .prefix = TRN(SCANLIST_TITLE, "Scan list"), .hint = TRN(HINT_1_3_PICK_BACK, "1-3 pick  Back"),
+	.name = "scan-list", .flags = SF_LIST | SF_NUMBERED, .prefix = TRN(SCANLIST_TITLE, "Scan list"),
+#if CONFIG_VOTE_SCAN
+	.hint = TRN(HINT_OK_PICK_BACK, "OK pick  Back"),
+#else
+	.hint = TRN(HINT_1_3_PICK_BACK, "1-3 pick  Back"),
+#endif
 	.count = opt_count, .item = opt_item, .select = opt_select, .title = opt_title, .enter = opt_enter,
 };
+
+#if CONFIG_VOTE_SCAN
+// ======================= A vote option's values (arg: LO_THRESHOLD, LO_MARGIN or LO_TX) =======================
+// Threshold: -50 to -120 dBm in 5 dB steps; Margin: 2 to 20 dB; Transmit: the voted site, then each member
+
+static const uint8_t margins[] = { 2, 3, 4, 5, 6, 8, 10, 12, 15, 20 };
+#define N_MARGINS	(sizeof margins / sizeof margins[0])
+#define N_THRESHOLDS	15u	// -50 .. -120
+
+static uint16_t vpick_count(void)
+{
+	uint16_t f = ui_frame()->arg;
+	return f == LO_THRESHOLD ? N_THRESHOLDS : f == LO_MARGIN ? (uint16_t)N_MARGINS : (uint16_t)(1u + cur.count);
+}
+
+static int vpick_threshold(uint16_t i)
+{
+	return -50 - 5 * (int)i;
+}
+
+static void vpick_item(uint16_t i, ui_item_t *it)
+{
+	static channel_t ch;
+	uint16_t f = ui_frame()->arg;
+	sbuf_t b;
+	sb_init(&b, it->label, sizeof it->label);
+	bool cur_one;
+	if (f == LO_THRESHOLD) {
+		sb_i32(&b, vpick_threshold(i));
+		sb_str(&b, " dBm");
+		cur_one = vpick_threshold(i) == scan_vote_threshold_of(&cur_vote);
+	} else if (f == LO_MARGIN) {
+		sb_u32(&b, margins[i], 1);
+		sb_str(&b, " dB");
+		cur_one = margins[i] == scan_vote_margin_of(&cur_vote);
+	} else if (i == 0) {
+		sb_str(&b, TR(SCANLIST_VALUE_VOTED_SITE, "Voted site"));
+		cur_one = !(cur_vote.flags & SCAN_VOTE_FIXED_TX);
+	} else {
+		sb_u32(&b, i, 1);
+		sb_chr(&b, ' ');
+		sb_str(&b, codeplug_channel(cur.channels[i - 1u], &ch) ? ch.name : "?");
+		cur_one = (cur_vote.flags & SCAN_VOTE_FIXED_TX) && cur_vote.tx_member == i - 1u;
+	}
+	if (cur_one)
+		it->flags |= UI_ITEM_TEMP;
+}
+
+static void vpick_enter(void)
+{
+	uint16_t n = vpick_count();
+	ui_frame()->focus = 0;
+	for (uint16_t i = 0; i < n; i++) {
+		ui_item_t it;
+		memset(&it, 0, sizeof it);
+		vpick_item(i, &it);
+		if (it.flags & UI_ITEM_TEMP)
+			ui_frame()->focus = i;
+	}
+}
+
+static void vpick_select(uint16_t i, bool hold)
+{
+	(void)hold;
+	uint16_t f = ui_frame()->arg;
+	scan_list_vote_t v = cur_vote;
+	if (f == LO_THRESHOLD) {
+		v.threshold_dbm = (int8_t)vpick_threshold(i);
+	} else if (f == LO_MARGIN) {
+		v.margin_db = margins[i];
+	} else if (i == 0) {
+		v.flags = (uint8_t)(v.flags & ~SCAN_VOTE_FIXED_TX);
+		v.tx_member = 0;
+	} else {
+		v.flags |= SCAN_VOTE_FIXED_TX;
+		v.tx_member = (uint8_t)(i - 1u);
+	}
+	if (vote_save(&v))
+		ui_pop();
+}
+
+static const char *vpick_prefix(void) { return cur.name; }
+
+const ui_scr_def_t ui_scanlist_vote_screen = {
+	.name = "scan-list-vote", .flags = SF_LIST, .prefix = TRN(SCANLIST_ROW_VOTE, "Vote"), .hint = TRN(HINT_OK_PICK_BACK, "OK pick  Back"),
+	.count = vpick_count, .item = vpick_item, .select = vpick_select, .title = vpick_prefix, .enter = vpick_enter,
+};
+#endif
 
 // ======================= Delete a list (arg: its slot) =======================
 
@@ -394,6 +643,19 @@ static void pick_select(uint16_t i, bool hold)
 	uint16_t num = z.channels[raw - 1u];
 	scan_list_t next = cur;
 	int at = in_list(num);
+#if CONFIG_VOTE_SCAN
+	if (at < 0 && (cur_vote.flags & SCAN_VOTE_ON)) {
+		int mode;
+		next.channels[next.count] = num;
+		next.count++;
+		tr_id_t why = vote_refusal(&next, &mode);
+		next = cur;
+		if (why != TR_NONE && why != TRN(SCANLIST_WHY_NEEDS_TWO_CHANNELS, "Add two channels first")) {
+			ui_toast(tr(why));	// a vote list takes channels of its own mode only
+			return;
+		}
+	}
+#endif
 	if (at >= 0) {
 		memmove(&next.channels[at], &next.channels[at + 1], (size_t)(next.count - (uint8_t)at - 1u) * sizeof next.channels[0]);
 		next.count--;
@@ -453,8 +715,17 @@ const ui_scr_def_t ui_scanlist_zone_screen = {
 	.count = zone_count, .item = zone_item, .select = zone_select, .enter = zone_enter,
 };
 
+#if CONFIG_VOTE_SCAN
+static char voting[CODEPLUG_NAME_LEN + 1];	// the vote list started last, for Home
+
+const char *ui_scan_list_voting(void)
+{
+	return voting;
+}
+#endif
+
 // Start the list in slot: the zone scan's place on the Home screen, with the name in the toast
-void ui_scan_list(uint8_t slot, const char *name)
+void ui_scan_list(uint8_t slot, const char *name, bool vote)
 {
 #if CONFIG_DUAL_WATCH
 	if (ui_st.dual.on)
@@ -466,6 +737,14 @@ void ui_scan_list(uint8_t slot, const char *name)
 	}
 	ui_st.scanning = true;
 	ui_go_home();
+#if CONFIG_VOTE_SCAN
+	if (vote) {
+		str_copy(voting, sizeof voting, name);
+		toast2(TR(SCANLIST_TOAST_VOTING, "Voting "), name);
+		return;
+	}
+#endif
+	(void)vote;
 	toast2(TR(SCANLIST_TOAST_SCANNING, "Scanning "), name);
 }
 #endif

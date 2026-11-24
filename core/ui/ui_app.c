@@ -1249,8 +1249,16 @@ bool ui_home_key(const input_event_t *ev)
 		} else if (ui_st.banner.kind != UI_BANNER_NONE) {
 			ui_st.banner.kind = UI_BANNER_NONE;
 		} else if (ui_st.scanning) {
+#if CONFIG_VOTE_SCAN
+			bool voting = view->scan == UI_SCAN_VOTE;	// before the stop clears it
+#endif
 			ui_svc_scan(false);
 			ui_st.scanning = false;
+#if CONFIG_VOTE_SCAN
+			if (voting)
+				ui_toast(TR(SCAN_TOAST_VOTE_STOPPED, "Vote stopped"));
+			else
+#endif
 			ui_toast(TR(SCAN_TOAST_STOPPED, "Scan stopped"));
 #if CONFIG_DMR
 		} else if (view->ch.mode == RADIO_MODE_DMR && view->dmr.reply_active) {
