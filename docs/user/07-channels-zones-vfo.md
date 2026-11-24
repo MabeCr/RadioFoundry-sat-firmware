@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2026 The RadioFoundry Authors -->
 
 # Channels, Zones and the VFO
 
@@ -353,6 +354,9 @@ On a radio that runs P25 trunking, a channel can belong to a P25 trunked system 
 (its control channels, its identity, your unit ID) and its channels (one talkgroup each) come from a codeplug written
 on a computer ([P25 and NXDN in the editor](04-programming.md#p25-and-nxdn)). A new system is listen only. The channel's settings show "P25T" as the mode.
 
+Control-channel acquisition accepts both ordinary status broadcasts and explicit multi-block network/site status.
+The configured system identity still has to match; receive-only operation never registers with the system.
+
 | Home says | What the radio is doing |
 |---|---|
 | Finding system | Trying the system's control channels in turn |
@@ -376,7 +380,7 @@ on a computer ([P25 and NXDN in the editor](04-programming.md#p25-and-nxdn)). A 
 - Phase 2 (TDMA) voice channels are not followed, and are unlikely ever to be: the radios' RF transceiver components
   can't send or receive Phase 2's modulation (H-CPM, H-DQPSK).
 - Scan skips these channels and dual watch doesn't take them: a trunked channel follows its system instead.
-- This has run against a test control channel only, not yet on a working system.
+- Explicit network/site status acquisition has also been checked on a live system in receive-only mode.
 
 For a ham P25 trunked system, RadioFoundry recommends one identity: WACN 0x32350, any system ID, and NAC 0x293 on the
 control channel. **Add Recommended Ham System** on the editor's **Systems** tab fills a P25 trunked system in with
@@ -436,9 +440,14 @@ the air band and FM in the broadcast band, and OK on it doesn't switch to DMR; t
 programmed on the frequency in the codeplug works too, even one stored as DMR. Both bands are receive only: PTT shows
 "Air band: receive only" or "Broadcast: receive only" and the radio doesn't transmit. Sub-audio tones are ignored.
 
-In the Codeplug Editor, a channel whose RX frequency is in one of these bands is set to **RX Only** when you type the
-frequency, its TX frequency follows RX, and its mode shows as "AM (air band)" or "FM broadcast". The Problems list warns about a channel there that
-isn't RX Only or is DMR.
+In the Codeplug Editor, a channel whose RX frequency is in one of these bands is set to **RX Only** with its TX
+frequency on RX, and its mode shows as "AM (air band)" or "FM broadcast". The editor does this when you type the RX
+frequency, and also for every channel in a codeplug you open, read from the radio or import. No radio transmits in
+these bands, so a TX frequency typed there is refused with a warning, and the channel keeps its old TX frequency. A
+channel opened or imported with only its TX frequency in either band is set to **RX Only**, and its TX frequency stays
+open in the channel list so you can correct it. In every other case, while **RX Only** is set, the TX frequency, TX
+tone and power are grayed out and blank in the channel list, and the channel form also grays out the TX timeout, VOX
+and the tone burst. The Problems list warns about a DMR channel in either band.
 
 In the air band the squelch works as on any FM channel. A broadcast station plays whatever the squelch level, so a
 fading station isn't cut, and the screen shows it is receiving. The LED stays off: a station isn't a call. The squelch only stops a scan on a station:
