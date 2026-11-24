@@ -27,8 +27,8 @@
 //                       zone z cut to n channels
 //   zonejob:<z>         another task (an import) deletes zone z (0-based) through the zone storage job
 //   fmrx / fmrxend      an FM signal opens / closes the squelch
-//   p25rx:<src>,<dst>[,u|e|o]   a P25 call (CONFIG_P25 builds): u a unit call, e encrypted, o another talk group
-//                       (both not played); p25rxend ends it
+//   p25rx:<src>,<dst>[,u|e|o|g[,name]]   a P25 call (CONFIG_P25 builds): u a unit call, e encrypted, o another talk
+//                       group (both not played), g a group call; the caller's name, _ for a space; p25rxend ends it
 //   nxdnrx:<src>,<dst>[,e|p]    an NXDN call: e scrambled and muted, p scrambled and played
 //   chkind:<n>,p25|nxdn[,<name>]  a stored P25 or NXDN channel, with an optional name (_ = space)
 //   p25t:<state>[,<tg>] the channel on view is a trunked P25 one (CONFIG_P25_TRUNK builds), its follower in state
@@ -2708,6 +2708,15 @@ bool ui_svc_sat_pass_alert(uint32_t norad, uint32_t aos)
 
 bool ui_svc_sat_alert_take(ui_sat_alert_t *out) { (void)out; return false; }
 
+// A P25 caller's text as p25rx gave it: a space in it makes it an ID database text (callsign, then the name)
+static char sim_caller_text[49];
+const char *ui_svc_caller_text(uint32_t id, bool *from_db)
+{
+	(void)id;
+	*from_db = strchr(sim_caller_text, ' ') != NULL;
+	return sim_caller_text;
+}
+
 uint32_t ui_svc_sat_alert_eta(void)
 {
 	ui_sat_status_t st;
@@ -3878,8 +3887,8 @@ static bool run_token(char *t, char *err, size_t len)
 #if CONFIG_P25
 	if (strcmp(t, "p25rx") == 0) {		// a P25 call: src,dst[,u|e|o] (unit call, encrypted, other talk group)
 		unsigned src = 0, dst = 0;
-		char kind = 'g';
-		if (arg == NULL || sscanf(arg, "%u,%u,%c", &src, &dst, &kind) < 2) {
+		char kind = 'g', who[49] = "";
+		if (arg == NULL || sscanf(arg, "%u,%u,%c,%48s", &src, &dst, &kind, who) < 2) {
 			snprintf(err, len, "bad %s", t);
 			return false;
 		}
@@ -3888,6 +3897,10 @@ static bool run_token(char *t, char *err, size_t len)
 			(kind == 'e' || kind == 'o' ? 0 : RADIO_P25_PLAYED));
 		view.p25.src = src;
 		view.p25.dst = dst;
+		for (char *u = who; *u != '\0'; u++)
+			if (*u == '_')
+				*u = ' ';
+		strcpy(sim_caller_text, who);
 		view.state = RS_RX;
 		view.rssi_dbm = -84;
 		changed();

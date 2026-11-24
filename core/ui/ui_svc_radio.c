@@ -263,6 +263,44 @@ bool ui_svc_scan_skip(void)
 }
 #endif
 
+#if CONFIG_AIR
+#if CONFIG_DMR
+#include "codeplug/codeplug.h"
+#include "codeplug/dmr_iddb.h"
+#endif
+// The UI task's only reader, so one entry holds: the last caller asked about, "" cached too
+const char *ui_svc_caller_text(uint32_t id, bool *from_db)
+{
+#if CONFIG_DMR
+	static uint32_t cached_id;
+	static bool cached_db, cached;
+	static char cached_text[DMR_IDDB_TEXT_MAX + 1];
+
+	if (!cached || cached_id != id) {
+		contact_t c;
+		cached_id = id;
+		cached = true;
+		cached_db = false;
+		cached_text[0] = '\0';
+		if (id == 0) {
+			// nobody yet
+		} else if (codeplug_contact_find(id, false, &c)) {
+			memcpy(cached_text, c.name, sizeof c.name < sizeof cached_text ? sizeof c.name : sizeof cached_text - 1u);
+			cached_text[sizeof cached_text - 1u] = '\0';
+		} else if (dmr_iddb_lookup(id, cached_text, sizeof cached_text)) {
+			cached_db = true;
+		}
+	}
+	*from_db = cached_db;
+	return cached_text;
+#else
+	(void)id;
+	*from_db = false;
+	return "";
+#endif
+}
+#endif
+
 #if CONFIG_DUAL_WATCH
 // The radio core alternates the one receiver between the two channels (radio-features.md 2.1). The same pair again
 // only changes the selection there, so this is cheap to call on every change. Refused here, where the answer is

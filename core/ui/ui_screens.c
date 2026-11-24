@@ -416,6 +416,31 @@ static const char *dual_mode_word(const ui_dual_pane_t *p)
 }
 #endif
 
+// The strip's state pill at the left edge; returns where the next word starts
+static int strip_pill(const font_t *f, int ph, int h, bool filled, const char *word, color_t pfg, color_t pbg, color_t sfg)
+{
+	if (!filled)
+		return gfx_pill(f, 0, 0, ph, word, pfg, pbg) + f->w / 2;
+	// On the filled strip the pill is the strip's full height (a one-cell pill leaves a line of the
+	// strip's color under it) against the bezel, its corners rounded by two pixels. Left of its middle the
+	// strip is the screen's background, so no strip color shows beside the left end. On the right a black
+	// edge follows the curve: RX, TX and NO TX are close in lightness to every strip color (NO TX on orange
+	// nearly equal)
+	int pad = f->w >= 8 ? 4 : 3;
+	int pw = gfx_text_width(f, word) + 2 * pad;
+	gfx_fill(0, 0, pw / 2, h, ui_col.bg);
+	gfx_fill(2, 0, pw - 4, h, pbg);
+	for (int e = 0; e < 2; e++) {	// the rounded ends, and the edge: the two corner steps and the end
+		gfx_vline(1 - e, 1 + e, h - 2 - 2 * e, pbg);
+		gfx_vline(pw - 2 + e, 1 + e, h - 2 - 2 * e, pbg);
+		gfx_pixel(pw - 2 + e, e, sfg);
+		gfx_pixel(pw - 2 + e, h - 1 - e, sfg);
+	}
+	gfx_vline(pw, 2, h - 4, sfg);
+	gfx_text(f, pad, (ph - f->h + 1) / 2, word, pfg);
+	return pw + 1 + f->w / 2;
+}
+
 // Status strip (P2): state pill, mode, monitor, lock, unread messages, signal, battery.
 // A titled screen (prefix and / or name) on a display under UI_TALL_PX high merges its title into the strip
 // (wireframes 160x128 and 128x64): the pill shows only while not idle, the signal bars and the battery give way to the
@@ -519,11 +544,23 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 	if (st == RS_IDLE && s->dual.on && s->dual.rx != UI_DUAL_NONE)
 		st = RS_RX;	// a channel's own receiver (two receivers) hears a call the view's one doesn't show
 #endif
+	// While a scan runs and nothing is heard the pill says SCAN, in the warning color; a signal on a stop gives the
+	// usual RX (Settings > scan, docs/spec/radio-features.md). Dual watch has its own DUAL word beside the mode
+	bool scan_pill = st == RS_IDLE && s->scanning
+#if CONFIG_DUAL_WATCH
+			 && !s->dual.on
+#endif
+			 ;
 	switch (st) {
 	case RS_RX: word = "RX"; pbg = ui_col.rx; pfg = ui_col.pill_dark_fg; break;
 	case RS_TX: word = v->aprs_tx ? "TX APRS" : "TX"; pbg = ui_col.tx; break;
 	case RS_TX_DENIED: word = TR(TOP_STATE_NO_TX, "NO TX"); pbg = ui_col.warn; pfg = ui_col.pill_dark_fg; break;
 	default: break;
+	}
+	if (scan_pill) {
+		word = TR(TOP_CHIP_SCAN, "SCAN");
+		pbg = ui_col.warn;
+		pfg = ui_col.pill_dark_fg;
 	}
 	if (gfx_bpp() == 1)
 		pfg = ui_col.pill_fg;
@@ -536,36 +573,14 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		      !ui_theme_is_inverse() && !(ui_theme_is_terminal() && ui_accent == UI_ACCENT_DEFAULT);
 	color_t sbg = filled ? ui_col.strip_bg : ui_col.bg, sfg = filled ? ui_col.pill_dark_fg : ui_col.fg;
 	color_t swarn = filled ? ui_col.strip_warn : ui_col.warn;
-	if (filled && st == RS_IDLE) {
+	if (filled && st == RS_IDLE && !scan_pill) {
 		pbg = sfg;
 		pfg = sbg;
 	}
 	gfx_fill(0, 0, w, L->strip_h, sbg);
 	int x = 0;
-	if (!merged || st != RS_IDLE) {
-		if (filled) {
-			// On the filled strip the pill is the strip's full height (a one-cell pill leaves a line of the
-			// strip's color under it) against the bezel, its corners rounded by two pixels. Left of its middle the
-			// strip is the screen's background, so no strip color shows beside the left end. On the right a black
-			// edge follows the curve: RX, TX and NO TX are close in lightness to every strip color (NO TX on orange
-			// nearly equal)
-			int pad = f->w >= 8 ? 4 : 3, h = L->strip_h;
-			int pw = gfx_text_width(f, word) + 2 * pad;
-			gfx_fill(0, 0, pw / 2, h, ui_col.bg);
-			gfx_fill(2, 0, pw - 4, h, pbg);
-			for (int e = 0; e < 2; e++) {	// the rounded ends, and the edge: the two corner steps and the end
-				gfx_vline(1 - e, 1 + e, h - 2 - 2 * e, pbg);
-				gfx_vline(pw - 2 + e, 1 + e, h - 2 - 2 * e, pbg);
-				gfx_pixel(pw - 2 + e, e, sfg);
-				gfx_pixel(pw - 2 + e, h - 1 - e, sfg);
-			}
-			gfx_vline(pw, 2, h - 4, sfg);
-			gfx_text(f, pad, (ph - f->h + 1) / 2, word, pfg);
-			x = pw + 1 + f->w / 2;
-		} else {
-			x = gfx_pill(f, 0, 0, ph, word, pfg, pbg) + f->w / 2;
-		}
-	}
+	if (!merged || st != RS_IDLE)
+		x = strip_pill(f, ph, L->strip_h, filled, word, pfg, pbg, sfg);
 	int ty = (ph - f->h + 1) / 2;
 
 	// Right side, right to left: battery %, battery icon, signal bars, unread messages, lock
@@ -662,13 +677,12 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_DUAL, "DUAL"), swarn);
 	else
 #endif
-	if (s->scanning && strip_fits(f, lx, rx, TR(TOP_CHIP_SCAN, "SCAN")))
-		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_SCAN, "SCAN"), swarn);
 #if CONFIG_DMR_ROAMING
-	else if (v->roam.state == RROAM_STATE_SEARCH && strip_fits(f, lx, rx, TR(TOP_CHIP_ROAM, "ROAM")))
+	if (v->roam.state == RROAM_STATE_SEARCH && strip_fits(f, lx, rx, TR(TOP_CHIP_ROAM, "ROAM")))
 		lx = gfx_text(f, lx + f->w, ty, TR(TOP_CHIP_ROAM, "ROAM"), swarn);	// searching the zone's sites
+	else
 #endif
-	else if (v->monitor && !v->aprs_tx && strip_fits(f, lx, rx, "MON"))
+	if (v->monitor && !v->aprs_tx && strip_fits(f, lx, rx, "MON"))
 		lx = gfx_text(f, lx + f->w, ty, "MON", swarn);
 #if CONFIG_USB_NETWORK && CONFIG_HOSTLINK
 	// USB as a network adapter (Tools > USB network): the serial tools are off. IP, and once the PC has the link up an
@@ -2346,9 +2360,12 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 	return false;
 }
 
-// Why the call isn't played, else who calls and where ("ID 1234 > TG 1", "ID 1234 > Private to 5678"; the ID is
-// missing until the call's link control is read)
-static void air_call_line(const air_call_t *c, const font_t *f, int y)
+// Why the call isn't played, else who calls and where ("KF8ENC > TG 7", "ID 1234 > Private to 5678"; the caller is
+// missing until the call's link control is read). rows: how many lines of this font the area has. With two or more
+// and a caller from the ID database ("callsign first-name more ..."), the callsign takes the first line with the
+// destination, and the rest of the text the lines below (words wrap, the last line ends in an ellipsis); with one
+// line the whole text is cut short beside the destination, then dropped if under four characters
+static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
 {
 	char buf[64], fit[48];
 	sbuf_t b;
@@ -2359,27 +2376,78 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y)
 		gfx_text(f, 0, y, fit, ui_col.warn);
 		return;
 	}
-	// Too wide: keep the marker and destination, then cut the destination if needed
-	for (int with_id = c->src != 0; with_id >= 0; with_id--) {
-		sb_init(&b, buf, sizeof buf);
-		if (c->enc)
-			sb_str(&b, "ENC ");
-		if (with_id) {
-			sb_str(&b, "ID ");
-			sb_u32(&b, c->src, 1);
-			sb_str(&b, " " GLYPH_ARROW " ");
-		}
-		if (c->unit) {
-			sb_str(&b, TR(CALL_VALUE_PRIVATE_TO, "Private to "));
-		} else {
-			sb_str(&b, "TG ");
-		}
-		sb_u32(&b, c->dst, 1);
-		if (gfx_text_width(f, buf) <= gfx_width())
-			break;
+	bool db = false;
+	const char *text = c->src != 0 ? ui_svc_caller_text(c->src, &db) : "";
+	const char *rest = "";
+	char head[24], tail[40];
+	sb_init(&b, head, sizeof head);
+	if (c->enc)
+		sb_str(&b, "ENC ");
+	if (c->src == 0) {
+		head[0] = '\0';
+	} else if (text[0] == '\0') {
+		sb_str(&b, "ID ");
+		sb_u32(&b, c->src, 1);
+	} else if (db && rows >= 2) {
+		size_t n = strcspn(text, " "), at = strlen(head);
+		if (n > sizeof head - 1u - at)
+			n = sizeof head - 1u - at;
+		memcpy(head + at, text, n);
+		head[at + n] = '\0';
+		rest = text + strcspn(text, " ");
+		while (*rest == ' ')
+			rest++;
+	} else {
+		sb_str(&b, text);	// a contact's name, or the database's whole text on a one line area
 	}
+	sb_init(&b, tail, sizeof tail);
+	if (head[0] != '\0')
+		sb_str(&b, " " GLYPH_ARROW " ");
+	sb_str(&b, c->unit ? TR(CALL_VALUE_PRIVATE_TO, "Private to ") : "TG ");
+	sb_u32(&b, c->dst, 1);
+	int room = gfx_width() - gfx_text_width(f, tail);
+	if (head[0] != '\0' && gfx_text_width(f, head) > room) {
+		if (room >= 4 * f->w) {
+			gfx_text_fit(f, head, room, fit, sizeof fit);
+			str_copy(head, sizeof head, fit);
+		} else {
+			head[0] = '\0';
+			sb_init(&b, tail, sizeof tail);
+			sb_str(&b, c->unit ? TR(CALL_VALUE_PRIVATE_TO, "Private to ") : "TG ");
+			sb_u32(&b, c->dst, 1);
+		}
+	}
+	sb_init(&b, buf, sizeof buf);
+	sb_str(&b, head);
+	sb_str(&b, tail);
 	gfx_text_fit(f, buf, gfx_width(), fit, sizeof fit);
 	gfx_text(f, 0, y, fit, ui_col.rx);
+	// The rest of the database text on the lines below: whole words while they fit, the last line cut with an ellipsis
+	for (int row = 1; row < rows && rest[0] != '\0'; row++) {
+		size_t len = strlen(rest), cut = len;
+		if (row + 1 < rows || gfx_text_width(f, rest) <= gfx_width()) {
+			while (cut > 0) {
+				size_t m = cut < sizeof fit - 1u ? cut : sizeof fit - 1u;
+				memcpy(fit, rest, m);
+				fit[m] = '\0';
+				if (gfx_text_width(f, fit) <= gfx_width() && (cut == len || rest[cut] == ' '))
+					break;
+				cut--;
+			}
+		}
+		if (cut == 0 || cut == len) {
+			gfx_text_fit(f, rest, gfx_width(), fit, sizeof fit);	// the last line, or one word too long
+			cut = len;
+		} else {
+			size_t m = cut < sizeof fit - 1u ? cut : sizeof fit - 1u;
+			memcpy(fit, rest, m);
+			fit[m] = '\0';
+		}
+		gfx_text(f, 0, y + row * f->h, fit, ui_col.fg);
+		rest += cut;
+		while (*rest == ' ')
+			rest++;
+	}
 }
 #endif
 
@@ -2405,7 +2473,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 		air_call_t ac;
 		bool air_rx = air_call(v, &ac);
 		if (!two && air_rx) {
-			air_call_line(&ac, sm, y);	// one line: who calls says more than the meter
+			air_call_line(&ac, sm, y, 1);	// one line: who calls says more than the meter
 			break;
 		}
 #endif
@@ -2418,7 +2486,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 			break;
 #if CONFIG_AIR
 		if (air_rx) {
-			air_call_line(&ac, sm, y2);
+			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h);
 			break;
 		}
 #endif

@@ -785,6 +785,8 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
 
 ## 8. Decisions and open points
 
+The state pill reads SCAN, in the warning color, in place of IDLE while a scan runs (zone, VFO band or scan list) and nothing is heard; a signal on a stop makes it the usual RX. Dual watch keeps its DUAL word beside the mode instead. There is no separate SCAN word on the strip.
+
 - Task flow 12 budgets 3 presses into the VFO, but flow 2 opens Zones on the current zone (so a zone two away is
   2 presses); the VFO row is first, so entering it takes 4 (OK 4 Up OK). The test uses 4; the owner decides.
 - Power on radios with many levels: the Quick tile cycles three presets (low, the board's default, highest); the full
@@ -823,7 +825,7 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
   pill left a line of the strip's color under it) against the bezel, its corners rounded by two pixels. Left of the
   pill's middle the strip is the screen's background, so no strip color shows beside its left end. On the right a
   one-pixel black edge follows the curve: the pill colors are close in lightness to the strip colors, so hue alone
-  would not separate them. Warnings on the strip (SCAN, MON, ROAM, unread messages, the lock, a low battery) keep
+  would not separate them. Warnings on the strip (MON, ROAM, unread messages, the lock, a low battery) keep
   a color: a dark shade picked per strip color, dark amber where it reads and dark blue on red, orange and pink, at
   least 5:1 on its strip after RGB565 rounding. The shades are light so black
   text reads on them (at least 7.5:1 after RGB565 rounding); the red is lighter and pinker than TX's red, and there is
