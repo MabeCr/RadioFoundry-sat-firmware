@@ -357,7 +357,7 @@ static const flow_t flows[] = {
 	{ "11 vote: off again", "scanlists:vote", "ok 6 1 down down down ctx 4", "vote2=0:0:0:0 toast=Vote_off", 8, false },
 	{ "11 vote: not a list of two modes", "scanlists:sites", "ok 6 1 down ctx 4", "vote0=0:0:0:0 toast=Vote:_one_mode_only", 6, false },
 	{ "11 vote: not a list of no channels", "scanlists:sites", "ok 6 1 down down ctx 4", "vote1=0:0:0:0 toast=Add_two_channels_first", 7, false },
-	{ "11 vote: threshold", "scanlists:vote", "ok 6 1 down down down ctx 5 down ok", "vote2=1:-75:0:0 screen=scan-list", 10, false },
+	{ "11 vote: threshold", "scanlists:vote", "ok 6 1 down down down ctx 5 up ok", "vote2=1:-85:0:0 screen=scan-list", 10, false },
 	{ "11 vote: margin", "scanlists:vote", "ok 6 1 down down down ctx 6 down ok", "vote2=1:0:8:0 screen=scan-list", 10, false },
 	{ "11 vote: no peeks", "scanlists:vote", "ok 6 1 down down down ctx 7", "vote2=3:0:0:0 screen=scan-list", 8, false },
 	{ "11 vote: transmit on one site", "scanlists:vote", "ok 6 1 down down down ctx 8 down down ok", "vote2=5:0:0:1 screen=scan-list", 11, false },
