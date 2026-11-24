@@ -17,6 +17,7 @@ static int16_t site_dbm[VOTE_MAX];	// what each site reads while it transmits (N
 static bool on_air;			// a call on the system: every site transmits it
 static uint32_t now;
 static unsigned tunes, away_polls;	// retunes the engine asked for; polls spent off the voted site during calls
+static uint32_t sync_delay_ms;		// a digital site: its sync (the call) comes this long after the retune; its carrier at once
 
 static vote_t v;
 
@@ -25,10 +26,11 @@ static void run(uint32_t ms)
 	for (uint32_t t = 0; t < ms; t += POLL_MS) {
 		now += POLL_MS;
 		int16_t dbm = on_air ? site_dbm[v.at] : NOISE_DBM;
-		bool call = on_air && site_dbm[v.at] > -118;
+		bool carrier = on_air && site_dbm[v.at] > -118 && now - v.tuned_ms >= VOTE_SETTLE_MS;
+		bool call = on_air && site_dbm[v.at] > -118 && now - v.tuned_ms >= sync_delay_ms;
 		if (on_air && v.phase == VOTE_PH_PEEK)
 			away_polls++;
-		int m = vote_poll(&v, now, dbm, call);
+		int m = vote_poll(&v, now, dbm, call, carrier && sync_delay_ms != 0);
 		if (m >= 0) {
 			tunes++;
 			vote_tuned(&v, (uint8_t)m, now);
@@ -44,6 +46,7 @@ static void start(uint8_t n, int16_t threshold, uint8_t margin, bool peeks, cons
 		site_dbm[i] = dbm[i];
 	on_air = false;
 	now = 1000;
+	sync_delay_ms = 0;
 	tunes = away_polls = 0;
 	vote_begin(&v, &cfg, 0, now);
 }
@@ -65,6 +68,26 @@ static void test_first_call(void)
 	on_air = false;
 	run(1500);
 	CHECK(v.phase != VOTE_PH_CALL && v.last_dbm[1] >= -81 && v.last_dbm[1] <= -79);
+}
+
+// A digital site's sync takes longer than a sweep's dwell (a P25 NAC comes once a frame): a sweep that waits on a carrier
+// finds the call, one that doesn't never does
+static void test_sweep_waits_for_sync(void)
+{
+	static const int16_t dbm[] = { -85, -83, -88, -90 };	// all weak: below the -70 threshold, so the radio sweeps
+	start(4, -70, 6, true, dbm);
+	sync_delay_ms = 400;
+	run(1500);				// between calls: sweeping
+	on_air = true;
+	run(6000);
+	CHECK(v.rounds >= 1 && (v.phase == VOTE_PH_CALL || v.phase == VOTE_PH_ROUND));
+	// A carrier that never gives sync (another system): waited on once, then left alone for a while
+	start(3, -70, 6, true, dbm);
+	sync_delay_ms = 100000;
+	on_air = true;
+	run(VOTE_PROBE_MS * 3 + 1000);
+	CHECK(v.rounds == 0 && v.phase == VOTE_PH_SWEEP);
+	CHECK(v.sweeps >= 1);
 }
 
 // A strong site stays voted between calls and takes the next call with no round; after the recheck time one sweep
@@ -170,7 +193,7 @@ static void test_tx_member_and_bounds(void)
 	vote_cfg_t one = { .n = 1, .threshold_dbm = -70, .margin_db = 6 };
 	vote_t w;
 	vote_begin(&w, &one, 0, 0);
-	CHECK(!vote_on(&w) && vote_poll(&w, 25, -60, true) == -1);
+	CHECK(!vote_on(&w) && vote_poll(&w, 25, -60, true, false) == -1);
 	vote_end(&v);
 	CHECK(!vote_on(&v));
 }
@@ -178,6 +201,7 @@ static void test_tx_member_and_bounds(void)
 int main(void)
 {
 	test_first_call();
+	test_sweep_waits_for_sync();
 	test_strong_site_holds();
 	test_margin_holds_a_near_tie();
 	test_peeks();

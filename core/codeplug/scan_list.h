@@ -30,7 +30,7 @@ typedef zone_t scan_list_t;
 #define SCAN_VOTE_NO_PEEK	0x02u	// flags: no peeks at other sites during a call
 #define SCAN_VOTE_FIXED_TX	0x04u	// flags: PTT transmits on member tx_member, else on the voted site
 #define SCAN_VOTE_FLAGS		0x07u	// the bits this layout knows
-#define SCAN_VOTE_THRESHOLD_DEFAULT	(-70)	// dBm
+#define SCAN_VOTE_THRESHOLD_DEFAULT	(-90)	// dBm
 #define SCAN_VOTE_THRESHOLD_MIN		(-120)
 #define SCAN_VOTE_THRESHOLD_MAX		(-50)
 #define SCAN_VOTE_MARGIN_DEFAULT	6	// dB

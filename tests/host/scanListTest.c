@@ -229,7 +229,7 @@ static void test_vote(void)
 	scan_list_t a = make("MVP25", 1, 8), b = make("OTHER", 40, 2);
 	CHECK(scan_list_add(&a) == 0 && scan_list_add(&b) == 1);
 	CHECK(scan_list_read_vote(0, &v) && v.flags == 0 && v.threshold_dbm == 0 && v.margin_db == 0 && v.tx_member == 0);
-	CHECK(scan_vote_threshold_of(&v) == -70 && scan_vote_margin_of(&v) == 6);
+	CHECK(scan_vote_threshold_of(&v) == -90 && scan_vote_margin_of(&v) == 6);
 	CHECK(!scan_list_read_vote(5, &v) && v.flags == 0);	// a free slot: a plain list's zeros
 
 	scan_list_vote_t w = { .flags = SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX | 0x80u, .threshold_dbm = -85, .margin_db = 4,

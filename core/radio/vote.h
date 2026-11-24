@@ -28,6 +28,11 @@
 #define VOTE_SETTLE_MS		50	// readings right after a retune belong to the last member (scan.h SCAN_SETTLE_MS)
 #define VOTE_SAMPLE_MS		100	// ROUND: per member, the settle included
 #define VOTE_SWEEP_DWELL_MS	150	// SWEEP: per member, the settle included (radio.h RADIO_SCAN_DWELL_MS)
+#define VOTE_PROBE_MS		700	// SWEEP: a carrier (VOTE_CARRIER_HOLD_MS) waits this long from the retune for the member's sync: a
+					// P25 frame is 180 ms and its NAC comes once a frame, more on a weak signal (radio_sm.h
+					// RADIO_SCAN_AIR_PROBE_MS)
+#define VOTE_CARRIER_HOLD_MS	150	// SWEEP: a carrier this recent still counts (a TDMA signal is off the air half the time)
+#define VOTE_PROBE_BACKOFF_MS	5000u	// SWEEP: a member whose carrier gave no sync is not waited on again for this long
 #define VOTE_RECHECK_MS		30000u	// HOLD: a sweep after this long with no call heard
 #define VOTE_PEEK_GAP_MS	2000u	// CALL: at most one peek in this long
 #define VOTE_PEEK_MS		60	// PEEK: away from the call this long, the retune included
@@ -60,6 +65,8 @@ typedef struct {
 	uint8_t next;		// ROUND, SWEEP, PEEK: the member the pass is at / the next to peek
 	uint8_t left;		// ROUND, SWEEP: members still to visit
 	int16_t last_dbm[VOTE_MAX];	// each member's last reading (VOTE_NONE: not read, or silent)
+	uint32_t carrier_ms;	// SWEEP: the last poll a carrier was heard on `at` (0: none since the retune)
+	uint32_t nosync_ms[VOTE_MAX];	// SWEEP: when a member's carrier last gave no sync (0: never)
 	// Counters for the debug link (docs/spec/vote-scan.md 8)
 	uint32_t rounds, sweeps, switches, peeks;
 	uint16_t peek_max_ms;	// the longest peek, the retune back included
@@ -75,9 +82,11 @@ static inline bool vote_on(const vote_t *v)
 }
 
 // Every poll. rssi_dbm: the receiver's strength reading on member `at`; call: a call of the member's own kind is heard
-// there (its sync: NAC, color code, RAN or tone). Returns the member to tune next (the caller tunes it and calls
-// vote_tuned), or -1 to stay
-int vote_poll(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call);
+// there (its sync: NAC, color code, RAN or tone); carrier: a signal is there that may be one (a digital mode's strength
+// at the squelch level, read after the retune's settle; false for FM, whose squelch is the call). A sweep waits
+// VOTE_PROBE_MS on a carrier for its sync, as a scan does. Returns the member to tune next (the caller tunes it and
+// calls vote_tuned), or -1 to stay
+int vote_poll(vote_t *v, uint32_t now_ms, int16_t rssi_dbm, bool call, bool carrier);
 // The caller tuned member m at now_ms
 void vote_tuned(vote_t *v, uint8_t m, uint32_t now_ms);
 
