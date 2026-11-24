@@ -651,6 +651,7 @@ void debuglink_view_section(uint8_t section, const radio_view_t *v, dl_text_t *t
 		break;
 	case DL_VIEW_ROAM:
 		debuglink_view_roam(v, t);
+		debuglink_view_vote(v, t);
 		break;
 	case DL_VIEW_APRS:
 		debuglink_view_aprs(0, t);

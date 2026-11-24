@@ -459,16 +459,33 @@ With `CONFIG_SCAN_LIST` and a usable scan list area ([scan-list.md](scan-list.md
 
 | Screen | Shows |
 |---|---|
-| Scan (`scan-lists`) | Row 0 "Scan zone" ("Scan band" in the VFO) with On or Off: the zone scan as before. Then each stored list with its channel count ("12 ch"), then "New scan list" while there is room. OK on a list scans it (Home, with "Scanning" and its name); "Leave the VFO first" in the VFO, "Add two channels first" under two. `#` (long OK without a CONTEXT key) opens the list's options. "New scan list" opens text entry; the new list appears focused with "Added" and its name |
-| Scan list (`scan-list`) | The options, numbered: 1 Edit channels, 2 Rename (text entry with the name), 3 Delete |
+| Scan (`scan-lists`) | Row 0 "Scan zone" ("Scan band" in the VFO) with On or Off: the zone scan as before. Then each stored list with its channel count ("12 ch"; a vote list adds "Vote"), then "New scan list" while there is room. OK on a list scans it (Home, with "Scanning" and its name; a vote list "Voting" and its name, section 2.7.1); "Leave the VFO first" in the VFO, "Add two channels first" under two. `#` (long OK without a CONTEXT key) opens the list's options. "New scan list" opens text entry; the new list appears focused with "Added" and its name |
+| Scan list (`scan-list`) | The options, numbered: 1 Edit channels, 2 Rename (text entry with the name), 3 Delete; with `CONFIG_VOTE_SCAN`, 4 Vote (On, Off), and while it is on 5 Threshold, 6 Margin, 7 Peek during calls (On, Off), 8 Transmit, 9 Scan key (section 2.7.1) |
+| Scan key (`scan-list-link`) | With `CONFIG_VOTE_SCAN`: the Add to picker for any channel (the zone row first, then the zone's channels; digits filter). The channel linked now reads "Linked"; one another list is linked to reads "Other list". OK links a channel and returns ("Scan key: " and its name), OK on the linked one takes the link off ("Scan key link removed"); on one another list has: "Used by " and that list, nothing changed |
+| Vote value (`scan-list-vote`) | With `CONFIG_VOTE_SCAN`: the values of Threshold (-50 to -120 dBm in 5 dB steps), Margin (2, 3, 4, 5, 6, 8, 10, 12, 15, 20 dB) or Transmit ("Voted site", then each member as "1 Name"), the current one focused; OK saves it and returns |
 | Delete (`scan-list-delete`) | "No, keep it" / "Yes, delete" and a line that the channels stay in their zones |
 | Channels (`scan-list-edit`) | "Add channel", then the list's channels as "1 Name" with frequency and talk target; OK removes one ("Removed"). A channel the codeplug no longer has reads "Missing", dim, and OK removes it. A list of 80 says "The list is full" |
-| Add to (`scan-list-add`) | The zone row (OK picks another zone), then that zone's channels. OK adds a channel or takes it out again ("In list" marks them) and stays, so a list takes channels from several zones in a row. Digits filter by name |
+| Add to (`scan-list-add`) | The zone row (OK picks another zone), then that zone's channels. OK adds a channel or takes it out again ("In list" marks them) and stays, so a list takes channels from several zones in a row. Digits filter by name. A vote list refuses a channel of another mode ("Vote: one mode only") or a trunked one ("Vote: no trunked channels") |
 | Zone (`scan-list-zone`) | Every zone; OK returns to the picker on it |
+
+#### 2.7.1 Vote lists
+
+With `CONFIG_VOTE_SCAN` (it follows `CONFIG_SCAN_LIST`), a list can be a vote list ([vote-scan.md](vote-scan.md)): the
+radio listens to the best of its sites instead of stopping on the first with activity.
+
+| What | Behavior |
+|---|---|
+| Vote On | refused with a toast when the list holds fewer than two channels ("Add two channels first"), mixes modes ("Vote: one mode only") or holds a trunked channel ("Vote: no trunked channels"); else "Vote on: " and the name. An FM list made a vote list for the first time starts with Peek during calls off |
+| Vote Off | "Vote off"; the other values are kept for the next time |
+| OK on a vote list | the same checks as Vote On (the channels may have changed since), then Home with "Voting " and the name |
+| State pill | VOTE in the private-call color (`ui_col.priv`) while nothing is heard, in place of SCAN; RX on a call. Its word is black on a bright color and white on a deep one |
+| Home | the zone line shows the list's name and the voted site's place ("2/3"); the channel line shows the voted site's name, with no channel number (the tuned channel changes under a sweep or a peek, the voted site doesn't). The hint is "Back stop vote" |
+| Back | stops it on the voted site: "Vote stopped" |
+| Scan key | on a channel a vote list is linked to (and Vote on), the Scan function (7) with no scan running starts that list ("Voting " and its name) in place of the zone scan; the hint row says "Scan: vote". Nothing else changes: the key still stops a scan, still starts the zone scan on every other channel and in the VFO, and the Scan lists function (23) still opens the lists. `ui_scan_linked_start`, `ui_scan_link_here` (cached by channel and list change, so Home doesn't read flash each frame) |
 
 Changes are saved by a job for the housekeeping task, one at a time: a second change before it finishes says "Busy saving:
 try again" and is not made. The stack is 9 deep (`UI_STACK_MAX`): Home, hub, Tools, Scan, the options, Channels, Add to,
-Zone. Only Scan is a field-use screen.
+Zone (or the options and a vote value). Only Scan is a field-use screen.
 
 A panel whose words stay shorter than 16 px needs its own CJK face and a layout to go with it. The face is a
 hand-tuned bitmap at that line height: an outline font scaled to 12x12 loses the strokes of all but the simplest
@@ -607,8 +624,9 @@ position in the list is its role. Each role has a press and a long press, and ea
 | Scan skip (20) | SCAN_SKIP: what the scan action's "Skip channel for now" does, without the menu: the nuisance delete of the channel that stopped the scan, until the scan stops. Toast "Skipped until the scan stops", "Nothing to skip yet" when the radio has no channel to skip, "Not scanning" (and nothing else) when no scan is running. Allowed on a home key like Scan: it is a plain press or long press function | yes | yes |
 | Monitor toggle (21) | MONITOR_TOGGLE: what quick tile 5 does, on one key: on an FM channel it latches the squelch open (status line MON) or closes it again; on a DMR channel it turns digital monitor on or off (toast "Digital monitor on" / "Digital monitor off"). It is not the Monitor key: that one still opens the squelch only while held, and the retired values 9 and 10 stay retired. Allowed on a home key like Scan: it is a plain press or long press function, and works in the VFO too | yes | yes |
 | Flip screen (22) | FLIP_SCREEN: the picture turned 180 degrees, on or off; the same as Settings > Display > Flip screen, and saved. Toast "Screen flipped" / "Screen upright". Offered in every build; on a display with no `set_flip` it toasts "Flip screen: not on this radio" | yes | yes |
+| Scan lists (23) | SCAN_LISTS: Home and then the lists to pick from (section 2.7: "Scan zone" is the first row, then each stored list), from any screen and while a scan runs. Toast "Scan lists: not on this radio" (and nothing else) when the radio has no scan list area. Offered with `CONFIG_SCAN_LIST` and `CONFIG_CHANNEL_EDIT`. The Scan function (7) still starts the zone scan at once: set Scan on a press and Scan lists on a long press (or the reverse) to have both | yes | yes |
 
-POWER, ZONE_UP, ZONE_DOWN, SCAN, SCAN_SKIP, MONITOR_TOGGLE, CALL_BACK, HOME_ZONE, COPY_VFO, VFO_TOGGLE, TALK_LABEL and FLIP_SCREEN do the same on a press and a long
+POWER, ZONE_UP, ZONE_DOWN, SCAN, SCAN_SKIP, MONITOR_TOGGLE, CALL_BACK, HOME_ZONE, COPY_VFO, VFO_TOGGLE, TALK_LABEL, FLIP_SCREEN and SCAN_LISTS do the same on a press and a long
 press and work on any screen. LOCK also gets through while the keys are locked, to unlock them. TALK_TARGET opens the picker on
 a long press too. A monitor key given a press of its own loses its hold: its long press is nothing until set. A Monitor press with a hold
 function: the input engine sends DOWN, the LONG (value 1) at the threshold and UP (value 1 when the LONG ran); the
@@ -804,7 +822,7 @@ HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences o
 
 ## 8. Decisions and open points
 
-The state pill reads SCAN, in the warning color, in place of IDLE while a scan runs (zone, VFO band or scan list) and nothing is heard; a signal on a stop makes it the usual RX. Dual watch keeps its DUAL word beside the mode instead. There is no separate SCAN word on the strip.
+The state pill reads SCAN, in the warning color, in place of IDLE while a scan runs (zone, VFO band or scan list) and nothing is heard; a signal on a stop makes it the usual RX. Dual watch keeps its DUAL word beside the mode instead. There is no separate SCAN word on the strip. A vote list reads VOTE, in the private-call color (section 2.7.1).
 
 - Task flow 12 budgets 3 presses into the VFO, but flow 2 opens Zones on the current zone (so a zone two away is
   2 presses); the VFO row is first, so entering it takes 4 (OK 4 Up OK). The test uses 4; the owner decides.

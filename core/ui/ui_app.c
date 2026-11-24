@@ -1099,6 +1099,11 @@ void ui_scan_toggle(void)
 		ui_dual_stop();
 #endif
 	bool on = !ui_st.scanning;
+#if CONFIG_VOTE_SCAN
+	// A channel with a vote list linked to it: the Scan key votes on that list in place of the zone scan
+	if (on && ui_scan_linked_start(view))
+		return;
+#endif
 	if (!ui_svc_scan(on)) {
 		ui_toast(TR(WHY_SCAN_NOT_IN_BUILD, "Scan: not in this build"));
 		return;
@@ -1249,8 +1254,16 @@ bool ui_home_key(const input_event_t *ev)
 		} else if (ui_st.banner.kind != UI_BANNER_NONE) {
 			ui_st.banner.kind = UI_BANNER_NONE;
 		} else if (ui_st.scanning) {
+#if CONFIG_VOTE_SCAN
+			bool voting = view->scan == UI_SCAN_VOTE;	// before the stop clears it
+#endif
 			ui_svc_scan(false);
 			ui_st.scanning = false;
+#if CONFIG_VOTE_SCAN
+			if (voting)
+				ui_toast(TR(SCAN_TOAST_VOTE_STOPPED, "Vote stopped"));
+			else
+#endif
 			ui_toast(TR(SCAN_TOAST_STOPPED, "Scan stopped"));
 #if CONFIG_DMR
 		} else if (view->ch.mode == RADIO_MODE_DMR && view->dmr.reply_active) {
@@ -2311,6 +2324,11 @@ void ui_app_key(const input_event_t *ev)
 		case ACT_SCAN_SKIP:
 			ui_scan_skip();
 			return;
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+		case ACT_SCAN_LISTS:
+			ui_scan_lists_key();
+			return;
+#endif
 		case ACT_MONITOR_TOGGLE:
 			ui_monitor_toggle();
 			return;
@@ -2736,6 +2754,13 @@ bool ui_app_tick(const radio_view_t *v, uint32_t now_ms)
 		ui_st.scanning = scanning;
 		dirty = true;
 	}
+#if CONFIG_VOTE_SCAN
+	bool linked = ui_scan_link_here(v);
+	if (linked != ui_st.vote_link) {
+		ui_st.vote_link = linked;
+		dirty = true;
+	}
+#endif
 #if CONFIG_DMR_ROAMING
 	// An automatic move to another site (dmr-roaming.md 6.2)
 	if (roams_known && v->roam.roams != roams_seen && v->roam.state != RROAM_STATE_SEARCH) {

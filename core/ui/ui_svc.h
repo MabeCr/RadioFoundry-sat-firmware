@@ -294,6 +294,14 @@ bool ui_svc_scanlist_get(uint16_t slot, scan_list_t *out);	// false: no list in 
 bool ui_svc_scanlist_put(int slot, const scan_list_t *l);	// a job: write the list; slot < 0 takes the first free one. False: busy or invalid
 bool ui_svc_scanlist_delete(uint16_t slot);		// a job. False: busy
 bool ui_svc_scanlist_start(uint16_t slot);		// scan it (radio_req_scan_list). False: not in this build
+#if CONFIG_VOTE_SCAN
+// A list's vote options (docs/spec/vote-scan.md 3): false and all 0 for a free slot. The put is a job like the list's own
+bool ui_svc_scanlist_get_vote(uint16_t slot, scan_list_vote_t *out);
+bool ui_svc_scanlist_put_vote(uint16_t slot, const scan_list_vote_t *v);	// False: busy
+// The slot of the list whose Scan key channel is channel (scan_list_vote_t.link), not counting skip_slot (-1: none); -1
+// when none
+int ui_svc_scanlist_find_link(uint16_t channel, int skip_slot);
+#endif
 #endif
 
 // --- Satellites (Tools > Satellites, CONFIG_SAT; ui_svc_sat.c, docs/spec/ui.md 2.6, docs/spec/satellite.md 5.1). The

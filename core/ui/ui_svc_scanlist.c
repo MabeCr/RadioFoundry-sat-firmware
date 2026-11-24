@@ -24,17 +24,26 @@ bool ui_svc_scanlist_get(uint16_t slot, scan_list_t *out)
 	return scan_list_read(slot, out);
 }
 
-// The one write in flight: a put (slot < 0: a new list) or a delete (the list's count 0xFF)
+// The one write in flight: a put (slot < 0: a new list), a delete, or a list's vote options
 static struct {
 	bool busy;
 	bool del;
+	bool vote;
 	int slot;
 	scan_list_t list;
+#if CONFIG_VOTE_SCAN
+	scan_list_vote_t v;
+#endif
 } op;
 
 static void job(void *ctx)
 {
 	(void)ctx;
+#if CONFIG_VOTE_SCAN
+	if (op.vote)
+		scan_list_write_vote((uint16_t)op.slot, &op.v);
+	else
+#endif
 	if (op.del)
 		scan_list_delete((uint16_t)op.slot);
 	else if (op.slot < 0)
@@ -59,6 +68,7 @@ bool ui_svc_scanlist_put(int slot, const scan_list_t *l)
 	if (op.busy || !scan_list_encode(l, rec))
 		return false;	// a list that can't be stored is refused here, not by the job
 	op.del = false;
+	op.vote = false;
 	op.slot = slot;
 	op.list = *l;
 	return post();
@@ -69,9 +79,33 @@ bool ui_svc_scanlist_delete(uint16_t slot)
 	if (op.busy)
 		return false;
 	op.del = true;
+	op.vote = false;
 	op.slot = slot;
 	return post();
 }
+
+#if CONFIG_VOTE_SCAN
+bool ui_svc_scanlist_get_vote(uint16_t slot, scan_list_vote_t *out)
+{
+	return scan_list_read_vote(slot, out);
+}
+
+int ui_svc_scanlist_find_link(uint16_t channel, int skip_slot)
+{
+	return scan_list_find_link(channel, skip_slot);
+}
+
+bool ui_svc_scanlist_put_vote(uint16_t slot, const scan_list_vote_t *v)
+{
+	if (op.busy)
+		return false;
+	op.del = false;
+	op.vote = true;
+	op.slot = slot;
+	op.v = *v;
+	return post();
+}
+#endif
 
 bool ui_svc_scanlist_start(uint16_t slot)
 {

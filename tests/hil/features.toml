@@ -214,6 +214,11 @@ switch = "SCAN_LIST"
 spec = "docs/spec/scan-list.md"
 source = ["core/codeplug/scan_list.c"]
 
+[feature.vote_scan]
+switch = "VOTE_SCAN"
+spec = "docs/spec/vote-scan.md"
+source = ["core/radio/vote.c", "core/radio/vote.h"]
+
 [feature.beep]
 switch = "BEEP"
 spec = "docs/spec/radio-features.md"

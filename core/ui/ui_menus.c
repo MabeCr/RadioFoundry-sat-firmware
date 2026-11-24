@@ -67,10 +67,11 @@ extern const ui_scr_def_t ui_satellite_passes_screen;	// ui_satellite.c
 extern const ui_scr_def_t ui_sat_screen, ui_sat_passes_screen, ui_sat_track_screen, ui_sat_clock_screen, ui_sat_freq_screen, ui_sat_sound_screen, ui_sat_delete_screen;	// ui_sat.c (CONFIG_SAT)
 #if CONFIG_DUAL_WATCH
 extern const ui_scr_def_t ui_dual_screen, ui_dual_pick_screen, ui_dual_zone_screen;	// ui_dual.c
+#endif
 #if CONFIG_SCAN_LIST
 extern const ui_scr_def_t ui_scanlists_screen, ui_scanlist_options_screen, ui_scanlist_delete_screen,
-	ui_scanlist_edit_screen, ui_scanlist_pick_screen, ui_scanlist_zone_screen;	// ui_scanlist.c
-#endif
+	ui_scanlist_edit_screen, ui_scanlist_pick_screen, ui_scanlist_zone_screen, ui_scanlist_vote_screen,
+	ui_scanlist_link_screen;	// ui_scanlist.c
 #endif
 
 static void item_num(ui_item_t *it, uint16_t n)
@@ -6542,6 +6543,20 @@ static void tools_item(uint16_t row, ui_item_t *it)
 	}
 }
 
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+// A side key set to Scan lists (keyassign.h): Home, then the lists to pick from (docs/spec/ui.md 2.7), on any screen.
+// Nothing to pick from when the radio has no scan list area: it says so, and starts nothing
+void ui_scan_lists_key(void)
+{
+	if (!(feats() & UI_FEAT_SCAN) || ui_svc_scanlist_slots() == 0) {
+		ui_toast(TR(KEYFN_WHY_NO_SCAN_LISTS, "Scan lists: not on this radio"));
+		return;
+	}
+	ui_go_home();
+	ui_push(SCR_SLISTS, 0);
+}
+#endif
+
 static void tools_select(uint16_t row, bool hold)
 {
 	(void)hold;
@@ -6684,6 +6699,9 @@ static const int16_t v_keyfn_press[] = { KEYFN_DEFAULT, KEYFN_NONE, KEYFN_MONITO
 					 KEYFN_AB, KEYFN_DUAL_WATCH,
 #endif
 					 KEYFN_FLIP_SCREEN,
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+					 KEYFN_SCAN_LISTS,
+#endif
 };
 static const tr_id_t n_keyfn_press[] = { TRN(VALUE_DEFAULT, "Default"), TRN(KEYFN_VALUE_NOTHING, "Nothing"),
 	TRN(KEYFN_VALUE_MONITOR, "Monitor"), TRN(KEYFN_VALUE_TALK_TARGET, "Talk target"),
@@ -6707,6 +6725,9 @@ static const tr_id_t n_keyfn_press[] = { TRN(VALUE_DEFAULT, "Default"), TRN(KEYF
 					     TRX(KEYFN_VALUE_A_B, "A/B"), TRN(WORD_DUAL_WATCH, "Dual watch"),
 #endif
 					     TRN(WORD_FLIP_SCREEN, "Flip screen"),
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+					     TRN(KEYFN_VALUE_SCAN_LISTS, "Scan lists"),
+#endif
 };
 static const int16_t v_keyfn_hold[] = { KEYFN_DEFAULT, KEYFN_NONE, KEYFN_TALK_TARGET, KEYFN_POWER, KEYFN_ZONE_UP,
 					KEYFN_ZONE_DOWN, KEYFN_SCAN, KEYFN_SCAN_SKIP, KEYFN_MONITOR_TOGGLE,
@@ -6724,6 +6745,9 @@ static const int16_t v_keyfn_hold[] = { KEYFN_DEFAULT, KEYFN_NONE, KEYFN_TALK_TA
 					KEYFN_AB, KEYFN_DUAL_WATCH,
 #endif
 					KEYFN_FLIP_SCREEN,
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+					KEYFN_SCAN_LISTS,
+#endif
 };
 static const tr_id_t n_keyfn_hold[] = { TRN(VALUE_DEFAULT, "Default"), TRN(KEYFN_VALUE_NOTHING, "Nothing"),
 	TRN(KEYFN_VALUE_TALK_TARGET, "Talk target"), TRN(KEYFN_VALUE_POWER_LEVEL, "Power level"),
@@ -6746,6 +6770,9 @@ static const tr_id_t n_keyfn_hold[] = { TRN(VALUE_DEFAULT, "Default"), TRN(KEYFN
 					    TRX(KEYFN_VALUE_A_B, "A/B"), TRN(WORD_DUAL_WATCH, "Dual watch"),
 #endif
 					    TRN(WORD_FLIP_SCREEN, "Flip screen"),
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+					    TRN(KEYFN_VALUE_SCAN_LISTS, "Scan lists"),
+#endif
 };
 #endif
 static const int16_t v_updown[] = { 0, 1, 2 };
@@ -8351,6 +8378,9 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 	[SCR_SLISTS] = &ui_scanlists_screen, [SCR_SLOPT] = &ui_scanlist_options_screen,
 	[SCR_SLDEL] = &ui_scanlist_delete_screen, [SCR_SLEDIT] = &ui_scanlist_edit_screen,
 	[SCR_SLPICK] = &ui_scanlist_pick_screen, [SCR_SLZONE] = &ui_scanlist_zone_screen,
+#if CONFIG_VOTE_SCAN
+	[SCR_SLVOTE] = &ui_scanlist_vote_screen, [SCR_SLLINK] = &ui_scanlist_link_screen,
+#endif
 #endif
 #if CONFIG_CRASH_SCREEN
 	[SCR_CRASH] = &crash_screen,
