@@ -3,7 +3,8 @@
 
 # Vote scan
 
-**Status: proposal, not built.** A design for review before any code. Section 9 lists what is still open.
+**Status: built, untested on a radio.** The record, the engine, the radio core and the screens are written and host
+tested; peeks through the radio core are not (section 8). Section 9 lists what is still open.
 
 Vote scan keeps the radio on the best site of a conventional system whose sites all carry the same traffic on
 different frequencies: P25 first (the case that asked for it), and FM, DMR or NXDN the same way. A normal scan stops on the first channel with activity; vote scan measures every site and
@@ -77,8 +78,8 @@ choice. The list's options screen (Tools > Scan, a list, then its options) shows
 | Row | Values | Default |
 |---|---|---|
 | Vote | On, Off | Off |
-| Threshold | -120 to -50 dBm, in 1 dB steps | -70 dBm |
-| Margin (hysteresis) | 1 to 20 dB | 6 dB |
+| Threshold | -50 to -120 dBm, in 5 dB steps on the radio (the record takes -120 to -50 in 1 dB steps) | -70 dBm |
+| Margin (hysteresis) | 2, 3, 4, 5, 6, 8, 10, 12, 15 or 20 dB on the radio (the record takes 1 to 20) | 6 dB |
 | Peek during calls | On, Off | On |
 | Transmit | Voted site, or one member (the picker lists them) | Voted site |
 
@@ -132,10 +133,12 @@ the transmission. Transmit checks (TX inhibit, band, RX only) apply to the membe
 | Where | What |
 |---|---|
 | Status pill | **VOTE** while a vote list runs and nothing is heard, RX on a call, as SCAN does for a scan. Its color is the theme's private-call color (`ui_col.priv`): cyan or teal in most themes, blue in the light ones, red in Night, so it reads as its own state beside SCAN's amber |
-| Home | the vote list's name as the channel, and the voted site's channel name on the line below it |
+| Home | the vote list's name on the zone line with the voted member's place ("2/3"), and the voted site's channel name as the channel, without a number (the tuned channel changes under a sweep or a peek); the hint "Back stop vote" |
 | Activity | the call as on any P25 channel (caller, talk group) |
-| Tools > Scan | the list shows "Vote" beside its channel count; OK starts it |
-| Back | stops voting and stays on the voted site, as Back ends a scan |
+| Tools > Scan | the list shows "Vote" beside its channel count; OK starts it ("Voting " and its name) |
+| Back | stops voting and stays on the voted site, as Back ends a scan ("Vote stopped") |
+
+The screens are in [ui.md](ui.md) 2.7.1.
 
 ## 8. The debug link and tests
 
@@ -157,8 +160,9 @@ reply:
 Host tests: `tests/host/voteTest.c` drives the engine against a simulated system (first call, a strong site holding, the
 margin, peeks and peeks off, a site out of range); `tests/host/radioCoreTest.c` (`test_p25_vote`) runs a vote list of
 three P25 sites in three zones through the radio core (the round, PTT on the voted site and on a fixed member, a stop, a
-list mixing modes refused, the debug link keys). Still to write: DMR and FM vote lists through the radio core; a carrier without the member's sync reading as none;
-peeks through the radio core with their gap measured; UI flows for the option rows, the refusal and the VOTE pill.
+list mixing modes refused, the debug link keys). UI flows (`11 vote: ...` in `tests/host/uiFlowTest.c`) set each option, check the refusals, the picker's mode rule,
+the start and the stop. Still to write: DMR and FM vote lists through the radio core; a carrier without the member's
+sync reading as none; peeks through the radio core with their gap measured.
 
 ## 9. Open questions
 

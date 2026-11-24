@@ -458,6 +458,11 @@ msgid " is empty: set it in qdmr"
 msgstr " è vuota: impostala in qdmr"
 
 #: core/ui/ui_app.c
+msgctxt "SCAN_TOAST_VOTE_STOPPED"
+msgid "Vote stopped"
+msgstr "Voto fermato"
+
+#: core/ui/ui_app.c
 msgctxt "HOME_TOAST_REPLY_ENDED"
 msgid "Reply ended"
 msgstr "Risposta finita"
@@ -4738,6 +4743,21 @@ msgid "Tracking stopped"
 msgstr "Tracciamento fermato"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_VOTE_TRUNKED"
+msgid "Vote: no trunked channels"
+msgstr "Voto: niente canali trunking"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_VOTE_ONE_MODE"
+msgid "Vote: one mode only"
+msgstr "Voto: un solo modo"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_NEEDS_TWO_CHANNELS"
+msgid "Add two channels first"
+msgstr "Aggiungi prima due canali"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_ROW_SCAN_BAND"
 msgid "Scan band"
 msgstr "Scansiona banda"
@@ -4758,14 +4778,14 @@ msgid "ch"
 msgstr "can."
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_VOTE"
+msgid "Vote"
+msgstr "Voto"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_WHY_LEAVE_VFO"
 msgid "Leave the VFO first"
 msgstr "Esci prima dal VFO"
-
-#: core/ui/ui_scanlist.c
-msgctxt "SCANLIST_WHY_NEEDS_TWO_CHANNELS"
-msgid "Add two channels first"
-msgstr "Aggiungi prima due canali"
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_HINT_LISTS"
@@ -4773,9 +4793,49 @@ msgid "OK scan  # options  Back"
 msgstr "OK scansiona  # opzioni  Indietro"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_VOTED_SITE"
+msgid "Voted site"
+msgstr "Sito votato"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_ROW_EDIT_CHANNELS"
 msgid "Edit channels"
 msgstr "Modifica canali"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_VOTE"
+msgid "Vote"
+msgstr "Voto"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_THRESHOLD"
+msgid "Threshold"
+msgstr "Soglia"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_MARGIN"
+msgid "Margin"
+msgstr "Margine"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_PEEK"
+msgid "Peek during calls"
+msgstr "Sonda in chiamata"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_TRANSMIT"
+msgid "Transmit"
+msgstr "Trasmissione"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTE_OFF"
+msgid "Vote off"
+msgstr "Voto disattivato"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTE_ON"
+msgid "Vote on: "
+msgstr "Voto attivo: "
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_RENAMED"
@@ -4823,6 +4883,11 @@ msgid "Add to"
 msgstr "Aggiungi a"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTING"
+msgid "Voting "
+msgstr "Voto su "
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_SCANNING"
 msgid "Scanning "
 msgstr "Scansione di "
@@ -4836,6 +4901,11 @@ msgstr "IDLE"
 msgctxt "TOP_STATE_NO_TX"
 msgid "NO TX"
 msgstr "NO TX"
+
+#: core/ui/ui_screens.c
+msgctxt "TOP_STATE_VOTE"
+msgid "VOTE"
+msgstr "VOTO"
 
 #: core/ui/ui_screens.c
 msgctxt "TOP_CHIP_DUAL"
@@ -5451,6 +5521,11 @@ msgstr "Ancora nessuna attività"
 msgctxt "FREQ_HINT_ENTRY"
 msgid "OK tune  Back delete"
 msgstr "OK sintonizza  Indietro canc."
+
+#: core/ui/ui_screens.c
+msgctxt "HOME_HINT_VOTING"
+msgid "Back stop vote"
+msgstr "Indietro ferma voto"
 
 #: core/ui/ui_screens.c
 msgctxt "HOME_HINT_SCANNING"

@@ -406,16 +406,31 @@ With `CONFIG_SCAN_LIST` and a usable scan list area ([scan-list.md](scan-list.md
 
 | Screen | Shows |
 |---|---|
-| Scan (`scan-lists`) | Row 0 "Scan zone" ("Scan band" in the VFO) with On or Off: the zone scan as before. Then each stored list with its channel count ("12 ch"), then "New scan list" while there is room. OK on a list scans it (Home, with "Scanning" and its name); "Leave the VFO first" in the VFO, "Add two channels first" under two. `#` (long OK without a CONTEXT key) opens the list's options. "New scan list" opens text entry; the new list appears focused with "Added" and its name |
-| Scan list (`scan-list`) | The options, numbered: 1 Edit channels, 2 Rename (text entry with the name), 3 Delete |
+| Scan (`scan-lists`) | Row 0 "Scan zone" ("Scan band" in the VFO) with On or Off: the zone scan as before. Then each stored list with its channel count ("12 ch"; a vote list adds "Vote"), then "New scan list" while there is room. OK on a list scans it (Home, with "Scanning" and its name; a vote list "Voting" and its name, section 2.7.1); "Leave the VFO first" in the VFO, "Add two channels first" under two. `#` (long OK without a CONTEXT key) opens the list's options. "New scan list" opens text entry; the new list appears focused with "Added" and its name |
+| Scan list (`scan-list`) | The options, numbered: 1 Edit channels, 2 Rename (text entry with the name), 3 Delete; with `CONFIG_VOTE_SCAN`, 4 Vote (On, Off), and while it is on 5 Threshold, 6 Margin, 7 Peek during calls (On, Off), 8 Transmit (section 2.7.1) |
+| Vote value (`scan-list-vote`) | With `CONFIG_VOTE_SCAN`: the values of Threshold (-50 to -120 dBm in 5 dB steps), Margin (2, 3, 4, 5, 6, 8, 10, 12, 15, 20 dB) or Transmit ("Voted site", then each member as "1 Name"), the current one focused; OK saves it and returns |
 | Delete (`scan-list-delete`) | "No, keep it" / "Yes, delete" and a line that the channels stay in their zones |
 | Channels (`scan-list-edit`) | "Add channel", then the list's channels as "1 Name" with frequency and talk target; OK removes one ("Removed"). A channel the codeplug no longer has reads "Missing", dim, and OK removes it. A list of 80 says "The list is full" |
-| Add to (`scan-list-add`) | The zone row (OK picks another zone), then that zone's channels. OK adds a channel or takes it out again ("In list" marks them) and stays, so a list takes channels from several zones in a row. Digits filter by name |
+| Add to (`scan-list-add`) | The zone row (OK picks another zone), then that zone's channels. OK adds a channel or takes it out again ("In list" marks them) and stays, so a list takes channels from several zones in a row. Digits filter by name. A vote list refuses a channel of another mode ("Vote: one mode only") or a trunked one ("Vote: no trunked channels") |
 | Zone (`scan-list-zone`) | Every zone; OK returns to the picker on it |
+
+#### 2.7.1 Vote lists
+
+With `CONFIG_VOTE_SCAN` (it follows `CONFIG_SCAN_LIST`), a list can be a vote list ([vote-scan.md](vote-scan.md)): the
+radio listens to the best of its sites instead of stopping on the first with activity.
+
+| What | Behavior |
+|---|---|
+| Vote On | refused with a toast when the list holds fewer than two channels ("Add two channels first"), mixes modes ("Vote: one mode only") or holds a trunked channel ("Vote: no trunked channels"); else "Vote on: " and the name. An FM list made a vote list for the first time starts with Peek during calls off |
+| Vote Off | "Vote off"; the other values are kept for the next time |
+| OK on a vote list | the same checks as Vote On (the channels may have changed since), then Home with "Voting " and the name |
+| State pill | VOTE in the private-call color (`ui_col.priv`) while nothing is heard, in place of SCAN; RX on a call. Its word is black on a bright color and white on a deep one |
+| Home | the zone line shows the list's name and the voted site's place ("2/3"); the channel line shows the voted site's name, with no channel number (the tuned channel changes under a sweep or a peek, the voted site doesn't). The hint is "Back stop vote" |
+| Back | stops it on the voted site: "Vote stopped" |
 
 Changes are saved by a job for the housekeeping task, one at a time: a second change before it finishes says "Busy saving:
 try again" and is not made. The stack is 8 deep (`UI_STACK_MAX`): Home, hub, Tools, Scan, the options, Channels, Add to,
-Zone. Only Scan is a field-use screen.
+Zone (or the options and a vote value). Only Scan is a field-use screen.
 
 ## 3. Key meanings
 
@@ -715,6 +730,8 @@ checked.
 HIL: `tests/hil/test_ui.py` (`tests/hil/README.md`) replays the main sequences on the radio over the debug link.
 
 ## 8. Decisions and open points
+
+The state pill reads VOTE, in the private-call color, in place of IDLE while a vote list runs and nothing is heard; a signal on a site makes it the usual RX (section 2.7.1).
 
 - Task flow 12 budgets 3 presses into the VFO, but flow 2 opens Zones on the current zone (so a zone two away is
   2 presses); the VFO row is first, so entering it takes 4 (OK 4 Up OK). The test uses 4; the owner decides.

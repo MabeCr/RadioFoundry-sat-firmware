@@ -188,6 +188,13 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "scan_list_add", "scanlists:seed ok 6 1 down down ctx 1 ok ok down" },
 	{ "scan_list_zone", "scanlists:seed ok 6 1 down down ctx 1 ok up ok" },
 	{ "scan_list_delete", "scanlists:seed ok 6 1 down ctx 3" },
+#if CONFIG_VOTE_SCAN
+	// A vote list (docs/spec/vote-scan.md): "Sites", three DMR channels with Vote on; Home voting on its second one
+	{ "scan_lists_vote", "scanlists:vote ok 6 1" },
+	{ "scan_list_vote_options", "scanlists:vote ok 6 1 down down down ctx" },
+	{ "scan_list_vote_threshold", "scanlists:vote ok 6 1 down down down ctx 5" },
+	{ "home_vote", "scanlists:vote ok 6 1 down down down ok wait:3000" },
+#endif
 #endif
 #if CONFIG_DUAL_WATCH
 	// Dual watch (docs/ux/dual-watch.md): A = channel 3, B = channel 5 of the zone unless the script picks another

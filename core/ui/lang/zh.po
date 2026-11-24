@@ -460,6 +460,11 @@ msgid " is empty: set it in qdmr"
 msgstr " 为空：请在 qdmr 设置"
 
 #: core/ui/ui_app.c
+msgctxt "SCAN_TOAST_VOTE_STOPPED"
+msgid "Vote stopped"
+msgstr "表决已停止"
+
+#: core/ui/ui_app.c
 msgctxt "HOME_TOAST_REPLY_ENDED"
 msgid "Reply ended"
 msgstr "回复已结束"
@@ -4740,6 +4745,21 @@ msgid "Tracking stopped"
 msgstr "跟踪已停止"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_VOTE_TRUNKED"
+msgid "Vote: no trunked channels"
+msgstr "表决：不含集群信道"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_VOTE_ONE_MODE"
+msgid "Vote: one mode only"
+msgstr "表决：只能一种模式"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_WHY_NEEDS_TWO_CHANNELS"
+msgid "Add two channels first"
+msgstr "请先添加两个信道"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_ROW_SCAN_BAND"
 msgid "Scan band"
 msgstr "扫描频段"
@@ -4760,14 +4780,14 @@ msgid "ch"
 msgstr "信道"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_VOTE"
+msgid "Vote"
+msgstr "表决"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_WHY_LEAVE_VFO"
 msgid "Leave the VFO first"
 msgstr "请先退出VFO"
-
-#: core/ui/ui_scanlist.c
-msgctxt "SCANLIST_WHY_NEEDS_TWO_CHANNELS"
-msgid "Add two channels first"
-msgstr "请先添加两个信道"
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_HINT_LISTS"
@@ -4775,9 +4795,49 @@ msgid "OK scan  # options  Back"
 msgstr "OK扫描  #选项  返回"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_VALUE_VOTED_SITE"
+msgid "Voted site"
+msgstr "选中站点"
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_ROW_EDIT_CHANNELS"
 msgid "Edit channels"
 msgstr "编辑信道"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_VOTE"
+msgid "Vote"
+msgstr "表决"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_THRESHOLD"
+msgid "Threshold"
+msgstr "门限"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_MARGIN"
+msgid "Margin"
+msgstr "余量"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_PEEK"
+msgid "Peek during calls"
+msgstr "通话中探测"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_ROW_TRANSMIT"
+msgid "Transmit"
+msgstr "发射"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTE_OFF"
+msgid "Vote off"
+msgstr "表决已关"
+
+#: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTE_ON"
+msgid "Vote on: "
+msgstr "表决已开： "
 
 #: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_RENAMED"
@@ -4825,6 +4885,11 @@ msgid "Add to"
 msgstr "添加到"
 
 #: core/ui/ui_scanlist.c
+msgctxt "SCANLIST_TOAST_VOTING"
+msgid "Voting "
+msgstr "表决中 "
+
+#: core/ui/ui_scanlist.c
 msgctxt "SCANLIST_TOAST_SCANNING"
 msgid "Scanning "
 msgstr "扫描中 "
@@ -4838,6 +4903,11 @@ msgstr "空闲"
 msgctxt "TOP_STATE_NO_TX"
 msgid "NO TX"
 msgstr "禁发"
+
+#: core/ui/ui_screens.c
+msgctxt "TOP_STATE_VOTE"
+msgid "VOTE"
+msgstr "表决"
 
 #: core/ui/ui_screens.c
 msgctxt "TOP_CHIP_DUAL"
@@ -5453,6 +5523,11 @@ msgstr "暂无活动"
 msgctxt "FREQ_HINT_ENTRY"
 msgid "OK tune  Back delete"
 msgstr "OK 调谐  返回 删除"
+
+#: core/ui/ui_screens.c
+msgctxt "HOME_HINT_VOTING"
+msgid "Back stop vote"
+msgstr "返回 停止表决"
 
 #: core/ui/ui_screens.c
 msgctxt "HOME_HINT_SCANNING"

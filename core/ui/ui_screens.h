@@ -92,6 +92,13 @@ typedef struct {
 #endif
 
 // What the screens show besides the radio view; owned by the UI (ui_app.c)
+// radio_view_t.scan of a vote list (radio/scan.h SCAN_VOTE): the VOTE pill and Home (docs/spec/vote-scan.md 7)
+#define UI_SCAN_VOTE	5
+#if CONFIG_VOTE_SCAN
+// The vote list started last (ui_scanlist.c), for Home while one runs ("" none)
+const char *ui_scan_list_voting(void);
+#endif
+
 typedef struct {
 	uint32_t now_ms;
 	uint8_t battery_pct;
