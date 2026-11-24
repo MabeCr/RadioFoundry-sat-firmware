@@ -61,7 +61,7 @@ is `tools/bringup.py list --radio <id>`.
 | `dmr_data_privacy` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `dmr_talker_alias` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
 | `dmr_gps` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | off |
-| `dmr_emergency` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
+| `dmr_emergency` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `dmr_roaming` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
 | `dmr_trunk` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `dmr_trunk_tx` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
@@ -96,7 +96,7 @@ is `tools/bringup.py list --radio <id>`.
 | `dmr_lrrp` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | off |
 | `dmr_udp_compress` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | partial, needs re-run |
 | `dmr_confirmed` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | partial |
-| `sfr` | not recorded | pass (seed) | pass (seed) | not recorded | ✕ | not recorded | ✕ | partial, needs re-run |
+| `sfr` | not recorded | pass (seed) | pass (seed) | not recorded | ✕ | not recorded | ✕ | partial |
 | `sfr_dualpath_rx` | not recorded | not recorded | not recorded | not recorded | ✕ | not recorded | not recorded | not recorded |
 | `sfr_cwid` | not recorded | not recorded | not recorded | not recorded | ✕ | not recorded | pass, needs re-run | pass, needs re-run |
 | `aprs` | pass (seed) | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | partial, needs re-run |
@@ -115,15 +115,15 @@ is `tools/bringup.py list --radio <id>`.
 | `hostlink` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `hotspot` | pass (seed) | pass (seed) | pass (seed) | pass (seed) | not recorded | not recorded | pass, needs re-run | off |
 | `split_duplex` | pass (seed) | pass (seed) | pass (seed) | not written | not written | not recorded | partial, needs re-run | not written |
-| `debuglink` | pass (seed) | pass (seed) | pass (seed) | pass (seed) | pass (seed) | not recorded | pass, needs re-run | partial, needs re-run |
-| `task_stacks` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
+| `debuglink` | pass (seed) | pass (seed) | pass (seed) | pass (seed) | pass (seed) | not recorded | pass | partial |
+| `task_stacks` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `cps_openfw` | not recorded | pass (seed) | not recorded | pass (seed) | pass (seed) | not recorded | pass, needs re-run | pass, needs re-run |
 | `cps_fast` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `stub_entry` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
-| `crash_log` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
+| `crash_log` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `crash_screen` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | ✕ |
 | `crash_report` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | ✕ |
-| `watchdog` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
+| `watchdog` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `support_info` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `fault_trace` | not recorded | ✕ | not recorded | not recorded | ✕ | ✕ | ✕ | not recorded |
 | `usb_network` | ✕ | pass (seed) | ✕ | ✕ | not recorded | not recorded | pass, needs re-run | ✕ |
@@ -144,13 +144,13 @@ is `tools/bringup.py list --radio <id>`.
 | `mdns` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | off |
 | `tftp` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | off |
 | `tftp_iddb` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | off |
-| `dmr_iddb` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | ✕ |
+| `dmr_iddb` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | ✕ |
 | `iddb_compact` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
 | `snmp` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | off |
 | `net_ppp` | not recorded | off | pass (seed) | pass (seed) | off | off | off | off |
 | `ui_navigation` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
 | `key_lock` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | ✕ |
-| `channel_knob` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | pass, needs re-run |
+| `channel_knob` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `ui_settings` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | ✕ |
 | `diag` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | ✕ |
 | `backlight_test` | off | off | off | off | off | off | off | ✕ |
@@ -389,6 +389,12 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | APRS over DMR: LRRP or UDT positions to a gateway ID | `APRS_DMR` | 692 | 1,380 | Needs APRS and DMR. Off, APRS is FM only. Measured with LTO |
 | APRS receive: demodulator, station list, digipeater | `APRS_RX` | 8,892 | — | DM-1701: FM receive audio on the I2S stream, squelch gated ([aprs](spec/aprs.md) 5.3). MD-380: not written |
 | GPS screen: sky plot, signal bars, grid locator (Tools > Position) | `GPS_SKY` | — | 5,244 | Needs GPS. 176 B of RAM. MD-380 measured 2026-10-29 (LTO) |
+| Satellite tracking: SGP4, passes, Doppler, profiles, repeater arming | `SAT` | 26,792 | — | Off by default. Tools > Satellites (the pass lists), stored satellites, the debug link's SAT command; tracking not built yet. DM-1701 figure with LTO and the debug link: 2,848 B of RAM and the `sat` task's 1.5 KB stack (2026-11-03; [satellite](spec/satellite.md) 7). Stored satellites need a satellite area in the board's flash map: DM-32UV, DM-1701 and MD-UV380 (untested on the radio) |
+| Element sets by sound: the AFSK receiver, the store rules and Tools > Satellites > Receive sound | `SAT_SOUND` | — | — | Needs `SAT`, `DMR` and `APRS`. Off by default; on in the DM-32UV and DM-1701 satellite builds. About 3 KB of RAM (the demodulator and the queue); the flash cost is not measured yet. Not tried at a microphone ([sound-transfer](spec/sound-transfer.md)) |
+| The Tracking screen's signal chart (key 2): the receiver's level over the pass | `SAT_CHART` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash and 0.5 KB of RAM. Untried on a real pass ([ui](spec/ui.md)) |
+| Pass alerts: a banner and tone before a marked satellite's or pass's rise, the marks, the alert settings | `SAT_ALERT` | — | — | Needs `SAT`; on with it. About 1.5 KB of flash, 40 bytes in each of six copies of the settings. Untried on a real pass ([satellite](spec/satellite.md)) |
+| The boot splash's mark as the Tracking screen's sky plot | `SAT_SPLASH` | — | — | Needs `SAT`; on with it. Not on a radio yet ([ui](spec/ui.md)) |
+| Scan lists: named channel lists from any zone, scanned without a zone; Tools > Scan's lists, their editor | `SCAN_LIST` | — | — | Needs `SCAN` and `CHANNEL_EDIT`. Off by default; on in the DM-32UV satellite build. Needs a scan list area in the board's flash map: the DM-32UV only. Some 5 KB of flash and 0.5 KB of RAM (an estimate; built for no radio here), and not tried on the radio ([scan-list](spec/scan-list.md)) |
 | APRS iGate rules (with tools/aprs_gate.py) | `APRS_IGATE` | 1,820* | — | Needs APRS receive. DM-1701: off by default |
 
 ## Host link and USB
@@ -440,7 +446,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 |---|---|---:|---:|---|
 | Settings menu on the radio | `UI_SETTINGS` | 5,304 | 5,640 |  |
 | Diagnostics page | `DIAG` | 3,752 | 3,532 |  |
-| Satellite TLE catalog, pass prediction and Doppler compensation | `SATELLITE_TLE` | 26,332 | 26,620 | Needs `DEBUGLINK`. RAM: 1,280 B on DM-1701 (656 B linked, 624 B from the existing heap), 1,272 B on MD-380 (648 B linked, 624 B heap), and 1,264 B on DM-32UV (656 B linked, 608 B heap). Heap figures include allocation overhead and are already reserved in linked RAM. The DM-1701 and MD-UV380 maximal builds keep it on; the MD-9600 maximal build leaves it off to fit app flash. Default builds keep it on ([satellite.md](spec/satellite.md)). |
+| Satellite TLE catalog, pass prediction and Doppler compensation | `SATELLITE_TLE` | 26,332 | 26,620 | Needs `DEBUGLINK`. RAM: 1,280 B on DM-1701 (656 B linked, 624 B from the existing heap), 1,272 B on MD-380 (648 B linked, 624 B heap), and 1,264 B on DM-32UV (656 B linked, 608 B heap). Heap figures include allocation overhead and are already reserved in linked RAM. The DM-1701 and MD-UV380 maximal builds keep it on; the MD-9600 maximal build leaves it off to fit app flash. Default builds keep it on ([satellite-tle.md](spec/satellite-tle.md)). |
 | Support info on About and the debug link (build source, chips, image hash) | `SUPPORT_INFO` | 2,496 | 3,016 | About 515 bytes of RAM, most of it About's longer text. Read only when About opens or a host asks ([support-info.md](spec/support-info.md)) |
 | Backlight test pages | `BACKLIGHT_TEST` | 1,536 | 1,552 | Off by default; bench work ([backlight-curve.md](testing/backlight-curve.md)) |
 | Color screen settings (theme, highlight color, filled status bar) | `UI_COLOR` | 672 | 608 | Off on the DM-1801 Pro (monochrome screen; 628 B there). Measured 2026-10-17; DM-1701 with LTO 612 B |
