@@ -2312,6 +2312,11 @@ void ui_app_key(const input_event_t *ev)
 		case ACT_SCAN_SKIP:
 			ui_scan_skip();
 			return;
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+		case ACT_SCAN_LISTS:
+			ui_scan_lists_key();
+			return;
+#endif
 		case ACT_MONITOR_TOGGLE:
 			ui_monitor_toggle();
 			return;

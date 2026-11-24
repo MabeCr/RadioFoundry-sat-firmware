@@ -3628,6 +3628,11 @@ msgid "up"
 msgstr "su"
 
 #: core/ui/ui_menus.c
+msgctxt "KEYFN_WHY_NO_SCAN_LISTS"
+msgid "Scan lists: not on this radio"
+msgstr "Liste di scansione: non su questa radio"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_VALUE_BACKLIGHT_10S_DIM"
 msgid "10s/dim"
 msgstr "10s/fioca"
@@ -3821,6 +3826,11 @@ msgstr "Nome / numero TG"
 msgctxt "WORD_FLIP_SCREEN"
 msgid "Flip screen"
 msgstr "Ruota schermo"
+
+#: core/ui/ui_menus.c
+msgctxt "KEYFN_VALUE_SCAN_LISTS"
+msgid "Scan lists"
+msgstr "Liste di scansione"
 
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"

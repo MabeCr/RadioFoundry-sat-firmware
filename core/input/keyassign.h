@@ -44,6 +44,7 @@ typedef enum {
 	KEYFN_SCAN_SKIP,	// skip the channel that stopped the scan, until the scan stops
 	KEYFN_MONITOR_TOGGLE,	// latch the monitor on / off, as quick tile 5 does (FM: the squelch held open; DMR: digital monitor)
 	KEYFN_FLIP_SCREEN,	// the picture turned 180 degrees, on / off (a display with set_flip)
+	KEYFN_SCAN_LISTS,	// open the scan lists to pick one (CONFIG_SCAN_LIST; the zone scan is the list's first row)
 	KEYFN_COUNT
 } keyfn_t;
 

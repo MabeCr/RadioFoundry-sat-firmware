@@ -3630,6 +3630,11 @@ msgid "up"
 msgstr "上"
 
 #: core/ui/ui_menus.c
+msgctxt "KEYFN_WHY_NO_SCAN_LISTS"
+msgid "Scan lists: not on this radio"
+msgstr "扫描列表：此电台不支持"
+
+#: core/ui/ui_menus.c
 msgctxt "SET_VALUE_BACKLIGHT_10S_DIM"
 msgid "10s/dim"
 msgstr "10秒/暗"
@@ -3823,6 +3828,11 @@ msgstr "TG 名称/号码"
 msgctxt "WORD_FLIP_SCREEN"
 msgid "Flip screen"
 msgstr "翻转屏幕"
+
+#: core/ui/ui_menus.c
+msgctxt "KEYFN_VALUE_SCAN_LISTS"
+msgid "Scan lists"
+msgstr "扫描列表"
 
 #: core/ui/ui_menus.c core/ui/ui_screens.c
 msgctxt "TITLE_EMERGENCY"
