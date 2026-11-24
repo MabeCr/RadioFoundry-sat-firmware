@@ -774,7 +774,7 @@ static void test_map_for(void)
 }
 
 // The crash report's mode and target live in spare bits of accent, theme and updown_home (settings.h): each field
-// keeps its own bits whatever the other one does
+// keeps its own bits whatever the other one does; satellite builds also store theme bit 3 in theme_ext
 static void test_crash_bits(void)
 {
 	settings_t s;
@@ -810,6 +810,15 @@ static void test_crash_bits(void)
 	settings_set_theme(&s, 4);
 	CHECK(settings_theme(&s) == 4 && (s.theme & 3u) == 0 && (s.sat_flags & SETTINGS_SAT_THEME_HIGH) && settings_updown_home(&s) == 1);
 	CHECK(settings_crash_contact(&s) == 1234 && settings_crash_mode(&s) == 1);
+	settings_set_theme(&s, 3);
+	CHECK(settings_theme(&s) == 3 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 1234);
+	settings_set_theme(&s, 4);
+	settings_set_crash_contact(&s, 7);	// setting the target leaves the theme's bit
+	CHECK(settings_theme(&s) == 4 && settings_crash_contact(&s) == 7 && settings_updown_home(&s) == 1);
+	settings_set_theme(&s, 0);
+	CHECK(settings_theme(&s) == 0 && !(s.updown_home & 0x80u) && settings_crash_contact(&s) == 7);
+	// The existing themes and satellite-only Orbit, Aurora and Vice City read back with the other fields intact
+	for (uint8_t th = 0; th <= SETTINGS_THEME_MAX; th++) {
 	for (uint8_t th = 0; th <= 7; th++) {
 		settings_set_theme(&s, th);
 		CHECK(settings_theme(&s) == th && settings_updown_home(&s) == 1 && settings_crash_contact(&s) == 1234);
@@ -1147,6 +1156,8 @@ static void test_settings_bad_records(void)
 // worked (a power cut there: the settings gone)
 static const hal_flash_map_t map_two = {
 	.settings_addr = 0x11000u, .settings_size = 0x2000u, .journal_addr = 0x19000u,
+
+1033
 	.openfw_eeprom = 0, .openfw_flash = 0x20000u, .openfw_end = FLASH_SIZE,
 	.calibration_addr = 0x10000u, .calibration_size = 0x200u,
 };

@@ -40,7 +40,7 @@ static void accent_apply(void)
 	ui_col.chnum = ui_col.dim;
 	if (!CONFIG_UI_COLOR)
 		return;
-	if (ui_theme >= 6) {
+	if (ui_theme == 6 || ui_theme == 7) {
 		// The inverse themes: a light background with black text, so the focus is a black bar in the background's color
 		ui_col.focus_fg = ui_col.bg;
 		return;
@@ -209,6 +209,45 @@ void ui_theme_set(uint8_t theme)
 		ui_col.focus = RGB565(0, 0, 0);
 		ui_col.hint_bg = green ? RGB565(0, 190, 0) : RGB565(214, 126, 0);
 		ui_col.priv = green ? RGB565(0, 90, 90) : RGB565(0, 64, 112);
+	} else if (theme == 8) {
+		// Orbit: a deep navy screen, with cool blue details and the usual green RX, red TX and amber warnings
+		ui_col.bg = RGB565(5, 13, 31);
+		ui_col.fg = RGB565(224, 238, 255);
+		ui_col.dim = RGB565(145, 171, 204);
+		ui_col.line = RGB565(56, 81, 119);
+		ui_col.tx = RGB565(255, 72, 72);
+		ui_col.rx = RGB565(64, 224, 112);
+		ui_col.warn = RGB565(255, 196, 64);
+		ui_col.idle = RGB565(108, 129, 160);
+		ui_col.focus = RGB565(24, 58, 107);
+		ui_col.hint_bg = RGB565(14, 31, 57);
+		ui_col.priv = RGB565(112, 184, 255);
+	} else if (theme == 9) {
+		// Aurora: a dark teal screen, with mint details and the usual green RX, red TX and amber warnings
+		ui_col.bg = RGB565(5, 20, 22);
+		ui_col.fg = RGB565(222, 248, 235);
+		ui_col.dim = RGB565(135, 182, 157);
+		ui_col.line = RGB565(48, 92, 75);
+		ui_col.tx = RGB565(255, 92, 82);
+		ui_col.rx = RGB565(76, 235, 158);
+		ui_col.warn = RGB565(255, 198, 72);
+		ui_col.idle = RGB565(102, 142, 120);
+		ui_col.focus = RGB565(22, 72, 56);
+		ui_col.hint_bg = RGB565(13, 39, 30);
+		ui_col.priv = RGB565(105, 220, 202);
+	} else if (theme == 10) {
+		// Vice City: deep violet and purple, with coral TX, green RX and warm yellow warnings
+		ui_col.bg = RGB565(59, 20, 107);		// deep violet
+		ui_col.fg = RGB565(255, 180, 88);		// warm yellow
+		ui_col.dim = RGB565(248, 117, 114);		// coral
+		ui_col.line = RGB565(201, 52, 155);		// magenta
+		ui_col.tx = RGB565(243, 106, 120);		// coral pink
+		ui_col.rx = RGB565(64, 224, 112);
+		ui_col.warn = RGB565(255, 180, 88);
+		ui_col.idle = RGB565(255, 155, 85);		// orange
+		ui_col.focus = RGB565(123, 32, 143);		// purple
+		ui_col.hint_bg = RGB565(123, 32, 143);
+		ui_col.priv = RGB565(255, 155, 85);		// orange
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);
@@ -246,7 +285,7 @@ bool ui_theme_is_terminal(void)
 // The inverse themes (Terminal Inverse, Orange Inverse): a light background, so the highlight color doesn't apply
 bool ui_theme_is_inverse(void)
 {
-	return ui_theme >= 6 && gfx_bpp() != 1;
+	return (ui_theme == 6 || ui_theme == 7) && gfx_bpp() != 1;
 }
 
 // The theme number, for the few drawings that pick colors by theme (the satellite sky plot)
