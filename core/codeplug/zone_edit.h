@@ -53,11 +53,15 @@ zone_edit_result_t zone_edit_add_new(uint16_t zone, uint16_t pos, uint16_t numbe
 zone_edit_result_t zone_edit_copy(uint16_t zone, uint16_t *index);
 zone_edit_result_t zone_edit_rename(uint16_t zone, const char *name);
 zone_edit_result_t zone_edit_delete(uint16_t zone);
+// Delete the channel stored at number: out of every zone that holds it first, then the channel itself. Other channels
+// keep their numbers (zones, scan lists and links refer to channels by number). A power cut between the two leaves the
+// channel in fewer zones, never a zone entry without a channel; the same call again finishes it
+zone_edit_result_t zone_edit_delete_channel(uint16_t number);
 
 // One of the calls above as data, for a caller that hands the work to another task (the storage job)
 typedef enum {
 	ZONE_OP_INSERT, ZONE_OP_REMOVE, ZONE_OP_MOVE, ZONE_OP_ADD_NEW, ZONE_OP_COPY, ZONE_OP_RENAME, ZONE_OP_DELETE,
-	ZONE_OP_NEW,
+	ZONE_OP_NEW, ZONE_OP_DELETE_CHANNEL,
 } zone_op_kind_t;
 
 typedef struct {
@@ -65,7 +69,7 @@ typedef struct {
 	int8_t dir;		// MOVE
 	uint16_t zone;		// the zone's index
 	uint16_t pos;		// INSERT, REMOVE, MOVE, ADD_NEW: the position
-	uint16_t channel;	// INSERT: the channel; ADD_NEW: the new channel's number
+	uint16_t channel;	// INSERT: the channel; ADD_NEW: the new channel's number; DELETE_CHANNEL: the channel
 	char name[CODEPLUG_NAME_LEN + 1];	// RENAME, NEW
 	uint16_t from;		// ADD_NEW: the channel ch is a copy of (a channel of a kind takes its tag), 0 = none
 	channel_t ch;		// ADD_NEW

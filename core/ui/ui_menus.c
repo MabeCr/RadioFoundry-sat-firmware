@@ -1240,6 +1240,9 @@ static void chans_item(uint16_t i, ui_item_t *it)
 }
 
 static void chans_context(uint16_t i);
+#if CONFIG_ZONE_EDIT
+static void zones_open_options(uint16_t zi);
+#endif
 
 static void chans_select(uint16_t i, bool hold)
 {
@@ -1292,12 +1295,18 @@ static void chans_context(uint16_t i)
 		return;
 	}
 #endif
+#if CONFIG_ZONE_EDIT
+	zones_open_options((uint16_t)(raw - CH_VFO));	// # is "more": the zone's actions, its channels among them
+#else
 	ui_push(SCR_ZONE, (uint16_t)(raw - CH_VFO));
+#endif
 }
 
 static const ui_scr_def_t channels_screen = {
 	.name = "zones", .flags = SF_LIST | SF_FILTER | SF_FIELD, .prefix = TRN(TITLE_ZONES, "Zones"),
-	.hint = TRN(ZONE_HINT_LIST, TEXT_ALT_OPEN "OK go  # channels  0-9 find"
+	.hint = CONFIG_ZONE_EDIT ? TRN(ZONE_HINT_LIST_MORE, TEXT_ALT_OPEN "OK go  # more  0-9 find"
+		TEXT_ALT_NEXT "OK go  # more" TEXT_ALT_CLOSE) :
+		TRN(ZONE_HINT_LIST, TEXT_ALT_OPEN "OK go  # channels  0-9 find"
 		TEXT_ALT_NEXT "OK go  # channels" TEXT_ALT_CLOSE),
 	.empty = TRN(ZONE_EMPTY_NO_ZONES, "No zones"),
 	.count = ui_filter_count, .item = chans_item, .select = chans_select, .context = chans_context,
@@ -1423,6 +1432,7 @@ static uint16_t zone_cached = 0xFFFF;
 #endif
 static uint16_t zone_focus_num;		// the channel the zone's list focuses when it shows again (ui_menus_resume)
 static uint16_t ze_zone;		// the zone the editor's screens work on (the zone list's index)
+static bool zopt_direct;		// Zone options was opened from Zones, not from the zone's list
 static zone_op_t ze_op;			// the change handed to the storage job (ui_svc_zone_edit)
 static char ze_msg[CODEPLUG_NAME_LEN + 24];	// the editor's toasts
 static char ze_name[CODEPLUG_NAME_LEN + 1];	// a zone name being typed (Rename, Create New Zone)
@@ -1596,6 +1606,7 @@ static void zone_select(uint16_t i, bool hold)
 #if CONFIG_ZONE_EDIT
 	if (zone_edit_row(raw) != NULL) {
 		ze_zone = zi;
+		zopt_direct = false;
 		ui_push(raw == 0 ? SCR_ZPICK : SCR_ZONEEDIT, zi);
 		return;
 	}
@@ -2566,9 +2577,15 @@ static bool chlist_tune(uint16_t num)
 	return false;
 }
 
+static void chlist_context(uint16_t i);
+
+// OK goes to the channel, as it does in a zone's list and Zones goes to a zone; # is "more" (chlist_context)
 static void chlist_select(uint16_t i, bool hold)
 {
-	(void)hold;
+	if (hold && !ui_has_action(ACT_CONTEXT) && !(CHLIST_NEW && ui_filter_raw(i) == 0)) {
+		chlist_context(i);	// few-key boards: long OK opens what CONTEXT would (information-architecture 7.5)
+		return;
+	}
 #if CONFIG_CHANNEL_EDIT
 	if (ui_filter_raw(i) == 0) {
 		uint16_t num = codeplug_free_channel();
@@ -2581,20 +2598,25 @@ static void chlist_select(uint16_t i, bool hold)
 		return;
 	}
 #endif
-	ui_push(SCR_CHANNEL, CHLIST_NUM(ui_filter_raw(i)));
+	chlist_tune(CHLIST_NUM(ui_filter_raw(i)));
 }
 
+// # on a channel: its actions with the zone editor (Edit, In zones, Share, Delete), else its details
 static void chlist_context(uint16_t i)
 {
 	if (CHLIST_NEW && ui_filter_raw(i) == 0)
 		return;
-	chlist_tune(CHLIST_NUM(ui_filter_raw(i)));
+#if CONFIG_ZONE_EDIT
+	ui_push(SCR_CHMENU, CHLIST_NUM(ui_filter_raw(i)));
+#else
+	ui_push(SCR_CHANNEL, CHLIST_NUM(ui_filter_raw(i)));
+#endif
 }
 
 static const ui_scr_def_t chlist_screen = {
 	.name = "channels", .flags = SF_LIST | SF_FILTER | SF_FIELD, .prefix = TRN(TITLE_CHANNELS, "Channels"),
-	.hint = TRN(CHAN_HINT_LIST, TEXT_ALT_OPEN "OK details  # go  0-9 find"
-		TEXT_ALT_NEXT "OK details  # go" TEXT_ALT_CLOSE),
+	.hint = TRN(CHAN_HINT_LIST, TEXT_ALT_OPEN "OK go  # more  0-9 find"
+		TEXT_ALT_NEXT "OK go  # more" TEXT_ALT_CLOSE),
 	.empty = TRN(CHAN_EMPTY_NO_CHANNELS, "No channels"),
 	.count = ui_filter_count, .item = chlist_item, .select = chlist_select, .context = chlist_context,
 	.enter = chlist_enter,
@@ -4373,16 +4395,35 @@ static const ui_scr_def_t chz_screen = {
 };
 
 // --- Zone options ---
+// Opened from the zone's own list (its "Zone options" row) or straight from Zones with # (zopt_direct): there the
+// first row is Channels, which opens the zone's list in its place, and Copy and Delete leave one screen fewer
+
+static void zones_open_options(uint16_t zi)
+{
+	ze_zone = zi;
+	zopt_direct = true;
+	ui_push(SCR_ZONEEDIT, zi);
+}
+
 enum { ZO_RENAME, ZO_COPY,
 #if CONFIG_ZONE_SHARE
 	ZO_SEND,	// zone sharing (zone-share.md 7)
 #endif
 	ZO_DELETE, ZO_COUNT };
 
-static uint16_t zopt_count(void) { return ZO_COUNT; }
+static uint16_t zopt_count(void) { return (uint16_t)(ZO_COUNT + (zopt_direct ? 1u : 0u)); }
 
 static void zopt_item(uint16_t i, ui_item_t *it)
 {
+	if (zopt_direct) {
+		if (i == 0) {
+			str_copy(it->label, sizeof it->label, TR(ZONE_ROW_CHANNELS, "Channels"));
+			item_num(it, 1);
+			return;
+		}
+		i--;
+		item_num(it, (uint16_t)(i + 2u));
+	}
 	static const tr_id_t names[ZO_COUNT] = {
 		[ZO_RENAME] = TRN(ZONE_ROW_RENAME, "Rename"), [ZO_COPY] = TRN(ZONE_ROW_COPY_AS_NEW, "Copy as new zone"),
 #if CONFIG_ZONE_SHARE
@@ -4390,7 +4431,8 @@ static void zopt_item(uint16_t i, ui_item_t *it)
 #endif
 		[ZO_DELETE] = TRN(ZONE_ROW_DELETE, "Delete zone") };
 	str_copy(it->label, sizeof it->label, tr(names[i]));
-	item_num(it, (uint16_t)(i + 1u));
+	if (!zopt_direct)
+		item_num(it, (uint16_t)(i + 1u));
 	if (i == ZO_DELETE)
 		it->flags |= UI_ITEM_WARN;
 #if CONFIG_ZONE_SHARE
@@ -4441,6 +4483,14 @@ static void zones_new(void)
 static void zopt_select(uint16_t i, bool hold)
 {
 	(void)hold;
+	if (zopt_direct) {
+		if (i == 0) {
+			ui_pop();	// the zone's list takes the menu's place
+			ui_push(SCR_ZONE, ze_zone);
+			return;
+		}
+		i--;
+	}
 	if (i == ZO_RENAME) {
 		strcpy(ze_name, ze_z.name);
 		ui_text_open(ze_name, CODEPLUG_NAME_LEN);
@@ -4455,7 +4505,8 @@ static void zopt_select(uint16_t i, bool hold)
 			return;
 		// Back to Zones: the copy can take a slot ahead of this zone and move its index
 		ui_pop();
-		ui_pop();
+		if (!zopt_direct)
+			ui_pop();
 		char name[CODEPLUG_NAME_LEN + 1];
 		zone_copy_name(name, ze_z.name);
 		ze_toast(TR(ZONE_TOAST_COPIED_AS, "Copied as "), name);
@@ -4475,8 +4526,7 @@ static void zopt_select(uint16_t i, bool hold)
 
 static const ui_scr_def_t zopt_screen = {
 	.name = "zoneedit", .flags = SF_LIST | SF_NUMBERED, .prefix = TRN(WORD_ZONE, "Zone"),
-	.hint = CONFIG_ZONE_SHARE ? TRN(HINT_1_4_PICK_BACK, "1-4 pick  Back") :
-		TRN(HINT_1_3_PICK_BACK, "1-3 pick  Back"),
+	.hint = TRN(HINT_OK_PICK_BACK, "OK pick  Back"),
 	.count = zopt_count, .item = zopt_item, .select = zopt_select, .title = ze_title, .enter = ze_read,
 };
 
@@ -4501,7 +4551,8 @@ static void zdel_select(uint16_t i, bool hold)
 	if (!ze_post())
 		return;
 	ui_pop();		// Zone options
-	ui_pop();		// and the zone's list: back to Zones
+	if (!zopt_direct)
+		ui_pop();	// and the zone's list: back to Zones
 	ze_toast(TR(ZONE_TOAST_DELETED, "Deleted "), ze_z.name);
 }
 
@@ -4540,6 +4591,138 @@ static const ui_scr_def_t zdel_screen = {
 	.name = "zonedel", .flags = SF_LIST, .prefix = TRN(ZONE_TITLE_DELETE, "Delete Zone"),
 	.hint = TRN(HINT_OK_CHOOSE_BACK_CANCELS, "OK choose  Back cancel"),
 	.count = zdel_count, .item = zdel_item, .select = zdel_select, .body = zdel_body,
+};
+
+// --- Channel actions in Channels (# on a channel there; arg: its number) and Delete channel ---
+enum { CM_EDIT, CM_ZONES,
+#if CONFIG_ZONE_SHARE
+	CM_SEND,
+#endif
+	CM_DELETE, CM_COUNT };
+static char cm_name[CODEPLUG_NAME_LEN + 1];
+
+static void cmenu_enter(void)
+{
+	static channel_t ch;
+	cm_name[0] = 0;
+	if (codeplug_channel(ui_frame()->arg, &ch))
+		strcpy(cm_name, ch.name);
+}
+
+static uint16_t cmenu_count(void) { return CM_COUNT; }
+
+static void cmenu_item(uint16_t i, ui_item_t *it)
+{
+	static const tr_id_t names[CM_COUNT] = {
+		[CM_EDIT] = TRN(ZONE_ROW_EDIT_CHANNEL, "Edit channel"), [CM_ZONES] = TRN(CHAN_ROW_IN_ZONES, "In zones"),
+#if CONFIG_ZONE_SHARE
+		[CM_SEND] = TRN(SHARE_ROW_CHANNEL_TO, GLYPH_SHARE " Share channel to..."),
+#endif
+		[CM_DELETE] = TRN(CHAN_ROW_DELETE, "Delete channel") };
+	str_copy(it->label, sizeof it->label, tr(names[i]));
+	item_num(it, (uint16_t)(i + 1u));
+	if (i == CM_DELETE)
+		it->flags |= UI_ITEM_WARN;
+#if CONFIG_ZONE_SHARE
+	if (i == CM_SEND && !(feats() & UI_FEAT_ZONE_SHARE))
+		it->flags |= UI_ITEM_DIM;
+#endif
+}
+
+static void cmenu_select(uint16_t i, bool hold)
+{
+	(void)hold;
+	uint16_t num = ui_frame()->arg;
+	if (i == CM_EDIT) {
+		ui_pop();	// the editor takes the menu's place
+		ui_push(SCR_CHANNEL, num);
+	} else if (i == CM_ZONES) {
+		ui_push(SCR_CHZONES, num);
+#if CONFIG_ZONE_SHARE
+	} else if (i == CM_SEND) {
+		share_send_to(UI_ZONE_NONE, num, true, cm_name);
+#endif
+	} else {
+		ui_push(SCR_CHDEL, num);
+	}
+}
+
+static const char *cmenu_title(void) { return cm_name; }
+
+static const ui_scr_def_t cmenu_screen = {
+	.name = "chmenu", .flags = SF_LIST | SF_NUMBERED, .hint = TRN(HINT_OK_PICK_BACK, "OK pick  Back"),
+	.count = cmenu_count, .item = cmenu_item, .select = cmenu_select, .title = cmenu_title, .enter = cmenu_enter,
+};
+
+// Delete channel (destructive: asks, defaults to No; P7). The channel leaves every zone, then the codeplug; other
+// channels keep their numbers
+static uint16_t chdel_count(void) { return 2; }
+
+static void chdel_item(uint16_t i, ui_item_t *it)
+{
+	str_copy(it->label, sizeof it->label, i == 0 ? TR(ZONE_ROW_KEEP, "No, keep it") :
+		TR(ZONE_ROW_CONFIRM_DELETE, "Yes, delete"));
+	if (i == 1)
+		it->flags |= UI_ITEM_WARN;
+}
+
+#if CONFIG_VOTE_SCAN
+// A vote list linked to the channel lets it go: the number is free again, and a new channel there must not inherit it
+static void chdel_unlink(uint16_t num)
+{
+	scan_list_vote_t v;
+	int slot = ui_svc_scanlist_slots() > 0 ? ui_svc_scanlist_find_link(num, -1) : -1;
+	if (slot >= 0 && ui_svc_scanlist_get_vote((uint16_t)slot, &v)) {
+		v.link = 0;
+		ui_svc_scanlist_put_vote((uint16_t)slot, &v);
+	}
+}
+#endif
+
+static void chdel_select(uint16_t i, bool hold)
+{
+	(void)hold;
+	uint16_t num = ui_frame()->arg;
+	ui_pop();		// this question
+	if (i == 0)
+		return;
+#if CONFIG_VOTE_SCAN
+	chdel_unlink(num);
+#endif
+	ze_op_new(ZONE_OP_DELETE_CHANNEL, 0)->channel = num;
+	if (!ze_post())
+		return;
+	ui_pop();		// Channel actions: back to Channels, which shows the change
+	ze_toast(TR(CHAN_TOAST_DELETED, "Deleted "), cm_name);
+}
+
+static const char *chdel_body(void)
+{
+	static zone_t z;
+	uint16_t num = ui_frame()->arg, in = 0;
+	for (uint16_t zi = 0; codeplug_zones_stored() && zi < codeplug_zone_count(); zi++)
+		if (codeplug_zone(zi, &z) && zone_list_find(&z, num) >= 0)
+			in++;
+	sbuf_t b;
+	sb_init(&b, ze_msg, sizeof ze_msg);
+	sb_str(&b, TR(ZONE_ASK_DELETE, "Delete "));
+	sb_str(&b, cm_name);
+	if (in == 0) {
+		sb_str(&b, TR(CHAN_ASK_NO_ZONE, "? In no zone."));
+	} else if (in == 1) {
+		sb_str(&b, TR(CHAN_ASK_ONE_ZONE, "? In 1 zone."));
+	} else {
+		sb_str(&b, TR(CHAN_ASK_IN, "? In "));
+		sb_u32(&b, in, 1);
+		sb_str(&b, TR(CHAN_ASK_ZONES, " zones."));
+	}
+	return ze_msg;
+}
+
+static const ui_scr_def_t chdel_screen = {
+	.name = "chdel", .flags = SF_LIST, .prefix = TRN(CHAN_TITLE_DELETE, "Delete Channel"),
+	.hint = TRN(HINT_OK_CHOOSE_BACK_CANCELS, "OK choose  Back cancel"),
+	.count = chdel_count, .item = chdel_item, .select = chdel_select, .body = chdel_body,
 };
 #endif
 
@@ -8351,7 +8534,7 @@ const ui_scr_def_t *const ui_scr[SCR_COUNT] = {
 #endif
 #if CONFIG_ZONE_EDIT
 	[SCR_ZCHANNEL] = &zchan_screen, [SCR_ZPICK] = &zpick_screen, [SCR_ZONEEDIT] = &zopt_screen,
-	[SCR_ZONEDEL] = &zdel_screen, [SCR_CHZONES] = &chz_screen,
+	[SCR_ZONEDEL] = &zdel_screen, [SCR_CHZONES] = &chz_screen, [SCR_CHMENU] = &cmenu_screen, [SCR_CHDEL] = &chdel_screen,
 #endif
 #if CONFIG_DMR
 	[SCR_CHPICK] = &chpick_screen,

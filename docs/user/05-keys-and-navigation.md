@@ -7,11 +7,13 @@ Each key does the same kind of thing on every screen.
 ## The five rules
 
 1. **OK** opens or chooses the thing with the focus. Holding **OK** does the lasting version, such as save or make
-   permanent.
+   permanent. In Zones, Channels and a zone's list, **OK** always goes to what you have focused: it changes to the
+   zone or tunes the channel.
 2. **Back** goes back one level. On Home it undoes one temporary change per press. Holding **Back** returns to Home
    from anywhere.
 3. **\*** opens quick settings for what you are doing. Holding **\*** locks or unlocks the keys.
 4. **#** opens the actions for the thing with the focus, such as a person, a talkgroup, a message or the last caller.
+   In Zones and Channels it opens the zone's or the channel's actions: edit, delete, move and the like.
    Holding **#** opens Recent.
 5. **PTT** talks to the person or talkgroup with the focus in any list, once. With nothing focused, it talks to the
    channel's talk target.

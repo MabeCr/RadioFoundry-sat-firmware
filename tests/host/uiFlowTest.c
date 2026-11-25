@@ -178,16 +178,16 @@ static const flow_t flows[] = {
 #if CONFIG_CHANNEL_EDIT && CONFIG_DMR_AES
 	// The AES key row (dmr-voice.md 5.1): shown on a DMR channel once the codeplug holds AES keys; OK steps through
 	// them (system / key ID) and None, Save keeps the choice
-	{ "AES key row: hidden without keys", "", "ok 5 ok", "screen=channel hides=AES_key", 3, false },
-	{ "AES key row: none set", "aeskeys", "ok 5 ok down down down down down down down",
-	  "screen=channel focus=AES_key shows=None", 10, false },
-	{ "AES key row: steps the keys", "aeskeys ok 5 ok down down down down down down down", "ok",
+	{ "AES key row: hidden without keys", "", "ok 5 ctx 1", "screen=channel hides=AES_key", 4, false },
+	{ "AES key row: none set", "aeskeys", "ok 5 ctx 1 down down down down down down down",
+	  "screen=channel focus=AES_key shows=None", 11, false },
+	{ "AES key row: steps the keys", "aeskeys ok 5 ctx 1 down down down down down down down", "ok",
 	  "focus=AES_key shows=3/0", 1, false },
-	{ "AES key row: the next key", "aeskeys ok 5 ok down down down down down down down", "ok ok",
+	{ "AES key row: the next key", "aeskeys ok 5 ctx 1 down down down down down down down", "ok ok",
 	  "focus=AES_key shows=3/7", 2, false },
-	{ "AES key row: back to none", "aeskeys ok 5 ok down down down down down down down", "ok ok ok",
+	{ "AES key row: back to none", "aeskeys ok 5 ctx 1 down down down down down down down", "ok ok ok",
 	  "focus=AES_key shows=None", 3, false },
-	{ "AES key row: saved with the channel", "aeskeys ok 5 ok down down down down down down down ok", "long:ok",
+	{ "AES key row: saved with the channel", "aeskeys ok 5 ctx 1 down down down down down down down ok", "long:ok",
 	  "writes=1 toast=Saved_channel_3 focus=AES_key shows=3/0", 1, true },
 #endif
 #if CONFIG_CHANNEL_EDIT
@@ -213,21 +213,21 @@ static const flow_t flows[] = {
 	{ "P25 channel's mode: back to P25", "dlmode:p25 ok 5 up up up ok down down", "ok ok ok",
 	  "focus=Mode shows=P25 shows=NAC shows=293", 3, false },
 	// A stored P25 channel: the same steps leave nothing to save
-	{ "stored P25 channel: Mode steps back to P25", "chkind:3,p25 ok 5 ok down down", "ok ok ok long:ok",
+	{ "stored P25 channel: Mode steps back to P25", "chkind:3,p25 ok 5 ctx 1 down down", "ok ok ok long:ok",
 	  "focus=Mode shows=P25 shows=NAC toast=No_changes_to_save", 4, false },
-	{ "stored P25 channel made DMR: a change", "chkind:3,p25 ok 5 ok down down ok ok", "back",
+	{ "stored P25 channel made DMR: a change", "chkind:3,p25 ok 5 ctx 1 down down ok ok", "back",
 	  "screen=discard shows=Discard_the_changes", 1, false },
 	// Saving it as FM takes its P25 settings away: asked first, keep editing the default
-	{ "stored P25 channel as FM: Save asks", "chkind:3,p25 ok 5 ok down down ok", "long:ok",
+	{ "stored P25 channel as FM: Save asks", "chkind:3,p25 ok 5 ctx 1 down down ok", "long:ok",
 	  "screen=discard shows=Save_as_FM? shows=P25_settings_will_be shows=removed shows=Yes,_save focus=No,_keep_editing writes=0", 1, false },
-	{ "stored P25 channel as FM: keep editing", "chkind:3,p25 ok 5 ok down down ok long:ok", "ok",
+	{ "stored P25 channel as FM: keep editing", "chkind:3,p25 ok 5 ctx 1 down down ok long:ok", "ok",
 	  "screen=channel focus=Mode shows=FM", 1, false },
-	{ "stored P25 channel as FM: Back keeps editing", "chkind:3,p25 ok 5 ok down down ok long:ok", "back",
+	{ "stored P25 channel as FM: Back keeps editing", "chkind:3,p25 ok 5 ctx 1 down down ok long:ok", "back",
 	  "screen=channel focus=Mode shows=FM", 1, false },
-	{ "stored P25 channel as FM: yes saves", "chkind:3,p25 ok 5 ok down down ok long:ok", "down ok",
+	{ "stored P25 channel as FM: yes saves", "chkind:3,p25 ok 5 ctx 1 down down ok long:ok", "down ok",
 	  "screen=channel writes=1 toast=Saved_channel_3 shows=FM hides=NAC", 2, true },
 	// Save as new channel takes nothing from the stored one: not asked
-	{ "stored P25 channel as FM: a new channel isn't asked", "chkind:3,p25 ok 5 ok down down ok", "up up up ok",
+	{ "stored P25 channel as FM: a new channel isn't asked", "chkind:3,p25 ok 5 ctx 1 down down ok", "up up up ok",
 	  "screen=channel writes=1 toast=Saved_as_channel_41", 4, true },
 #if CONFIG_NXDN
 	// The same from NXDN: its RAN and rate, no color code or timeslot; an ID past NXDN's range is refused
@@ -242,39 +242,39 @@ static const flow_t flows[] = {
 	  "writes=1 toast=Saved_as_channel_41", 1, true },
 	{ "NXDN channel's mode: back to NXDN", "dlmode:nxdn ok 5 up up up ok down down", "ok ok ok",
 	  "focus=Mode shows=NXDN shows=RAN", 3, false },
-	{ "stored NXDN channel as FM: Save asks", "chkind:3,nxdn ok 5 ok down down ok", "long:ok",
+	{ "stored NXDN channel as FM: Save asks", "chkind:3,nxdn ok 5 ctx 1 down down ok", "long:ok",
 	  "screen=discard shows=Save_as_FM? shows=NXDN_settings_will_be shows=removed writes=0", 1, false },
 	// Where the radio runs P25 and NXDN, Mode steps through every mode: DMR, P25 with the default NAC, NXDN with
 	// RAN 1 at 9600, FM, and DMR again with nothing to save
-	{ "E Mode: DMR to P25", "p25 nxdn ok 5 ok down down", "ok", "focus=Mode shows=P25 shows=NAC shows=293", 1,
+	{ "E Mode: DMR to P25", "p25 nxdn ok 5 ctx 1 down down", "ok", "focus=Mode shows=P25 shows=NAC shows=293", 1,
 	  false },
-	{ "E Mode: P25 to NXDN", "p25 nxdn ok 5 ok down down", "ok ok", "focus=Mode shows=NXDN shows=RAN shows=9600",
+	{ "E Mode: P25 to NXDN", "p25 nxdn ok 5 ctx 1 down down", "ok ok", "focus=Mode shows=NXDN shows=RAN shows=9600",
 	  2, false },
-	{ "E Mode: NXDN to FM", "p25 nxdn ok 5 ok down down", "ok ok ok", "focus=Mode shows=FM hides=RAN hides=NAC", 3,
+	{ "E Mode: NXDN to FM", "p25 nxdn ok 5 ctx 1 down down", "ok ok ok", "focus=Mode shows=FM hides=RAN hides=NAC", 3,
 	  false },
-	{ "E Mode: round to DMR, nothing to save", "p25 nxdn ok 5 ok down down", "ok ok ok ok long:ok",
+	{ "E Mode: round to DMR, nothing to save", "p25 nxdn ok 5 ctx 1 down down", "ok ok ok ok long:ok",
 	  "focus=Mode shows=DMR toast=No_changes_to_save writes=0", 5, false },
-	{ "E Mode: no NXDN where the radio doesn't run it", "p25 ok 5 ok down down", "ok ok", "focus=Mode shows=FM", 2,
+	{ "E Mode: no NXDN where the radio doesn't run it", "p25 ok 5 ctx 1 down down", "ok ok", "focus=Mode shows=FM", 2,
 	  false },
 	// A channel made P25 or NXDN on the radio is saved as one, its NAC or RAN with it
-	{ "E Mode: DMR channel saved as P25", "p25 nxdn ok 5 ok down down ok", "long:ok",
+	{ "E Mode: DMR channel saved as P25", "p25 nxdn ok 5 ctx 1 down down ok", "long:ok",
 	  "screen=channel writes=1 toast=Saved_channel_3 shows=P25 shows=293", 1, true },
-	{ "E Mode: DMR channel saved as NXDN", "p25 nxdn ok 5 ok down down ok ok", "long:ok",
+	{ "E Mode: DMR channel saved as NXDN", "p25 nxdn ok 5 ctx 1 down down ok ok", "long:ok",
 	  "screen=channel writes=1 toast=Saved_channel_3 shows=NXDN shows=RAN", 1, true },
 	// Opened again it is a stored channel of the kind, the block read back
-	{ "E Mode: the saved P25 channel opens as P25", "p25 nxdn ok 5 ok down down ok long:ok back back back",
-	  "ok 5 ok", "screen=channel shows=P25 shows=NAC shows=293 hides=Color_code", 3, false },
-	{ "E Mode: the saved NXDN channel opens as NXDN", "p25 nxdn ok 5 ok down down ok ok long:ok back back back",
-	  "ok 5 ok", "screen=channel shows=NXDN shows=RAN hides=Color_code", 3, false },
+	{ "E Mode: the saved P25 channel opens as P25", "p25 nxdn ok 5 ctx 1 down down ok long:ok back back back",
+	  "ok 5 ctx 1", "screen=channel shows=P25 shows=NAC shows=293 hides=Color_code", 4, false },
+	{ "E Mode: the saved NXDN channel opens as NXDN", "p25 nxdn ok 5 ctx 1 down down ok ok long:ok back back back",
+	  "ok 5 ctx 1", "screen=channel shows=NXDN shows=RAN hides=Color_code", 4, false },
 	// An own ID typed in P25 past NXDN's range is kept when the Mode row makes the channel NXDN: Save refuses it
 	{ "E Mode: NXDN with an ID past 65519 not saved",
-	  "p25 nxdn ok 5 ok down down ok down down down down down down down ok 7 0 0 0 0 ok up up up up up up up ok",
+	  "p25 nxdn ok 5 ctx 1 down down ok down down down down down down down ok 7 0 0 0 0 ok up up up up up up up ok",
 	  "long:ok", "screen=channel focus=Mode shows=NXDN toast=NXDN_IDs_go_up_to_65519 writes=0", 1, false },
 	// A channel made P25 whose RX goes to the air band: AM there, no P25
-	{ "E Mode: a P25 channel's air band RX makes it AM", "am p25 nxdn ok 5 ok down down ok down down",
+	{ "E Mode: a P25 channel's air band RX makes it AM", "am p25 nxdn ok 5 ctx 1 down down ok down down",
 	  "ok 1 2 1 5 0 0 ok", "shows=121.500 shows=AM hides=NAC hides=P25", 8, false },
 	// A stored P25 channel made NXDN loses its P25 tag: asked first
-	{ "stored P25 channel as NXDN: Save asks", "p25 nxdn chkind:3,p25 ok 5 ok down down ok", "long:ok",
+	{ "stored P25 channel as NXDN: Save asks", "p25 nxdn chkind:3,p25 ok 5 ctx 1 down down ok", "long:ok",
 	  "screen=discard shows=Unsaved_Changes shows=P25_settings_will_be writes=0", 1, false },
 #endif
 #endif
@@ -307,8 +307,8 @@ static const flow_t flows[] = {
 #if CONFIG_LANG_ES
 	{ "6 preset sends in selected language", "ok 7 2 up ok down ok long:back", "5 6 3 ctx 3 down ok",
 	  "sent=1 text=En_camino", 7, false },
-	{ "21 text entry in the selected language", "ok 7 2 up ok down ok long:back", "ok 5 ok ok",
-	  "screen=text shows=Nombre", 4, false },
+	{ "21 text entry in the selected language", "ok 7 2 up ok down ok long:back", "ok 5 ctx 1 ok",
+	  "screen=text shows=Nombre", 5, false },
 #endif
 	{ "7 read message, banner up", "msg:9991234,Meet_at_the_north_lot", "ctx", "screen=message", 1, false },
 	{ "7 read message later", "msg:9991234,Meet_at_the_north_lot wait:9000", "ok 2 ok", "screen=message", 3, false },
@@ -628,7 +628,7 @@ static const flow_t flows[] = {
 #if CONFIG_CHANNEL_LIST
 	// task-flows.md 12 says 3: the VFO row is first but Channels opens on the current zone (flow 2), so one Up
 	{ "C channels: every channel", "", "ok 5", "screen=channels focus=3_", 2, false },
-	{ "C a channel's settings", "", "ok 5 ok", "screen=channel", 3, false },
+	{ "C a channel's settings", "", "ok 5 ctx 1", "screen=channel", 4, false },
 	// The channel's last rows are Tune to this ch, Share channel to... (with zone sharing) and Save as new channel: Ups from
 	// the first row (lists wrap)
 #if CONFIG_ZONE_SHARE
@@ -638,132 +638,132 @@ static const flow_t flows[] = {
 #define CE_SHARE_UP	""
 #define CE_SHARE_PRESS	0
 #endif
-	{ "C go to it from its settings", "ok 5 down down ok", "up up" CE_SHARE_UP " ok", "screen=home pos=5",
+	{ "C go to it from its settings", "ok 5 down down ctx 1", "up up" CE_SHARE_UP " ok", "screen=home pos=5",
 	  3 + CE_SHARE_PRESS, false },
 #if CONFIG_ZONE_SHARE
 	// Share channel to... sends the channel by its number, then the editor stays (zone-share.md 7)
-	{ "C share channel to... from its settings", "ok 5 down down ok", "up up ok", "shows=Share_To zs_sends=0", 3,
+	{ "C share channel to... from its settings", "ok 5 down down ctx 1", "up up ok", "shows=Share_To zs_sends=0", 3,
 	  false },
-	{ "C the channel goes, back in its settings", "ok 5 down down ok up up ok", "ok",
+	{ "C the channel goes, back in its settings", "ok 5 down down ctx 1 up up ok", "ok",
 	  "screen=channel zs_sends=1 zs_one=1 zs_zone=65535 zs_pos=5", 1, false },
 #endif
 #endif
 #if CONFIG_CHANNEL_EDIT
 	// task-flows.md 21 and 22 (ui.md 2.1). On channel 3 (DMR) the timeslot is the ninth row, the TX contact the tenth
-	{ "21 timeslot of the channel in use, saved", "", "ok 5 ok down down down down down down down down ok long:ok", "writes=1 toast=Saved_channel_3",
-	  13, true },
-	{ "21 TX contact opens the picker", "ok 5 ok down down down down down down down down down", "ok", "screen=chpick shows=TX_Contact", 1, false },
-	{ "21 a change asks before discarding", "ok 5 ok down down down down down down down down ok", "back", "screen=discard shows=Unsaved_Changes", 1, false },
-	{ "21 keep editing", "ok 5 ok down down down down down down down down ok back", "ok", "screen=channel", 1, false },
-	{ "21 discard goes back to Channels", "ok 5 ok down down down down down down down down ok back", "down ok", "screen=channels", 2, false },
-	{ "21 the name opens text entry", "ok 5 ok", "ok", "screen=text", 1, false },
-	{ "21 text entry counts the characters", "ok 5 ok", "ok", "screen=text shows=10/16 hides=010", 1, false },
+	{ "21 timeslot of the channel in use, saved", "", "ok 5 ctx 1 down down down down down down down down ok long:ok", "writes=1 toast=Saved_channel_3",
+	  14, true },
+	{ "21 TX contact opens the picker", "ok 5 ctx 1 down down down down down down down down down", "ok", "screen=chpick shows=TX_Contact", 1, false },
+	{ "21 a change asks before discarding", "ok 5 ctx 1 down down down down down down down down ok", "back", "screen=discard shows=Unsaved_Changes", 1, false },
+	{ "21 keep editing", "ok 5 ctx 1 down down down down down down down down ok back", "ok", "screen=channel", 1, false },
+	{ "21 discard goes back to Channels", "ok 5 ctx 1 down down down down down down down down ok back", "down ok", "screen=channels", 2, false },
+	{ "21 the name opens text entry", "ok 5 ctx 1", "ok", "screen=text", 1, false },
+	{ "21 text entry counts the characters", "ok 5 ctx 1", "ok", "screen=text shows=10/16 hides=010", 1, false },
 	{ "21 a long message wraps", "5 6 3 ctx 3 down down down down ok ctx",
 	  "1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1",
 	  "screen=message-text shows=31/143 hides=1234567890123456789012345678901", 31, false },
 	// Back deletes in text entry, and leaves once the field is empty (principles 4's one exception)
-	{ "21 Back deletes in text entry", "ok 5 ok ok 4 6", "back", "screen=text shows=COUNTY_DMRG", 1, false },
-	{ "21 Back on an empty name leaves", "ok 5 ok ok", "back back back back back back back back back back back",
+	{ "21 Back deletes in text entry", "ok 5 ctx 1 ok 4 6", "back", "screen=text shows=COUNTY_DMRG", 1, false },
+	{ "21 Back on an empty name leaves", "ok 5 ctx 1 ok", "back back back back back back back back back back back",
 	  "screen=channel", 11, false },
 	// Text entry (ui.md 2.1): * deletes, multi-tap letters move on with another key, # cycles ABC -> 123 -> abc
-	{ "21 * deletes the name", "ok 5 ok ok", "quick quick quick quick quick quick quick quick quick quick long:7", "showsraw=7_ screen=text", 11, false },
-	{ "21 a name by multi-tap", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "9 2 2 2 7 7 7 2", "showsraw=WCRA_", 8, false },
-	{ "21 # to digits", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "ctx 3 1 3", "showsraw=313_", 4, false },
-	{ "21 # twice to lower case", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "ctx ctx 4 4 4", "showsraw=i_", 5, false },
-	{ "21 more presses: digit, then lower case", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "2 2 2 2 2", "showsraw=a_", 5, false },
-	{ "21 1 cycles punctuation", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "1 1 1 1", "showsraw=,_", 4, false },
-	{ "21 a slow * deletes, no key lock", "ok 5 ok ok 4 6", "long:quick", "shows=COUNTY_DMRG locked=0", 1, false },
-	{ "21 a held digit types itself", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "long:7", "showsraw=7_", 1, false },
+	{ "21 * deletes the name", "ok 5 ctx 1 ok", "quick quick quick quick quick quick quick quick quick quick long:7", "showsraw=7_ screen=text", 11, false },
+	{ "21 a name by multi-tap", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "9 2 2 2 7 7 7 2", "showsraw=WCRA_", 8, false },
+	{ "21 # to digits", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "ctx 3 1 3", "showsraw=313_", 4, false },
+	{ "21 # twice to lower case", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "ctx ctx 4 4 4", "showsraw=i_", 5, false },
+	{ "21 more presses: digit, then lower case", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "2 2 2 2 2", "showsraw=a_", 5, false },
+	{ "21 1 cycles punctuation", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "1 1 1 1", "showsraw=,_", 4, false },
+	{ "21 a slow * deletes, no key lock", "ok 5 ctx 1 ok 4 6", "long:quick", "shows=COUNTY_DMRG locked=0", 1, false },
+	{ "21 a held digit types itself", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "long:7", "showsraw=7_", 1, false },
 	{ "22 new from current settings, saved", "", "ok 5 up up up ok long:ok",
 	  "writes=1 toast=Saved_as_channel_41", 7, true },
 	// The channel editor's rules (ui.md 2.1). Channel 1 is an FM repeater (146.940, TX 600 kHz below), channel 3 DMR
 	// simplex; on channel 3 the own ID is row 12 and the TX time-out row 17
-	{ "E new RX keeps the repeater offset", "ok 5 up up ok down down down", "ok 1 4 7 0 0 ok",
+	{ "E new RX keeps the repeater offset", "ok 5 up up ctx 1 down down down", "ok 1 4 7 0 0 ok",
 	  "shows=147.000 shows=146.4 shows=600_kHz", 7, false },
-	{ "E new RX in another band: simplex", "ok 5 up up ok down down down", "ok 4 4 6 0 0 0 ok",
+	{ "E new RX in another band: simplex", "ok 5 up up ctx 1 down down down", "ok 4 4 6 0 0 0 ok",
 	  "shows=446.000 hides=445.4 hides=-600", 8, false },
-	{ "E new RX: an offset off the bands makes it simplex", "ok 5 up up ok down down down", "ok 1 3 6 0 0 ok",
+	{ "E new RX: an offset off the bands makes it simplex", "ok 5 up up ctx 1 down down down", "ok 1 3 6 0 0 ok",
 	  "shows=136.000 hides=135.4 hides=-600", 7, false },
-	{ "E RX in a receive-only band: RX only, saved", "ok 5 up up ok down down down", "ok 1 2 1 5 0 0 ok long:ok",
+	{ "E RX in a receive-only band: RX only, saved", "ok 5 up up ctx 1 down down down", "ok 1 2 1 5 0 0 ok long:ok",
 	  "writes=1", 9, true },
-	{ "E RX in a receive-only band: RX only and FM before the save", "ok 5 up up ok down down down", "ok 1 2 1 5 0 0 ok down down down",
+	{ "E RX in a receive-only band: RX only and FM before the save", "ok 5 up up ctx 1 down down down", "ok 1 2 1 5 0 0 ok down down down",
 	  "shows=FM shows=RX_only shows=Yes", 11, false },
 	// DMR goes wherever FM goes but a listen band (ui.md 2.1). Without AM receive the air band is a receive-only band
 	// like any other: a DMR channel there stays DMR, RX only. With AM it is a listen band: AM, never DMR
-	{ "E a DMR channel's RX in a receive-only band: DMR, RX only, saved", "ok 5 ok down down down",
+	{ "E a DMR channel's RX in a receive-only band: DMR, RX only, saved", "ok 5 ctx 1 down down down",
 	  "ok 1 2 1 5 0 0 ok long:ok", "shows=121.500 hides=FM toast=Saved_channel_3 writes=1", 9, true },
-	{ "E on a radio with AM: a DMR channel's air band RX makes it AM", "am ok 5 ok down down down", "ok 1 2 1 5 0 0 ok",
+	{ "E on a radio with AM: a DMR channel's air band RX makes it AM", "am ok 5 ctx 1 down down down", "ok 1 2 1 5 0 0 ok",
 	  "shows=121.500 shows=AM hides=Color_code", 8, false },
-	{ "E on a radio with AM: an air band RX makes the Mode AM", "am ok 5 up up ok down down down", "ok 1 2 1 5 0 0 ok",
+	{ "E on a radio with AM: an air band RX makes the Mode AM", "am ok 5 up up ctx 1 down down down", "ok 1 2 1 5 0 0 ok",
 	  "shows=121.500 shows=AM hides=FM", 8, false },
-	{ "E on a radio with AM: OK on the Mode row keeps it AM", "am ok 5 up up ok down down down ok 1 2 1 5 0 0 ok up",
+	{ "E on a radio with AM: OK on the Mode row keeps it AM", "am ok 5 up up ctx 1 down down down ok 1 2 1 5 0 0 ok up",
 	  "ok", "toast=Air_band:_receive_only shows=AM hides=FM hides=Color_code hides=RX_CTCSS", 1, false },
-	{ "E RX refuses a digit no band starts with", "ok 5 up up ok down down down", "ok 2", "toast=Bands:", 2, false },
-	{ "E RX needs the MHz digits", "ok 5 up up ok down down down", "ok 1 4 ok", "toast=Type_at_least screen=channel",
+	{ "E RX refuses a digit no band starts with", "ok 5 up up ctx 1 down down down", "ok 2", "toast=Bands:", 2, false },
+	{ "E RX needs the MHz digits", "ok 5 up up ctx 1 down down down", "ok 1 4 ok", "toast=Type_at_least screen=channel",
 	  4, false },
-	{ "E own ID refuses a digit past 16777215", "ok 5 ok down down down down down down down down down down down",
+	{ "E own ID refuses a digit past 16777215", "ok 5 ctx 1 down down down down down down down down down down down",
 	  "ok 1 6 7 7 7 2 1 6", "toast=IDs_go_up shows=1677721", 9, false },
-	{ "E own ID: Back takes back a digit", "ok 5 ok down down down down down down down down down down down",
+	{ "E own ID: Back takes back a digit", "ok 5 ctx 1 down down down down down down down down down down down",
 	  "ok 5 5 5 1 back ok", "shows=555 hides=5551", 7, false },
-	{ "E own ID: at most 8 digits", "ok 5 ok down down down down down down down down down down down",
+	{ "E own ID: at most 8 digits", "ok 5 ctx 1 down down down down down down down down down down down",
 	  "ok 0 0 0 0 0 0 0 0 0 0", "shows=00000000 hides=000000000", 11, false },
-	{ "E time-out in steps of 15", "ok 5 ok down down down down down down down down down down down down down down down "
+	{ "E time-out in steps of 15", "ok 5 ctx 1 down down down down down down down down down down down down down down down "
 	  "down", "ok 7 ok", "toast=Not_changed", 3, false },
-	{ "E time-out spinner", "ok 5 ok down down down down down down down down down down down down down down down down",
+	{ "E time-out spinner", "ok 5 ctx 1 down down down down down down down down down down down down down down down down",
 	  "ok up up ok", "shows=30_s", 4, false },
 #if CONFIG_SUBTONE
 	// Channel 1's RX tone is row 9 (none), its TX tone row 10 (100.0): the spinner walks the standard tone list
-	{ "E RX tone spinner from none", "ok 5 up up ok down down down down down down down down", "ok up ok",
+	{ "E RX tone spinner from none", "ok 5 up up ctx 1 down down down down down down down down", "ok up ok",
 	  "shows=67.0", 3, false },
-	{ "E TX tone spinner, Up", "ok 5 up up ok down down down down down down down down down", "ok up ok",
+	{ "E TX tone spinner, Up", "ok 5 up up ctx 1 down down down down down down down down down", "ok up ok",
 	  "shows=103.5 hides=100.0", 3, false },
-	{ "E TX tone spinner, Down", "ok 5 up up ok down down down down down down down down down", "ok down ok",
+	{ "E TX tone spinner, Down", "ok 5 up up ctx 1 down down down down down down down down down", "ok down ok",
 	  "shows=97.4", 3, false },
 	// Digits type the tone: CTCSS with the last digit the tenths, whole Hz under 60; a leading 0 types a DCS code
-	{ "E RX tone typed, tenths", "ok 5 up up ok down down down down down down down down", "ok 8 8 5 ok", "shows=88.5 writes=0", 5, false },
-	{ "E RX tone typed, whole Hz", "ok 5 up up ok down down down down down down down down", "ok 6 7 ok", "shows=67.0", 4, false },
-	{ "E TX tone typed over the stored one", "ok 5 up up ok down down down down down down down down down", "ok 1 3 1 8 ok", "shows=131.8 hides=100.0", 6, false },
-	{ "E TX tone shows the digits as typed", "ok 5 up up ok down down down down down down down down down", "ok 8 8", "shows=88.0", 3, false },
-	{ "E RX tone typed DCS", "ok 5 up up ok down down down down down down down down", "ok 0 2 3 ok", "shows=D023N", 5, false },
-	{ "E DCS refuses digits past 7", "ok 5 up up ok down down down down down down down down", "ok 0 2 8", "toast=DCS_codes_use shows=D2", 4, false },
-	{ "E DCS not on the list is refused", "ok 5 up up ok down down down down down down down down", "ok 0 7 7 7 ok", "toast=Not_a_DCS_code", 6, false },
-	{ "E CTCSS out of range is refused", "ok 5 up up ok down down down down down down down down", "ok 9 9 9 9 ok", "toast=CTCSS_goes", 6, false },
-	{ "E BACK takes a tone digit back", "ok 5 up up ok down down down down down down down down", "ok 8 8 5 back ok", "shows=88.0", 6, false },
-	{ "E the knob steps on from a typed tone", "ok 5 up up ok down down down down down down down down", "ok 8 8 5 up ok", "shows=91.5", 6, false },
+	{ "E RX tone typed, tenths", "ok 5 up up ctx 1 down down down down down down down down", "ok 8 8 5 ok", "shows=88.5 writes=0", 5, false },
+	{ "E RX tone typed, whole Hz", "ok 5 up up ctx 1 down down down down down down down down", "ok 6 7 ok", "shows=67.0", 4, false },
+	{ "E TX tone typed over the stored one", "ok 5 up up ctx 1 down down down down down down down down down", "ok 1 3 1 8 ok", "shows=131.8 hides=100.0", 6, false },
+	{ "E TX tone shows the digits as typed", "ok 5 up up ctx 1 down down down down down down down down down", "ok 8 8", "shows=88.0", 3, false },
+	{ "E RX tone typed DCS", "ok 5 up up ctx 1 down down down down down down down down", "ok 0 2 3 ok", "shows=D023N", 5, false },
+	{ "E DCS refuses digits past 7", "ok 5 up up ctx 1 down down down down down down down down", "ok 0 2 8", "toast=DCS_codes_use shows=D2", 4, false },
+	{ "E DCS not on the list is refused", "ok 5 up up ctx 1 down down down down down down down down", "ok 0 7 7 7 ok", "toast=Not_a_DCS_code", 6, false },
+	{ "E CTCSS out of range is refused", "ok 5 up up ctx 1 down down down down down down down down", "ok 9 9 9 9 ok", "toast=CTCSS_goes", 6, false },
+	{ "E BACK takes a tone digit back", "ok 5 up up ctx 1 down down down down down down down down", "ok 8 8 5 back ok", "shows=88.0", 6, false },
+	{ "E the knob steps on from a typed tone", "ok 5 up up ctx 1 down down down down down down down down", "ok 8 8 5 up ok", "shows=91.5", 6, false },
 #endif
-	{ "E DMR needs a TX contact to save", "ok 5 ok down down down down down down down down down", "ok up ok long:ok",
+	{ "E DMR needs a TX contact to save", "ok 5 ctx 1 down down down down down down down down down", "ok up ok long:ok",
 	  "toast=Pick_a_TX writes=0", 4, false },
 	// The contact is whom PTT calls: an RX only channel saves without one (row 6 is RX only, the contact row stays 9)
-	{ "E DMR RX only saves without a TX contact", "ok 5 ok down down down down down down", "ok down down down ok up ok long:ok",
+	{ "E DMR RX only saves without a TX contact", "ok 5 ctx 1 down down down down down down", "ok down down down ok up ok long:ok",
 	  "toast=Saved_channel_3 writes=1", 8, true },
 	// A radio with no transmit band ("rxonly") keeps a DMR channel that is RX only, as any radio does in a receive-only
 	// band. Channel 3 is DMR on 453.625, its RX only row is 6
-	{ "E no transmit band: DMR needs RX only", "rxonly ok 5 ok", "long:ok down down down down down down",
+	{ "E no transmit band: DMR needs RX only", "rxonly ok 5 ctx 1", "long:ok down down down down down down",
 	  "toast=TX_can't_transmit writes=0 focus=RX_only", 7, false },
-	{ "E no transmit band: DMR RX only, saved", "rxonly ok 5 ok down down down down down down", "ok long:ok",
+	{ "E no transmit band: DMR RX only, saved", "rxonly ok 5 ctx 1 down down down down down down", "ok long:ok",
 	  "toast=Saved_channel_3 writes=1", 2, true },
-	{ "E no transmit band: new RX keeps DMR, RX only", "rxonly ok 5 ok down down down", "ok 4 4 6 0 0 0 ok long:ok",
+	{ "E no transmit band: new RX keeps DMR, RX only", "rxonly ok 5 ctx 1 down down down", "ok 4 4 6 0 0 0 ok long:ok",
 	  "toast=Saved_channel_3 writes=1 hides=FM shows=446.000", 9, true },
-	{ "E no transmit band: DMR after the new RX", "rxonly ok 5 ok down down ok down", "ok 1 4 6 5 2 0 ok up ok long:ok",
+	{ "E no transmit band: DMR after the new RX", "rxonly ok 5 ctx 1 down down ok down", "ok 1 4 6 5 2 0 ok up ok long:ok",
 	  "toast=Saved_channel_3 writes=1 hides=FM shows=146.520", 11, true },
-	{ "E a name to save", "ok 5 ok ok quick quick quick quick quick quick quick quick quick quick", "ok long:ok",
+	{ "E a name to save", "ok 5 ctx 1 ok quick quick quick quick quick quick quick quick quick quick", "ok long:ok",
 	  "toast=Give_it_a_name writes=0", 2, false },
-	{ "E nothing changed to save", "ok 5 ok", "long:ok", "toast=No_changes writes=0", 1, false },
-	{ "E go to it asks for a save first", "ok 5 ok down down ok", "up up up up up" CE_SHARE_UP " ok",
+	{ "E nothing changed to save", "ok 5 ctx 1", "long:ok", "toast=No_changes writes=0", 1, false },
+	{ "E go to it asks for a save first", "ok 5 ctx 1 down down ok", "up up up up up" CE_SHARE_UP " ok",
 	  "toast=Save_first screen=channel",
 	  6 + CE_SHARE_PRESS, false },
 #if CONFIG_ZONE_SHARE
-	{ "E share asks for a save first", "ok 5 ok down down ok", "up up up up up ok",
+	{ "E share asks for a save first", "ok 5 ctx 1 down down ok", "up up up up up ok",
 	  "toast=Save_first screen=channel zs_sends=0", 6, false },
 #endif
-	{ "E saved: Back leaves without asking", "ok 5 ok down down ok", "long:ok back", "screen=channels writes=1", 2,
+	{ "E saved: Back leaves without asking", "ok 5 ctx 1 down down ok", "long:ok back", "screen=channels writes=1", 2,
 	  true },
-	{ "E save as new takes the next free number", "ok 5 ok up ok", "ok", "toast=Saved_as_channel_42 writes=2", 1, true },
+	{ "E save as new takes the next free number", "ok 5 ctx 1 up ok", "ok", "toast=Saved_as_channel_42 writes=2", 1, true },
 	{ "E the new channel is in the list", "ok 5 up up up ok long:ok", "back up", "focus=41_COUNTY_DMR_2", 2, true },
 	{ "E new from the VFO is named by its frequency", "ok 4 up ok", "ok 5 ok", "shows=146.520 shows=41", 3, false },
 #endif
 #if CONFIG_CHANNEL_LIST
-	{ "C go to it from the list", "ok 5 down", "ctx", "screen=home pos=4", 1, false },
+	{ "C go to it from the list", "ok 5 down", "ok", "screen=home pos=4", 1, false },
 #endif
 	{ "12 into the VFO", "", "ok 4 up ok", "vfo=1 screen=home", 4, false },
 	{ "12 446.000 in the VFO", "ok 4 up ok", "4 4 6 0 0 0 ok", "freq=446000000", 7, false },
@@ -1021,8 +1021,8 @@ static const flow_t flows[] = {
 	{ "A APRS page", "", "ok 6 8", "screen=aprs", 3, false },
 #if CONFIG_DMR_TRUNK
 	// Trunked channels (dmr-trunking.md 12.4): "t3" makes channel 3 a channel of "County" and 5 one of "Metro", not set up
-	{ "T a trunked channel names its system in the zone", "t3", "ok 4 ctx", "screen=zone shows=County", 3, false },
-	{ "T a channel without its system is locked out", "t3 ok 4 ctx", "down down ok",
+	{ "T a trunked channel names its system in the zone", "t3", "ok 4 ctx 1", "screen=zone shows=County", 4, false },
+	{ "T a channel without its system is locked out", "t3 ok 4 ctx 1", "down down ok",
 	  "screen=zone focus=05_Metro_DMR toast=System_not_set_up", 3, false },
 	{ "T Home on a trunked channel: the system and Ready", "t3 dlpos:3", "", "screen=home shows=County shows=Ready hides=CC",
 	  0, false },
@@ -1326,68 +1326,88 @@ static const flow_t flows[] = {
 #if CONFIG_ZONE_SHARE
 #define ZC_REMOVE_KEY	"6"
 #define ZO_DELETE_KEY	"4"
-	{ "Z share channel to... from Channel actions", "ok 4 ctx ctx", "5", "shows=Share_To zs_sends=0", 1, false },
-	{ "Z the channel goes, back on the zone's list", "ok 4 ctx ctx 5", "ok",
+	{ "Z share channel to... from Channel actions", "ok 4 ctx 1 ctx", "5", "shows=Share_To zs_sends=0", 1, false },
+	{ "Z the channel goes, back on the zone's list", "ok 4 ctx 1 ctx 5", "ok",
 	  "screen=zone zs_sends=1 zs_one=1 zs_zone=0 zs_pos=2", 1, false },
-	{ "Z share zone to... from Zone options", "ok 4 ctx up up up up ok", "3 ok",
+	{ "Z share zone to... from Zone options", "ok 4 ctx 1 up up up up ok", "3 ok",
 	  "screen=zone zs_sends=1 zs_one=0 zs_zone=0", 2, false },
 #else
 #define ZC_REMOVE_KEY	"5"
 #define ZO_DELETE_KEY	"3"
 #endif
-	{ "23 move the channel in use down", "", "ok 4 ctx ctx 2", "pos=4 writes=1 toast=Position_4_of_16 screen=zchannel",
-	  5, true },
-	{ "23 the menu stays: the digit again moves it on", "ok 4 ctx ctx 2", "2 2", "pos=6 writes=3 toast=Position_6_of_16",
+#define CM_DELETE_KEY	ZO_DELETE_KEY	// Channel actions in Channels: Edit, In zones, (Share,) Delete
+	{ "23 move the channel in use down", "", "ok 4 ctx 1 ctx 2", "pos=4 writes=1 toast=Position_4_of_16 screen=zchannel",
+	  6, true },
+	{ "23 the menu stays: the digit again moves it on", "ok 4 ctx 1 ctx 2", "2 2", "pos=6 writes=3 toast=Position_6_of_16",
 	  2, true },
-	{ "23 back on the list, on the moved channel", "ok 4 ctx ctx 2", "back", "screen=zone focus=04_COUNTY_DMR", 1,
+	{ "23 back on the list, on the moved channel", "ok 4 ctx 1 ctx 2", "back", "screen=zone focus=04_COUNTY_DMR", 1,
 	  true },
-	{ "23 move up", "ok 4 ctx", "ctx 1", "pos=2 writes=1 toast=Position_2_of_16", 2, true },
-	{ "23 the first can't move up", "ok 4 ctx up up", "ctx 1", "writes=0 toast=Already_first", 2, false },
-	{ "24 copy here, saved unchanged", "", "ok 4 ctx ctx 3 long:ok", "writes=2 toast=Saved_as_channel_41", 6, true },
-	{ "24 the copy follows its source", "ok 4 ctx ctx 3 long:ok", "back", "screen=zone focus=04_COUNTY_DMR_2", 1,
+	{ "23 move up", "ok 4 ctx 1", "ctx 1", "pos=2 writes=1 toast=Position_2_of_16", 2, true },
+	{ "23 the first can't move up", "ok 4 ctx 1 up up", "ctx 1", "writes=0 toast=Already_first", 2, false },
+	{ "24 copy here, saved unchanged", "", "ok 4 ctx 1 ctx 3 long:ok", "writes=2 toast=Saved_as_channel_41", 7, true },
+	{ "24 the copy follows its source", "ok 4 ctx 1 ctx 3 long:ok", "back", "screen=zone focus=04_COUNTY_DMR_2", 1,
 	  true },
-	{ "24 copy here opens an unsaved copy", "ok 4 ctx ctx 3", "", "screen=channel shows=COUNTY_DMR_2 writes=0", 0,
+	{ "24 copy here opens an unsaved copy", "ok 4 ctx 1 ctx 3", "", "screen=channel shows=COUNTY_DMR_2 writes=0", 0,
 	  false },
-	{ "24 copy here asks before discarding", "ok 4 ctx ctx 3", "back", "screen=discard writes=0", 1, false },
-	{ "24 edit channel opens the editor", "ok 4 ctx ctx", "4", "screen=channel shows=COUNTY_DMR depth=4", 1, false },
-	{ "25 add channel 20 after the channel in use", "", "ok 4 ctx 2 ok 2 0 ok",
-	  "screen=zone writes=1 toast=Added_to focus=04_", 8, true },
-	{ "25 add channel offers only what the zone doesn't hold", "ok 4 ctx 2", "ok", "screen=zpick count=24", 1, false },
-	{ "25 remove from zone", "ok 4 ctx ctx", ZC_REMOVE_KEY, "screen=zone writes=1 toast=Removed_from_Local", 1, true },
-	{ "26 copy the zone in use", "", "ok 4 ctx up up up up ok 2",
-	  "screen=zones count=6 writes=1 toast=Copied_as_Local_repeater_2", 9, true },
-	{ "26 rename a zone", "ok 4 ctx up up up up ok 1", "back 2 ok", "screen=zoneedit writes=1 toast=Renamed shows=repeaterA",
+	{ "24 copy here asks before discarding", "ok 4 ctx 1 ctx 3", "back", "screen=discard writes=0", 1, false },
+	{ "24 edit channel opens the editor", "ok 4 ctx 1 ctx", "4", "screen=channel shows=COUNTY_DMR depth=4", 1, false },
+	{ "25 add channel 20 after the channel in use", "", "ok 4 ctx 1 2 ok 2 0 ok",
+	  "screen=zone writes=1 toast=Added_to focus=04_", 9, true },
+	{ "25 add channel offers only what the zone doesn't hold", "ok 4 ctx 1 2", "ok", "screen=zpick count=24", 1, false },
+	{ "25 remove from zone", "ok 4 ctx 1 ctx", ZC_REMOVE_KEY, "screen=zone writes=1 toast=Removed_from_Local", 1, true },
+	// OK always goes to what is highlighted, # is "more": Channels (OK goes to the channel, # its actions) and Zones (OK
+	// goes to the zone, # its actions, the zone's channels first)
+	{ "27 Channels: OK goes to the channel", "ok 5 down", "ok", "screen=home pos=4", 1, false },
+	{ "27 Channels: # opens its actions", "ok 5 down", "ctx", "screen=chmenu focus=Edit_channel", 1, false },
+	{ "27 Channels: Edit channel opens the editor", "ok 5 down ctx", "1", "screen=channel", 1, false },
+	{ "27 Channels: In zones opens its zones", "ok 5 down ctx", "2", "screen=chzones", 1, false },
+	{ "27 Channels: Delete asks first, No focused", "ok 5 down ctx", CM_DELETE_KEY, "screen=chdel focus=No writes=0", 1, false },
+	{ "27 Channels: Delete, No keeps it", "ok 5 down ctx " CM_DELETE_KEY, "ok", "screen=chmenu writes=0", 1, false },
+	{ "27 Channels: Delete, Back keeps it", "ok 5 down ctx " CM_DELETE_KEY, "back", "screen=chmenu writes=0", 1, false },
+	{ "27 Channels: Delete, Yes removes it", "ok 5 down ctx " CM_DELETE_KEY, "down ok wait:200",
+	  "screen=channels count=40 toast=Deleted_County_fire", 2, true },
+	{ "27 Channels: the channel is in a zone first", "", "ok 4 ctx 1", "screen=zone shows=County_fire", 4, false },
+	{ "27 Channels: a deleted channel is in no zone", "ok 5 down ctx " CM_DELETE_KEY " down ok wait:200 back back",
+	  "ok 4 ctx 1", "screen=zone hides=County_fire", 4, true },
+	{ "27 Zones: # opens the zone's actions", "ok 4", "ctx", "screen=zoneedit focus=Channels", 1, false },
+	{ "27 Zones: Channels opens the zone's list", "ok 4 ctx", "1", "screen=zone", 1, false },
+	{ "27 Zones: Back from its list is Zones", "ok 4 ctx 1", "back", "screen=zones", 1, false },
+	{ "27 Zones: Rename from the actions", "ok 4 ctx", "2", "screen=text", 1, false },
+	{ "27 Zones: Copy from the actions comes back to Zones", "", "ok 4 ctx 3", "screen=zones count=6 writes=1 toast=Copied_as_Local_repeater_2", 4, true },
+	{ "26 copy the zone in use", "", "ok 4 ctx 1 up up up up ok 2",
+	  "screen=zones count=6 writes=1 toast=Copied_as_Local_repeater_2", 10, true },
+	{ "26 rename a zone", "ok 4 ctx 1 up up up up ok 1", "back 2 ok", "screen=zoneedit writes=1 toast=Renamed shows=repeaterA",
 	  3, true },
-	{ "26 delete asks first, No focused", "ok 4 ctx up up up up ok", ZO_DELETE_KEY, "screen=zonedel focus=No writes=0", 1, false },
-	{ "26 delete: No keeps it", "ok 4 ctx up up up up ok " ZO_DELETE_KEY, "ok", "screen=zoneedit writes=0", 1, false },
+	{ "26 delete asks first, No focused", "ok 4 ctx 1 up up up up ok", ZO_DELETE_KEY, "screen=zonedel focus=No writes=0", 1, false },
+	{ "26 delete: No keeps it", "ok 4 ctx 1 up up up up ok " ZO_DELETE_KEY, "ok", "screen=zoneedit writes=0", 1, false },
 	{ "26 delete a zone ahead of the zone in use: the radio follows", "ok 4 down down ok",
-	  "ok 4 up ctx up ok " ZO_DELETE_KEY " down ok", "screen=zones count=4 zone=1 writes=1 toast=Deleted_Simplex", 9, true },
+	  "ok 4 up ctx up ok down ok", "screen=zones count=4 zone=1 writes=1 toast=Deleted_Simplex", 8, true },
 	// The channel editor's Zones row: every zone, OK puts the channel in or takes it out
-	{ "26 channel editor: Zones opens every zone", "ok 5 ok up up up up", "ok", "screen=chzones count=3 shows=In", 1,
+	{ "26 channel editor: Zones opens every zone", "ok 5 ctx 1 up up up up", "ok", "screen=chzones count=3 shows=In", 1,
 	  false },
-	{ "26 channel editor: Zones adds it to a zone", "", "ok 5 ok up up up up ok down ok",
-	  "screen=chzones writes=1 toast=Added_to_Simplex", 10, true },
-	{ "26 channel editor: Zones takes it out of one", "ok 5 ok up up up up ok", "ok",
+	{ "26 channel editor: Zones adds it to a zone", "", "ok 5 ctx 1 up up up up ok down ok",
+	  "screen=chzones writes=1 toast=Added_to_Simplex", 11, true },
+	{ "26 channel editor: Zones takes it out of one", "ok 5 ctx 1 up up up up ok", "ok",
 	  "screen=chzones writes=1 toast=Removed_from_Local_repeaters", 1, true },
-	{ "26 channel editor: back on the Zones row", "ok 5 ok up up up up ok down ok", "back", "screen=channel focus=Zones",
+	{ "26 channel editor: back on the Zones row", "ok 5 ctx 1 up up up up ok down ok", "back", "screen=channel focus=Zones",
 	  1, false },
 	// Zones > Create New Zone (the last row): named, written empty, then focused on Zones; OK opens it
 	{ "26 new zone: the last row of Zones", "ok 4", "down down down", "screen=zones focus=Create_New_Zone", 3, false },
 	{ "26 new zone: named, then focused on Zones", "", "ok 4 down down down ok 2 ok",
 	  "screen=zones writes=1 toast=Added_A focus=A count=6", 8, true },
 	{ "26 new zone: an empty name makes none", "ok 4 down down down ok", "back", "screen=zones writes=0", 1, false },
-	{ "26 new zone: its list adds channels", "ok 4 down down down ok 2 ok", "ctx", "screen=zone shows=A count=2 focus=Add_channel", 1, false },
+	{ "26 new zone: its list adds channels", "ok 4 down down down ok 2 ok", "ctx 1", "screen=zone shows=A count=2 focus=Add_channel", 2, false },
 	// Another task's zone delete (an import, through the same storage job) with a zone's screens open
 	{ "26 another task deletes the open zone: its screens close", "ok 4 down ctx", "zonejob:1",
 	  "screen=zones toast=That_zone_was_deleted", 0, true },
 	{ "26 another task deletes the open zone: from Zone options too", "ok 4 down ctx up ok", "zonejob:1",
 	  "screen=zones toast=That_zone_was_deleted", 0, true },
-	{ "26 another task deletes a zone ahead: the open one stays", "ok 4 down down ctx", "zonejob:0",
+	{ "26 another task deletes a zone ahead: the open one stays", "ok 4 down down ctx 1", "zonejob:0",
 	  "screen=zone toast=none shows=Hotspots", 0, true },
 	{ "26 delete a zone ahead of dual watch's B: B follows its zone", "quick 7 ctx 1 zone+ zone+",
-	  "ok 4 up ctx up ok " ZO_DELETE_KEY " down ok back wait:500", "dual=1 azone=0 bzone=1 writes=1", 11, true },
+	  "ok 4 up ctx up ok down ok back wait:500", "dual=1 azone=0 bzone=1 writes=1", 11, true },
 	{ "26 delete dual watch's B zone: B's channel is in no other zone, the watch ends", "quick 7 ctx 1 zone+",
-	  "ok 4 ctx up up ok " ZO_DELETE_KEY " down ok back wait:500", "dual=0 zone=1 writes=1 toast=Dual_watch_off", 11, true },
+	  "ok 4 ctx up ok down ok back wait:500", "dual=0 zone=1 writes=1 toast=Dual_watch_off", 11, true },
 #endif
 #if CONFIG_VFO_FM || CONFIG_VFO_DMR
 	// Find's Tune VFO row (#275): the digits as VFO entry reads them, inside a band only, first after a channel number
@@ -1438,12 +1458,12 @@ static const flow_t flows[] = {
 #endif
 #if CONFIG_ZONE_EDIT && CONFIG_ZONE_SHARE
 	// Share To a station that isn't a contact: the digits typed as an ID, private first (zone-share.md 7)
-	{ "Z share to a typed ID", "ok 4 ctx ctx 5", "9 9 9 9 8 7 6", "shows=Private_ID_9999876 shows=TG_9999876", 7, false },
-	{ "Z the channel goes to the typed ID, via the channel's frequency", "ok 4 ctx ctx 5 9 9 9 9 8 7 6", "ok",
+	{ "Z share to a typed ID", "ok 4 ctx 1 ctx 5", "9 9 9 9 8 7 6", "shows=Private_ID_9999876 shows=TG_9999876", 7, false },
+	{ "Z the channel goes to the typed ID, via the channel's frequency", "ok 4 ctx 1 ctx 5 9 9 9 9 8 7 6", "ok",
 	  "screen=zone zs_sends=1 toast=Sending_to_9999876_via_453.625", 1, false },
-	{ "Z after a send by name the zone's list isn't filtered", "ok 4 ctx ctx 5 2 2 5 4", "ok",
+	{ "Z after a send by name the zone's list isn't filtered", "ok 4 ctx 1 ctx 5 2 2 5 4", "ok",
 	  "screen=zone zs_sends=1 hides=Find:_2254", 1, false },
-	{ "Z a share from an FM channel is refused", "up ok 4 ctx ctx 5", "ok", "zs_sends=0 toast=Go_to_a_DMR", 1, false },
+	{ "Z a share from an FM channel is refused", "up ok 4 ctx 1 ctx 5", "ok", "zs_sends=0 toast=Go_to_a_DMR", 1, false },
 #endif
 };
 
@@ -1530,7 +1550,7 @@ static const flow_t flows_k[] = {
 	{ "S large text is the third row", "", "ok 7 2 down down ok", "set8=1", 6, false },
 #endif
 #if CONFIG_SUBTONE && CONFIG_CHANNEL_EDIT
-	{ "E TX tone spinner, the knob", "ok 5 up up ok down down down down down down down down down", "ok enc+ enc+ ok",
+	{ "E TX tone spinner, the knob", "ok 5 up up ctx 1 down down down down down down down down down", "ok enc+ enc+ ok",
 	  "shows=107.2", 4, false },
 #endif
 	{ "E emergency: hold the top key", "", "long:emerg", "toast=EMERGENCY_sent", 1, false },
@@ -1619,7 +1639,7 @@ static const flow_t flows_k[] = {
 	{ "C a long channel list finds one far down", "channels:full ok 5", "1 0 0 0", "screen=channels count=1", 4, false },
 	{ "C a long channel list keeps the first matches", "channels:full ok 5", "3 2 7",
 	  "screen=channels count=128 focus=41_Far_41", 3, false },
-	{ "25 add channel: a long list to its end", "channels:full ok 4 ctx 2", "ok up", "screen=zpick focus=1024_Far_1024", 2,
+	{ "25 add channel: a long list to its end", "channels:full ok 4 ctx 1 2", "ok up", "screen=zpick focus=1024_Far_1024", 2,
 	  false },
 	{ "K monitor key on DMR: digital monitor", "", "mon", "hearall=1 toast=Digital_monitor_on", 1, false },
 	{ "K monitor key on DMR, again: off", "mon", "mon", "hearall=0 toast=Digital_monitor_off", 1, false },
@@ -1719,17 +1739,17 @@ static const flow_t flows_f[] = {
 #if CONFIG_CHANNEL_EDIT
 	// Text entry without a keypad (ui.md 2.1): Down steps the last character, OK adds one, long OK keeps; long OK on
 	// the channel saves
-	{ "F text entry by Up / Down", "ok down down down down down ok ok ok", "down ok long:ok",
+	{ "F text entry by Up / Down", "ok down down down down down ok long:ok ok ok", "down ok long:ok",
 	  "screen=channel shows=COUNTY_DMQQ", 3, false },
-	{ "F long OK saves the channel", "ok down down down down down ok ok ok down ok long:ok", "long:ok",
+	{ "F long OK saves the channel", "ok down down down down down ok long:ok ok ok down ok long:ok", "long:ok",
 	  "writes=1 toast=Saved_channel_3", 1, true },
 #endif
 	// No programmable keys: the Keys group ends at its three general rows (ui.md 3.1)
 	{ "F no key rows without keys", "ok up ok up up up up up ok", "down down down", "focus=Long hides=Key_1", 3, false },
 #if CONFIG_ZONE_EDIT
 	// No CONTEXT: long OK opens a zone's list in Zones and Channel actions in the list (information-architecture 7.5)
-	{ "F 23 move the channel in use down", "", "ok down down down down ok long:ok long:ok down ok",
-	  "pos=4 writes=1 toast=Position_4_of_16", 10, true },
+	{ "F 23 move the channel in use down", "", "ok down down down down ok long:ok ok long:ok down ok",
+	  "pos=4 writes=1 toast=Position_4_of_16", 11, true },
 #endif
 };
 

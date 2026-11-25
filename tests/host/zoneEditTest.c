@@ -534,10 +534,43 @@ static void test_add_copy_tag(void)
 	CHECK(codeplug_channel(op.channel, &back) && back.kind == CODEPLUG_KIND_NONE && back.rx_only);
 }
 
+// Delete a channel: out of every zone that holds it, then gone; the others keep their numbers
+static void test_delete_channel(void)
+{
+	fresh();
+	channel_t c = make("Twenty", 145500000);
+	CHECK(codeplug_set_channel(20, &c));
+	c = make("Twenty-one", 146500000);
+	CHECK(codeplug_set_channel(21, &c));
+	zone_t z = zone_of("Local", (const uint16_t[]){ 20, 21, 3 }, 3);
+	uint16_t at = 99;
+	CHECK(zone_edit_create(&z, &at) == ZONE_EDIT_OK && at == 1);
+	z = zone_of("Other", (const uint16_t[]){ 3, 21, 4 }, 3);
+	CHECK(zone_edit_create(&z, &at) == ZONE_EDIT_OK && at == 2);
+	uint32_t s1 = codeplug_serial();
+	CHECK(zone_edit_delete_channel(21) == ZONE_EDIT_OK && codeplug_serial() != s1);
+	CHECK(holds(1, (const uint16_t[]){ 20, 3 }, 2) && holds(2, (const uint16_t[]){ 3, 4 }, 2));
+	CHECK(holds(0, (const uint16_t[]){ 1, 2, 3, 4, 5, 6, 20 }, 7));	// the first zone is every channel
+	CHECK(!codeplug_channel(21, &c) && codeplug_channel(20, &c) && codeplug_channel(3, &c));	// the others stay
+	CHECK(zone_edit_delete_channel(21) == ZONE_EDIT_NO_CHANNEL);				// already gone
+	zone_op_t op;
+	memset(&op, 0, sizeof op);
+	op.kind = ZONE_OP_DELETE_CHANNEL;
+	op.channel = 20;
+	CHECK(zone_edit_apply(&op, NULL) == ZONE_EDIT_OK && !codeplug_channel(20, &c));		// as a job's data
+	CHECK(holds(1, (const uint16_t[]){ 3 }, 1) && holds(0, (const uint16_t[]){ 1, 2, 3, 4, 5, 6 }, 6));
+	// No stored zones: the virtual zone is every channel, so deleting one is only the channel's
+	fresh();
+	c = make("Nine", 145500000);
+	CHECK(codeplug_set_channel(9, &c) && !codeplug_zones_stored());
+	CHECK(zone_edit_delete_channel(9) == ZONE_EDIT_OK && !codeplug_channel(9, &c) && !codeplug_zones_stored());
+}
+
 int main(void)
 {
 	test_list();
 	test_codeplug();
+	test_delete_channel();
 	test_full();
 	test_builtin();
 	test_apply_follow();

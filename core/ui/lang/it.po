@@ -1928,6 +1928,11 @@ msgid "The VFO has no channel list"
 msgstr "Il VFO non ha elenco canali"
 
 #: core/ui/ui_menus.c
+msgctxt "ZONE_HINT_LIST_MORE"
+msgid "{OK go  # more  0-9 find|OK go  # more}"
+msgstr "{OK vai  # altro  0-9 cerca|OK vai  # altro}"
+
+#: core/ui/ui_menus.c
 msgctxt "ZONE_HINT_LIST"
 msgid "{OK go  # channels  0-9 find|OK go  # channels}"
 msgstr "{OK vai  # canali  0-9 cerca|OK vai  # canali}"
@@ -2229,8 +2234,8 @@ msgstr "Nessun canale libero"
 
 #: core/ui/ui_menus.c
 msgctxt "CHAN_HINT_LIST"
-msgid "{OK details  # go  0-9 find|OK details  # go}"
-msgstr "{OK dettagli  # vai  0-9 cerca|OK dettagli  # vai}"
+msgid "{OK go  # more  0-9 find|OK go  # more}"
+msgstr "{OK vai  # altro  0-9 cerca|OK vai  # altro}"
 
 #: core/ui/ui_menus.c
 msgctxt "CHAN_EMPTY_NO_CHANNELS"
@@ -2707,6 +2712,11 @@ msgctxt "ZONE_VALUE_IN"
 msgid "In"
 msgstr "Sì"
 
+#: core/ui/ui_menus.c
+msgctxt "ZONE_ROW_CHANNELS"
+msgid "Channels"
+msgstr "Canali"
+
 #: core/ui/ui_menus.c core/ui/ui_scanlist.c
 msgctxt "ZONE_ROW_RENAME"
 msgid "Rename"
@@ -2752,16 +2762,6 @@ msgctxt "ZONE_TOAST_HOLDS_EVERY_CHANNEL"
 msgid "It holds every channel: it stays"
 msgstr "Contiene ogni canale: resta"
 
-#: core/ui/ui_menus.c
-msgctxt "HINT_1_4_PICK_BACK"
-msgid "1-4 pick  Back"
-msgstr "1-4 scegli  Indietro"
-
-#: core/ui/ui_menus.c core/ui/ui_scanlist.c
-msgctxt "HINT_1_3_PICK_BACK"
-msgid "1-3 pick  Back"
-msgstr "1-3 scegli  Indietro"
-
 #: core/ui/ui_menus.c core/ui/ui_sat.c core/ui/ui_scanlist.c
 msgctxt "ZONE_ROW_KEEP"
 msgid "No, keep it"
@@ -2796,6 +2796,46 @@ msgstr "Elimina zona"
 msgctxt "HINT_OK_CHOOSE_BACK_CANCELS"
 msgid "OK choose  Back cancel"
 msgstr "OK scegli  Indietro annulla"
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ROW_IN_ZONES"
+msgid "In zones"
+msgstr "In zone"
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ROW_DELETE"
+msgid "Delete channel"
+msgstr "Elimina canale"
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_TOAST_DELETED"
+msgid "Deleted "
+msgstr "Eliminato "
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ASK_NO_ZONE"
+msgid "? In no zone."
+msgstr "? In nessuna zona."
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ASK_ONE_ZONE"
+msgid "? In 1 zone."
+msgstr "? In 1 zona."
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ASK_IN"
+msgid "? In "
+msgstr "? In "
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_ASK_ZONES"
+msgid " zones."
+msgstr " zone."
+
+#: core/ui/ui_menus.c
+msgctxt "CHAN_TITLE_DELETE"
+msgid "Delete Channel"
+msgstr "Elimina Canale"
 
 #: core/ui/ui_menus.c
 msgctxt "CHAN_TITLE_TX_CONTACT"
@@ -4646,6 +4686,11 @@ msgstr "Scansione ferma qui"
 msgctxt "SCAN_TOAST_LISTS_USE_QDMR"
 msgid "Edit scan lists in qdmr"
 msgstr "Modifica liste scan in qdmr"
+
+#: core/ui/ui_menus.c core/ui/ui_scanlist.c
+msgctxt "HINT_1_3_PICK_BACK"
+msgid "1-3 pick  Back"
+msgstr "1-3 scegli  Indietro"
 
 #: core/ui/ui_menus.c
 msgctxt "LANG_VALUE_IN_USE"

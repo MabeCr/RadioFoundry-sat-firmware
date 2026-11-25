@@ -2429,5 +2429,14 @@
  "screen.scan_list_channels": "扫描列表中的信道",
  "screen.scan_list_add": "从任意区域向列表添加信道",
  "screen.scan_list_zone": "选择要从中添加的其他区域",
- "screen.scan_list_delete": "删除扫描列表"
+ "screen.scan_list_delete": "删除扫描列表",
+ "screen.scan_lists_vote": "扫描列表：带表决的列表",
+ "screen.scan_list_vote_options": "表决列表的选项：门限、余量、探测、发射",
+ "screen.scan_list_vote_threshold": "表决门限：足够强的信号",
+ "screen.home_vote": "表决时的主页：列表和选中的站点",
+ "screen.scan_list_link": "其扫描键启动表决列表的信道",
+ "screen.home_vote_link": "已关联信道上的主页：扫描键进行表决",
+ "screen.channel_menu": "信道列表中的信道操作：编辑、所在区域、分享、删除",
+ "screen.channel_delete": "删除信道：先确认",
+ "screen.zone_menu": "区域列表中的区域操作：信道、重命名、复制、分享、删除"
 }
