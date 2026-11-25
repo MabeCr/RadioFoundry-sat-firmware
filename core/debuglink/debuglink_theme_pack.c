@@ -7,13 +7,13 @@
 #include "radio/radio.h"
 #include "ui/theme_pack.h"
 
-#if CONFIG_THEME_PACKS
 static size_t reply_status(uint8_t *out, uint8_t value)
 {
 	out[0] = value;
 	return 1u;
 }
 
+#if CONFIG_THEME_PACKS
 static uint16_t get16(const uint8_t *p)
 {
 	return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
