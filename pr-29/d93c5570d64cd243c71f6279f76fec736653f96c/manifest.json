@@ -1,0 +1,46 @@
+{
+  "pr": 29,
+  "base_sha": "08a1b7cb59bfe49f7036ce6600a5e89473e5d895",
+  "head_sha": "d93c5570d64cd243c71f6279f76fec736653f96c",
+  "generated": "2026-11-23T20:02:01Z",
+  "counts": {
+    "changed": 2,
+    "added": 0,
+    "removed": 0,
+    "unchanged": 1173
+  },
+  "images": [
+    {
+      "geometry": "240x320",
+      "color": "color",
+      "image": "compare/240x320-1.png",
+      "rows": 1,
+      "screens": [
+        "scan_actions"
+      ]
+    },
+    {
+      "geometry": "240x320i10x5",
+      "color": "color",
+      "image": "compare/240x320i10x5-1.png",
+      "rows": 1,
+      "screens": [
+        "scan_actions"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "geometry": "240x320",
+      "screen": "scan_actions",
+      "status": "changed",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "scan_actions",
+      "status": "changed",
+      "image": "compare/240x320i10x5-1.png"
+    }
+  ]
+}

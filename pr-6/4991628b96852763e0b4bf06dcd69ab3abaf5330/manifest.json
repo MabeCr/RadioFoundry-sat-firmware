@@ -1,0 +1,868 @@
+{
+  "pr": 6,
+  "base_sha": "bf66d4871dd69313b9703ba2cc430a605c5a1d22",
+  "head_sha": "4991628b96852763e0b4bf06dcd69ab3abaf5330",
+  "generated": "2026-11-07T16:28:47Z",
+  "counts": {
+    "changed": 0,
+    "added": 108,
+    "removed": 0,
+    "unchanged": 857
+  },
+  "images": [
+    {
+      "geometry": "160x128",
+      "color": "color",
+      "image": "compare/160x128-1.png",
+      "rows": 4,
+      "screens": [
+        "channels__orange",
+        "channels__terminal_inverse",
+        "channels__orange_inverse",
+        "home_dmr__orange",
+        "home_dmr__terminal_inverse",
+        "home_dmr__orange_inverse",
+        "home_dual_rx_b__orange",
+        "home_dual_rx_b__terminal_inverse",
+        "home_dual_rx_b__orange_inverse",
+        "home_dual_two_rx__orange",
+        "home_dual_two_rx__terminal_inverse",
+        "home_dual_two_rx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "160x128",
+      "color": "color",
+      "image": "compare/160x128-2.png",
+      "rows": 4,
+      "screens": [
+        "home_plain__orange",
+        "home_plain__terminal_inverse",
+        "home_plain__orange_inverse",
+        "rx_group__orange",
+        "rx_group__terminal_inverse",
+        "rx_group__orange_inverse",
+        "satellites__orange",
+        "satellites__terminal_inverse",
+        "satellites__orange_inverse",
+        "settings_display__orange",
+        "settings_display__terminal_inverse",
+        "settings_display__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "160x128",
+      "color": "color",
+      "image": "compare/160x128-3.png",
+      "rows": 1,
+      "screens": [
+        "tx__orange",
+        "tx__terminal_inverse",
+        "tx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "160x120i5",
+      "color": "color",
+      "image": "compare/160x120i5-1.png",
+      "rows": 4,
+      "screens": [
+        "channels__orange",
+        "channels__terminal_inverse",
+        "channels__orange_inverse",
+        "home_dmr__orange",
+        "home_dmr__terminal_inverse",
+        "home_dmr__orange_inverse",
+        "home_dual_rx_b__orange",
+        "home_dual_rx_b__terminal_inverse",
+        "home_dual_rx_b__orange_inverse",
+        "home_dual_two_rx__orange",
+        "home_dual_two_rx__terminal_inverse",
+        "home_dual_two_rx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "160x120i5",
+      "color": "color",
+      "image": "compare/160x120i5-2.png",
+      "rows": 4,
+      "screens": [
+        "home_plain__orange",
+        "home_plain__terminal_inverse",
+        "home_plain__orange_inverse",
+        "rx_group__orange",
+        "rx_group__terminal_inverse",
+        "rx_group__orange_inverse",
+        "satellites__orange",
+        "satellites__terminal_inverse",
+        "satellites__orange_inverse",
+        "settings_display__orange",
+        "settings_display__terminal_inverse",
+        "settings_display__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "160x120i5",
+      "color": "color",
+      "image": "compare/160x120i5-3.png",
+      "rows": 1,
+      "screens": [
+        "tx__orange",
+        "tx__terminal_inverse",
+        "tx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320",
+      "color": "color",
+      "image": "compare/240x320-1.png",
+      "rows": 4,
+      "screens": [
+        "channels__orange",
+        "channels__terminal_inverse",
+        "channels__orange_inverse",
+        "home_dmr__orange",
+        "home_dmr__terminal_inverse",
+        "home_dmr__orange_inverse",
+        "home_dual_rx_b__orange",
+        "home_dual_rx_b__terminal_inverse",
+        "home_dual_rx_b__orange_inverse",
+        "home_dual_two_rx__orange",
+        "home_dual_two_rx__terminal_inverse",
+        "home_dual_two_rx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320",
+      "color": "color",
+      "image": "compare/240x320-2.png",
+      "rows": 4,
+      "screens": [
+        "home_plain__orange",
+        "home_plain__terminal_inverse",
+        "home_plain__orange_inverse",
+        "rx_group__orange",
+        "rx_group__terminal_inverse",
+        "rx_group__orange_inverse",
+        "satellites__orange",
+        "satellites__terminal_inverse",
+        "satellites__orange_inverse",
+        "settings_display__orange",
+        "settings_display__terminal_inverse",
+        "settings_display__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320",
+      "color": "color",
+      "image": "compare/240x320-3.png",
+      "rows": 1,
+      "screens": [
+        "tx__orange",
+        "tx__terminal_inverse",
+        "tx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320i10x5",
+      "color": "color",
+      "image": "compare/240x320i10x5-1.png",
+      "rows": 4,
+      "screens": [
+        "channels__orange",
+        "channels__terminal_inverse",
+        "channels__orange_inverse",
+        "home_dmr__orange",
+        "home_dmr__terminal_inverse",
+        "home_dmr__orange_inverse",
+        "home_dual_rx_b__orange",
+        "home_dual_rx_b__terminal_inverse",
+        "home_dual_rx_b__orange_inverse",
+        "home_dual_two_rx__orange",
+        "home_dual_two_rx__terminal_inverse",
+        "home_dual_two_rx__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320i10x5",
+      "color": "color",
+      "image": "compare/240x320i10x5-2.png",
+      "rows": 4,
+      "screens": [
+        "home_plain__orange",
+        "home_plain__terminal_inverse",
+        "home_plain__orange_inverse",
+        "rx_group__orange",
+        "rx_group__terminal_inverse",
+        "rx_group__orange_inverse",
+        "satellites__orange",
+        "satellites__terminal_inverse",
+        "satellites__orange_inverse",
+        "settings_display__orange",
+        "settings_display__terminal_inverse",
+        "settings_display__orange_inverse"
+      ]
+    },
+    {
+      "geometry": "240x320i10x5",
+      "color": "color",
+      "image": "compare/240x320i10x5-3.png",
+      "rows": 1,
+      "screens": [
+        "tx__orange",
+        "tx__terminal_inverse",
+        "tx__orange_inverse"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "geometry": "160x128",
+      "screen": "channels__orange",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "channels__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "channels__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dmr__orange",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dmr__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dmr__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_rx_b__orange",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_rx_b__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_rx_b__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_two_rx__orange",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_two_rx__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_dual_two_rx__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-1.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_plain__orange",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_plain__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "home_plain__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "rx_group__orange",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "rx_group__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "rx_group__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "satellites__orange",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "satellites__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "satellites__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "settings_display__orange",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "settings_display__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "settings_display__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-2.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "tx__orange",
+      "status": "added",
+      "image": "compare/160x128-3.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "tx__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x128-3.png"
+    },
+    {
+      "geometry": "160x128",
+      "screen": "tx__orange_inverse",
+      "status": "added",
+      "image": "compare/160x128-3.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "channels__orange",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "channels__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "channels__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dmr__orange",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dmr__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dmr__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_rx_b__orange",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_rx_b__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_rx_b__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_two_rx__orange",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_two_rx__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_dual_two_rx__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-1.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_plain__orange",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_plain__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "home_plain__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "rx_group__orange",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "rx_group__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "rx_group__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "satellites__orange",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "satellites__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "satellites__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "settings_display__orange",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "settings_display__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "settings_display__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-2.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "tx__orange",
+      "status": "added",
+      "image": "compare/160x120i5-3.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "tx__terminal_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-3.png"
+    },
+    {
+      "geometry": "160x120i5",
+      "screen": "tx__orange_inverse",
+      "status": "added",
+      "image": "compare/160x120i5-3.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "channels__orange",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "channels__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "channels__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dmr__orange",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dmr__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dmr__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_rx_b__orange",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_rx_b__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_rx_b__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_two_rx__orange",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_two_rx__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_dual_two_rx__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-1.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_plain__orange",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_plain__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "home_plain__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "rx_group__orange",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "rx_group__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "rx_group__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "satellites__orange",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "satellites__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "satellites__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "settings_display__orange",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "settings_display__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "settings_display__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-2.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "tx__orange",
+      "status": "added",
+      "image": "compare/240x320-3.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "tx__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320-3.png"
+    },
+    {
+      "geometry": "240x320",
+      "screen": "tx__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320-3.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "channels__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "channels__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "channels__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dmr__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dmr__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dmr__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_rx_b__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_rx_b__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_rx_b__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_two_rx__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_two_rx__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_dual_two_rx__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-1.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_plain__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_plain__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "home_plain__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "rx_group__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "rx_group__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "rx_group__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "satellites__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "satellites__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "satellites__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "settings_display__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "settings_display__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "settings_display__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-2.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "tx__orange",
+      "status": "added",
+      "image": "compare/240x320i10x5-3.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "tx__terminal_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-3.png"
+    },
+    {
+      "geometry": "240x320i10x5",
+      "screen": "tx__orange_inverse",
+      "status": "added",
+      "image": "compare/240x320i10x5-3.png"
+    }
+  ]
+}
