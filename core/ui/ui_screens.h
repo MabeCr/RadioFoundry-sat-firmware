@@ -93,6 +93,13 @@ typedef struct {
 #endif
 
 // What the screens show besides the radio view; owned by the UI (ui_app.c)
+// radio_view_t.scan of a vote list (radio/scan.h SCAN_VOTE): the VOTE pill and Home (docs/spec/vote-scan.md 7)
+#define UI_SCAN_VOTE	5
+#if CONFIG_VOTE_SCAN
+// The vote list started last (ui_scanlist.c), for Home while one runs ("" none)
+const char *ui_scan_list_voting(void);
+#endif
+
 typedef struct {
 	uint32_t now_ms;
 	uint8_t battery_pct;
@@ -111,6 +118,9 @@ typedef struct {
 	uint8_t diag_first;	// first board line on the diagnostics page
 	bool locked;		// keys locked (long QUICK)
 	bool scanning;
+#if CONFIG_VOTE_SCAN
+	bool vote_link;		// the Scan key votes on this channel (a vote list is linked to it): Home's hint says so
+#endif
 	uint8_t usb_net;	// UI_USB_NET_*: the status strip's USB network word and link arrows
 	uint8_t gps;		// UI_GPS_*: the status strip's GPS icon
 	bool hints;		// the hint row is shown (Settings > Display)

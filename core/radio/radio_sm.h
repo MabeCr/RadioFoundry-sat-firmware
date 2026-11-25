@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "radio/radio.h"
 #include "radio/scan.h"
+#include "radio/vote.h"
 #include "radio/battery.h"
 #include "radio/morse.h"
 #include "radio/radio_cwid.h"
@@ -376,6 +377,14 @@ typedef struct {
 	uint8_t list_at;
 	uint16_t list_home_zone;
 	uint16_t list_home_pos;
+#endif
+#if CONFIG_VOTE_SCAN
+	// SCAN_VOTE: the vote engine, each member's stop in the list (list_ref index), and the list's transmit choice
+	vote_t vote;
+	uint8_t vote_k[VOTE_MAX];
+	bool vote_fixed;		// PTT on member vote_tx, else on the voted one
+	uint8_t vote_tx;
+	uint32_t vote_pub_ms;		// the view's readings last published
 #endif
 	uint8_t dual_sel;		// ... the selected one (PTT)
 	uint8_t dual_at;		// ... the one the receiver is on

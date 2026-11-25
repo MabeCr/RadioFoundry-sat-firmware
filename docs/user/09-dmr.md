@@ -363,7 +363,7 @@ talker alias.
 ## Talker alias
 
 The receive screen shows the talker alias other radios send, as it arrives. **Settings > Talk & listen > Show talker
-alias** turns this off. The radio sends your callsign from the codeplug (8 characters) as your own alias when the
+alias** turns this off (and the caller names on P25 and NXDN calls with it). The radio sends your callsign from the codeplug (8 characters) as your own alias when the
 channel's talker alias setting in the codeplug asks for it.
 
 ## Roaming

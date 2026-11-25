@@ -619,6 +619,13 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 			 && !s->dual.on
 #endif
 			 ;
+	// A vote list says VOTE, in the private-call color, so it reads as its own state beside SCAN's amber
+	// (docs/spec/vote-scan.md 7)
+#if CONFIG_VOTE_SCAN
+	bool vote_pill = scan_pill && v->scan == UI_SCAN_VOTE;
+#else
+	bool vote_pill = false;
+#endif
 	switch (st) {
 	case RS_RX: word = "RX"; pbg = ui_col.rx; pfg = ui_col.pill_dark_fg; break;
 	case RS_TX: word = v->aprs_tx ? "TX APRS" : "TX"; pbg = ui_col.tx; break;
@@ -629,6 +636,13 @@ static int draw_top_as(const radio_view_t *v, radio_state_t st, const ui_state_t
 		word = TR(TOP_CHIP_SCAN, "SCAN");
 		pbg = ui_col.warn;
 		pfg = ui_col.pill_dark_fg;
+	}
+	if (vote_pill) {
+		// Its word black on a bright color (cyan, teal), white on a deep one (the light themes' blue)
+		word = TR(TOP_STATE_VOTE, "VOTE");
+		pbg = ui_col.priv;
+		unsigned luma = 2u * ((pbg >> 11) & 0x1Fu) + 2u * ((pbg >> 5) & 0x3Fu) + (pbg & 0x1Fu) * 1u;
+		pfg = luma >= 100u ? ui_col.pill_dark_fg : ui_col.pill_fg;
 	}
 	if (gfx_bpp() == 1)
 		pfg = ui_col.pill_fg;
@@ -1272,6 +1286,13 @@ void ui_draw_splash(const char *board_name, const char *version, const char *lin
 
 // --- Home ---
 
+#if CONFIG_VOTE_SCAN
+static bool home_voting(const radio_view_t *v)
+{
+	return v->scan == UI_SCAN_VOTE && !v->vfo;
+}
+#endif
+
 // The frequency being typed on Home: MHz digits, then decimals, with blanks for the next digits.
 static void home_entry_text(const ui_state_t *s, char *buf, size_t len)
 {
@@ -1318,8 +1339,19 @@ static void draw_place(const radio_view_t *v, const ui_state_t *s)
 			sb_chr(&b, '/');
 			sb_u32(&b, v->zone_size, 1);
 		}
-		int rw = gfx_text_width(L->small, right);
 		const char *left = v->vfo ? "VFO" : v->zone_name;
+#if CONFIG_VOTE_SCAN
+		// A vote list: its name where the zone goes, and which site is voted of how many (docs/spec/vote-scan.md 7)
+		if (home_voting(v)) {
+			if (ui_scan_list_voting()[0])
+				left = ui_scan_list_voting();
+			sb_init(&b, right, sizeof right);
+			sb_u32(&b, v->vote.voted + 1u, 1);
+			sb_chr(&b, '/');
+			sb_u32(&b, v->vote.n, 1);
+		}
+#endif
+		int rw = gfx_text_width(L->small, right);
 		if (v->vfo && v->ch.mode == RADIO_MODE_DMR && !v->ch.rx_only && v->ch.tx_hz != v->ch.rx_hz) {
 			// A split VFO on DMR: the talk row names the target, so the TX frequency goes here (FM's talk row
 			// already shows it). A frequency is never cut short: the step gives way, then "VFO"
@@ -1358,20 +1390,30 @@ static void draw_place(const radio_view_t *v, const ui_state_t *s)
 	}
 
 	// Channel number (medium, dim) and name, baselines aligned. The name uses the largest font it fits in; only a name
-	// too long even for the small font is shortened from the middle
-	sb_init(&b, buf, sizeof buf);
-	sb_u32(&b, v->channel_number, 1);
-	int x = gfx_text(L->medium, 0, base - L->medium->ascent, buf, gfx_bpp() == 1 ? ui_col.dim : ui_col.chnum) +
-		L->medium->w / 2;
+	// too long even for the small font is shortened from the middle. A vote list shows the voted site's name alone: the
+	// tuned channel changes under a peek or a sweep, the voted site doesn't
+	const char *name = v->ch.name;
+	int x = 0;
+#if CONFIG_VOTE_SCAN
+	if (home_voting(v) && v->vote.voted_name[0])
+		name = v->vote.voted_name;
+	else
+#endif
+	{
+		sb_init(&b, buf, sizeof buf);
+		sb_u32(&b, v->channel_number, 1);
+		x = gfx_text(L->medium, 0, base - L->medium->ascent, buf, gfx_bpp() == 1 ? ui_col.dim : ui_col.chnum) +
+			L->medium->w / 2;
+	}
 	int avail = w - x;
 	if (v->temporary)
 		avail -= L->medium->w;
 	const font_t *nf = L->large;
-	if (gfx_text_width(nf, v->ch.name) > avail)
+	if (gfx_text_width(nf, name) > avail)
 		nf = L->medium;
-	if (gfx_text_width(nf, v->ch.name) > avail)
+	if (gfx_text_width(nf, name) > avail)
 		nf = L->small;
-	gfx_text_fit(nf, v->ch.name, avail, fit, sizeof fit);
+	gfx_text_fit(nf, name, avail, fit, sizeof fit);
 	x = gfx_text(nf, x, nf == L->large ? y : base - nf->ascent, fit, ui_col.fg);
 	if (v->temporary)
 		gfx_text(L->medium, x, base - L->medium->ascent, GLYPH_DOT, ui_col.warn);
@@ -2433,7 +2475,7 @@ static bool air_call(const radio_view_t *v, air_call_t *c)
 // and a caller from the ID database ("callsign first-name more ..."), the callsign takes the first line with the
 // destination, and the rest of the text the lines below (words wrap, the last line ends in an ellipsis); with one
 // line the whole text is cut short beside the destination, then dropped if under four characters
-static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
+static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows, bool names)
 {
 	char buf[64], fit[48];
 	sbuf_t b;
@@ -2445,7 +2487,8 @@ static void air_call_line(const air_call_t *c, const font_t *f, int y, int rows)
 		return;
 	}
 	bool db = false;
-	const char *text = c->src != 0 ? ui_svc_caller_text(c->src, &db) : "";
+	// names: Show talker alias (Settings > Talk & listen), the same choice as DMR's received aliases
+	const char *text = c->src != 0 && names ? ui_svc_caller_text(c->src, &db) : "";
 	const char *rest = "";
 	char head[24], tail[40];
 	sb_init(&b, head, sizeof head);
@@ -2541,7 +2584,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 		air_call_t ac;
 		bool air_rx = air_call(v, &ac);
 		if (!two && air_rx) {
-			air_call_line(&ac, sm, y, 1);	// one line: who calls says more than the meter
+			air_call_line(&ac, sm, y, 1, s->alias_show);	// one line: who calls says more than the meter
 			break;
 		}
 #endif
@@ -2554,7 +2597,7 @@ static void draw_activity(const radio_view_t *v, const ui_state_t *s)
 			break;
 #if CONFIG_AIR
 		if (air_rx) {
-			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h);
+			air_call_line(&ac, sm, y2, (L->activity_h - big->h) / sm->h, s->alias_show);
 			break;
 		}
 #endif
@@ -2674,8 +2717,17 @@ static const char *home_hint(const radio_view_t *v, const ui_state_t *s)
 	if (s->locked)
 		return TR(LOCK_HINT_HOLD_STAR, TEXT_ALT_OPEN "Keys locked: hold * to unlock"
 			TEXT_ALT_NEXT "Locked: hold * to unlock" TEXT_ALT_CLOSE);
-	if (s->scanning)
+	if (s->scanning) {
+#if CONFIG_VOTE_SCAN
+		if (v->scan == UI_SCAN_VOTE)
+			return TR(HOME_HINT_VOTING, "Back stop vote");	// a vote list has no channel to skip
+#endif
 		return TR(HOME_HINT_SCANNING, "# skip  Back stop scan");
+	}
+#if CONFIG_VOTE_SCAN
+	if (s->vote_link && !v->vfo)
+		return TR(HOME_HINT_VOTE_LINK, "Scan: vote");
+#endif
 	if (board_hwopt_pending() != NULL)
 		return hwopt_action();
 #if CONFIG_DMR

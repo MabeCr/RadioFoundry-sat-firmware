@@ -218,12 +218,86 @@ static void test_power_cut(void)
 	sim_flash_free();
 }
 
+// Vote options (docs/spec/vote-scan.md 3): 0 on a new list, set on their own, kept when the list is edited and across a
+// reboot, gone with the list; the codec puts and takes them; unknown flag bits dropped; the defaults and their clamps
+static void test_vote(void)
+{
+	scan_list_t r;
+	scan_list_vote_t v;
+	sim_flash_create(FLASH_SIZE, &map);
+	boot();
+	scan_list_t a = make("MVP25", 1, 8), b = make("OTHER", 40, 2);
+	CHECK(scan_list_add(&a) == 0 && scan_list_add(&b) == 1);
+	CHECK(scan_list_read_vote(0, &v) && v.flags == 0 && v.threshold_dbm == 0 && v.margin_db == 0 && v.tx_member == 0);
+	CHECK(scan_vote_threshold_of(&v) == -90 && scan_vote_margin_of(&v) == 6);
+	CHECK(!scan_list_read_vote(5, &v) && v.flags == 0);	// a free slot: a plain list's zeros
+
+	scan_list_vote_t w = { .flags = SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX | 0x80u, .threshold_dbm = -85, .margin_db = 4,
+			       .tx_member = 1 };
+	CHECK(scan_list_write_vote(0, &w));
+	CHECK(scan_list_read_vote(0, &v) && v.flags == (SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX) && v.threshold_dbm == -85 &&
+	      v.margin_db == 4 && v.tx_member == 1);
+	CHECK(scan_list_read(0, &r) && same(&r, &a));				// the list itself unchanged
+	CHECK(scan_list_read_vote(1, &v) && v.flags == 0);			// the other list untouched
+	// An edit of the list (a channel added, a rename) keeps them
+	a.channels[a.count++] = 99;
+	snprintf(a.name, sizeof a.name, "MV LINK");
+	CHECK(scan_list_write(0, &a) && scan_list_read(0, &r) && same(&r, &a));
+	CHECK(scan_list_read_vote(0, &v) && v.flags == (SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX) && v.threshold_dbm == -85);
+	boot();
+	CHECK(scan_list_read_vote(0, &v) && v.flags == (SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX) && v.margin_db == 4);
+	// Deleted, the slot's next list starts plain
+	CHECK(scan_list_delete(0) && !scan_list_write_vote(0, &w) && scan_list_add(&b) == 0);
+	CHECK(scan_list_read_vote(0, &v) && v.flags == 0);
+	CHECK(sim_flash_violations() == 0);
+	sim_flash_free();
+
+	// The linked channel: one list to a channel, kept with the list, found by channel, and not by a list's own slot
+	sim_flash_create(FLASH_SIZE, &map);
+	boot();
+	scan_list_t c = make("SITES", 5, 3), d = make("OTHER", 40, 2);
+	CHECK(scan_list_add(&c) == 0 && scan_list_add(&d) == 1);
+	CHECK(scan_list_read_vote(0, &v) && v.link == 0 && scan_list_find_link(3, -1) == -1 && scan_list_find_link(0, -1) == -1);
+	scan_list_vote_t l0 = { .flags = SCAN_VOTE_ON, .link = 3 }, l1 = { .flags = SCAN_VOTE_ON, .link = 3 };
+	CHECK(scan_list_write_vote(0, &l0) && scan_list_find_link(3, -1) == 0 && scan_list_find_link(3, 0) == -1);
+	CHECK(!scan_list_write_vote(1, &l1));					// channel 3 is the first list's
+	l1.link = 4;
+	CHECK(scan_list_write_vote(1, &l1) && scan_list_find_link(4, -1) == 1);
+	CHECK(scan_list_write_vote(0, &l0));					// its own channel again is not a clash
+	c.channels[c.count++] = 77;
+	CHECK(scan_list_write(0, &c) && scan_list_read_vote(0, &v) && v.link == 3);	// an edit keeps it
+	boot();
+	CHECK(scan_list_read_vote(0, &v) && v.link == 3 && scan_list_find_link(3, -1) == 0);
+	l0.link = 0;
+	CHECK(scan_list_write_vote(0, &l0) && scan_list_find_link(3, -1) == -1);	// unlinked: the channel is free
+	CHECK(scan_list_delete(1) && scan_list_find_link(4, -1) == -1);
+	CHECK(sim_flash_violations() == 0);
+	sim_flash_free();
+
+	// The codec and the clamps
+	uint8_t rec[SCAN_LIST_RECORD];
+	CHECK(scan_list_encode(&b, rec));
+	scan_list_put_vote(rec, &w);
+	CHECK(scan_list_decode(rec, &r) && same(&r, &b));			// the CRC was made again
+	scan_list_get_vote(rec, &v);
+	CHECK(v.flags == (SCAN_VOTE_ON | SCAN_VOTE_FIXED_TX) && v.threshold_dbm == -85 && v.tx_member == 1 && v.link == 0);
+	w.link = 0x1234;
+	scan_list_put_vote(rec, &w);
+	scan_list_get_vote(rec, &v);
+	CHECK(v.link == 0x1234 && rec[188] == 0x34 && rec[189] == 0x12 && rec[187] == 0);
+	scan_list_vote_t x = { .threshold_dbm = -127, .margin_db = 200 };
+	CHECK(scan_vote_threshold_of(&x) == SCAN_VOTE_THRESHOLD_MIN && scan_vote_margin_of(&x) == SCAN_VOTE_MARGIN_MAX);
+	x.threshold_dbm = -20;
+	CHECK(scan_vote_threshold_of(&x) == SCAN_VOTE_THRESHOLD_MAX);
+}
+
 int main(void)
 {
 	test_codec();
 	test_store();
 	test_foreign();
 	test_power_cut();
+	test_vote();
 	printf("scanListTest: %s\n", failures ? "FAILED" : "passed");
 	return failures != 0;
 }

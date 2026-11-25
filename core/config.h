@@ -236,6 +236,10 @@
 #ifndef CONFIG_SCAN_LIST
 #define CONFIG_SCAN_LIST		0
 #endif
+// Vote scan (core/radio/vote.c, docs/spec/vote-scan.md): a scan list marked Vote. Needs CONFIG_SCAN_LIST and follows it
+#ifndef CONFIG_VOTE_SCAN
+#define CONFIG_VOTE_SCAN		CONFIG_SCAN_LIST
+#endif
 #ifndef CONFIG_KEY_ASSIGN
 #define CONFIG_KEY_ASSIGN		1
 #endif

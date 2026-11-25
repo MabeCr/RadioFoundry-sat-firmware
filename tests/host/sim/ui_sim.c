@@ -49,6 +49,7 @@
 //   usbnet:off|on|up    USB a serial port, a network adapter, or a network adapter the computer has brought up
 //   timeout             the TX timeout cuts the transmission off while PTT is still held (shows the timeout deny)
 //   pttlocked:on|off    turns Settings > Key lock > PTT when locked on or off
+//   aliasshow:on|off    turns Settings > Talk & listen > Show talker alias on or off (P25 caller names too)
 //   autolock:<s>        Settings > Keys > Auto lock: s seconds, 0 off
 //   battery:<pct>       the battery reads pct; offfailed: auto power off couldn't switch off
 //   foreign             the codeplug is another firmware's: a channel write asks first (codeplug-foreign)
@@ -2111,12 +2112,17 @@ bool ui_svc_scan_skip(void) { radio_req_channel_step(1); return true; }
 
 #if CONFIG_SCAN_LIST
 // Scan lists: 16 slots in RAM, as the store keeps them, off until a flow says scanlists:on (the other flows' Tools > Scan
-// is the plain scan toggle then); a write is done at once. scanlists:seed adds "Mix" (a channel of each zone) and "Empty"
+// is the plain scan toggle then); a write is done at once. scanlists:seed adds "Mix" (a channel of each zone) and "Empty";
+// scanlists:sites and scanlists:vote add a third (slist_seed_sites); scanlists:linked also links it to channel 3 (not a
+// member), the channel Home starts on
 #define SIM_SLISTS	16
 static struct {
 	bool on;
 	bool used[SIM_SLISTS];
 	scan_list_t l[SIM_SLISTS];
+#if CONFIG_VOTE_SCAN
+	scan_list_vote_t v[SIM_SLISTS];
+#endif
 	uint32_t gen;
 	int started;		// the slot scanned last, -1 none
 } slist_sim;
@@ -2163,14 +2169,60 @@ bool ui_svc_scanlist_delete(uint16_t slot)
 	if (slot >= SIM_SLISTS || !slist_sim.used[slot])
 		return false;
 	slist_sim.used[slot] = false;
+#if CONFIG_VOTE_SCAN
+	memset(&slist_sim.v[slot], 0, sizeof slist_sim.v[slot]);
+#endif
 	slist_sim.gen++;
 	return true;
 }
+
+#if CONFIG_VOTE_SCAN
+bool ui_svc_scanlist_get_vote(uint16_t slot, scan_list_vote_t *out)
+{
+	memset(out, 0, sizeof *out);
+	if (slot >= SIM_SLISTS || !slist_sim.used[slot])
+		return false;
+	*out = slist_sim.v[slot];
+	return true;
+}
+
+int ui_svc_scanlist_find_link(uint16_t channel, int skip_slot)
+{
+	for (int i = 0; channel != 0 && i < SIM_SLISTS; i++)
+		if (slist_sim.used[i] && i != skip_slot && slist_sim.v[i].link == channel)
+			return i;
+	return -1;
+}
+
+bool ui_svc_scanlist_put_vote(uint16_t slot, const scan_list_vote_t *v)
+{
+	// The store's own rule (scan_list_write_vote): one list to a channel
+	if (slot >= SIM_SLISTS || !slist_sim.used[slot] || ui_svc_scanlist_find_link(v->link, slot) >= 0)
+		return false;
+	slist_sim.v[slot] = *v;
+	slist_sim.gen++;
+	return true;
+}
+#endif
 
 bool ui_svc_scanlist_start(uint16_t slot)
 {
 	slist_sim.started = slot;
 	view.scan = 4;	// scan_kind_t: a scan list
+#if CONFIG_VOTE_SCAN
+	if (slot < SIM_SLISTS && (slist_sim.v[slot].flags & SCAN_VOTE_ON)) {
+		// A vote list, as the radio core runs it: on its second member, which the vote found strongest
+		const scan_list_t *l = &slist_sim.l[slot];
+		view.scan = 5;
+		memset(&view.vote, 0, sizeof view.vote);
+		view.vote.phase = 4;	// call
+		view.vote.n = (uint8_t)l->count;
+		view.vote.voted = view.vote.at = 1;
+		channel_t ch;
+		if (l->count > 1 && codeplug_channel(l->channels[1], &ch))
+			memcpy(view.vote.voted_name, ch.name, sizeof view.vote.voted_name);
+	}
+#endif
 	changed();
 	return true;
 }
@@ -2189,6 +2241,35 @@ static void slist_seed(void)
 	strcpy(l.name, "Empty");
 	ui_svc_scanlist_put(-1, &l);
 }
+
+#if CONFIG_VOTE_SCAN
+// scanlists:sites: the seed, and "Sites" (slot 2), three DMR channels a vote list can be made of; scanlists:vote: the
+// same with Vote on
+static void slist_seed_sites(bool vote, uint16_t link)
+{
+	scan_list_t l;
+	slist_seed();
+	memset(&l, 0, sizeof l);
+	strcpy(l.name, "Sites");
+	l.count = 3;
+	l.channels[0] = 5;
+	l.channels[1] = 6;
+	l.channels[2] = 7;
+	ui_svc_scanlist_put(-1, &l);
+	if (vote)
+		slist_sim.v[2].flags = SCAN_VOTE_ON;
+	slist_sim.v[2].link = link;
+	if (link != 0) {	// a second vote list (slot 3), linked to nothing: the one-list-to-a-channel rule
+		memset(&l, 0, sizeof l);
+		strcpy(l.name, "More");
+		l.count = 2;
+		l.channels[0] = 6;
+		l.channels[1] = 7;
+		ui_svc_scanlist_put(-1, &l);
+		slist_sim.v[3].flags = SCAN_VOTE_ON;
+	}
+}
+#endif
 #endif
 // Dual watch as the radio core does it with a receiver per channel: the view stays on the selected channel (the
 // keys act on it); `tune:a` / `tune:b` move it to a channel, as the alternating receiver does when a call holds it
@@ -3213,6 +3294,7 @@ static const struct { const char *name; uint8_t action; } keys[] = {
 	{ "skipkey", ACT_SCAN_SKIP },
 	{ "monkey", ACT_MONITOR_TOGGLE },
 	{ "flipkey", ACT_FLIP_SCREEN },		// a side key set to Flip screen
+	{ "listskey", ACT_SCAN_LISTS },		// a side key set to Scan lists
 	{ "volkey", ACT_VOLUME },
 	{ "0", ACT_DIGIT_0 }, { "1", ACT_DIGIT_1 }, { "2", ACT_DIGIT_2 }, { "3", ACT_DIGIT_3 }, { "4", ACT_DIGIT_4 },
 	{ "5", ACT_DIGIT_5 }, { "6", ACT_DIGIT_6 }, { "7", ACT_DIGIT_7 }, { "8", ACT_DIGIT_8 }, { "9", ACT_DIGIT_9 },
@@ -3222,7 +3304,8 @@ static bool on_map(uint8_t action, bool lng)
 {
 	if ((action >= ACT_POWER && action <= ACT_VOLUME) || action == ACT_VFO_TOGGLE || action == ACT_DUAL_WATCH ||
 	    action == ACT_AB || action == ACT_TALK_TARGET || action == ACT_TALK_LABEL ||
-	    action == ACT_SCAN_SKIP || action == ACT_MONITOR_TOGGLE || action == ACT_FLIP_SCREEN)
+	    action == ACT_SCAN_SKIP || action == ACT_MONITOR_TOGGLE || action == ACT_FLIP_SCREEN ||
+	    action == ACT_SCAN_LISTS)
 		// any side key can be set to send these; the few-key map has none, but a radio with side keys and no QUICK key
 		// is the case the key lock needs on it
 		return board.side_key_count != 0 || cur_map == SIM_MAP_F;
@@ -3376,6 +3459,14 @@ static bool check(const char *kv, char *err, size_t len)
 				snprintf(got + strlen(got), sizeof got - strlen(got), "%s%u", c ? "," : "", l->channels[c]);
 		}
 	} else if (strcmp(key, "listscan") == 0) snprintf(got, sizeof got, "%d", view.scan == 4 ? slist_sim.started : -1);
+#if CONFIG_VOTE_SCAN
+	else if (strcmp(key, "votescan") == 0) snprintf(got, sizeof got, "%d", view.scan == 5 ? slist_sim.started : -1);
+	else if (strncmp(key, "vote", 4) == 0 && key[4] >= '0' && key[4] <= '9') {	// vote<slot>=flags:threshold:margin:tx
+		unsigned k = (unsigned)atoi(key + 4);
+		const scan_list_vote_t *v = &slist_sim.v[k < SIM_SLISTS ? k : 0];
+		snprintf(got, sizeof got, "%u:%d:%u:%u:%u", v->flags, v->threshold_dbm, v->margin_db, v->tx_member, v->link);
+	}
+#endif
 #endif
 	else if (strcmp(key, "scanning") == 0) snprintf(got, sizeof got, "%u", view.scan != 0 && view.scan != 3);
 #if CONFIG_DUAL_WATCH
@@ -3598,6 +3689,17 @@ static bool run_token(char *t, char *err, size_t len)
 		}
 		ui_svc_setting_set(UI_SET_HINTS, on);
 		ui_apply_setting(UI_SET_HINTS, on);
+		advance(200);
+		return true;
+	}
+	if (strcmp(t, "aliasshow") == 0 && arg != NULL) {	// Settings > Talk & listen > Show talker alias
+		bool on = strcmp(arg, "on") == 0;
+		if (!on && strcmp(arg, "off") != 0) {
+			snprintf(err, len, "aliasshow: expected on or off, got %s", arg);
+			return false;
+		}
+		ui_svc_setting_set(UI_SET_ALIAS_SHOW, on);
+		ui_apply_setting(UI_SET_ALIAS_SHOW, on);
 		advance(200);
 		return true;
 	}
@@ -4088,6 +4190,10 @@ static bool run_token(char *t, char *err, size_t len)
 		slist_sim.on = true;
 		if (strcmp(arg, "seed") == 0)
 			slist_seed();
+#if CONFIG_VOTE_SCAN
+		if (strcmp(arg, "sites") == 0 || strcmp(arg, "vote") == 0 || strcmp(arg, "linked") == 0)
+			slist_seed_sites(arg[0] != 's', arg[0] == 'l' ? 3 : 0);
+#endif
 		return true;
 	}
 #endif

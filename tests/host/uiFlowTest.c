@@ -154,6 +154,7 @@ static const flow_t flows[] = {
 	{ "P25 home: talk group and NAC", "dlmode:p25", "", "screen=home shows=TG_1 shows=NAC_293", 0, false },
 	{ "P25 home: the caller", "dlmode:p25", "p25rx:3101234,7", "screen=home shows=ID_3101234 shows=TG_7", 0, false },
 	{ "P25 home: the caller's name", "dlmode:p25", "p25rx:3101234,7,g,KF8ENC_Doug_Lambert", "screen=home shows=KF8ENC shows=TG_7 hides=ID_3101234", 0, false },
+	{ "P25 home: Show talker alias off shows the ID, not the name", "dlmode:p25 aliasshow:off", "p25rx:3101234,7,g,KF8ENC_Doug_Lambert", "screen=home shows=ID_3101234 shows=TG_7 hides=KF8ENC", 0, false },
 	{ "P25 home: a long database text", "dlmode:p25", "p25rx:3101234,9371,g,KF8ENC_Douglas_Lambertson_Dayton_OH_United_States", "screen=home shows=KF8ENC shows=TG_9371", 0, false },
 	{ "P25 home: a unit call", "dlmode:p25", "p25rx:3101234,3105555,u", "shows=Private_to_3105555", 0, false },
 	{ "P25 home: encrypted", "dlmode:p25", "p25rx:3101234,7,e", "shows=Encrypted:_not_played hides=ID_3101234", 0,
@@ -362,6 +363,41 @@ static const flow_t flows[] = {
 	{ "11 scan lists: delete asks first", "scanlists:seed", "ok 6 1 down ctx 3", "screen=scan-list-delete lists=2", 6, false },
 	{ "11 scan lists: delete", "scanlists:seed", "ok 6 1 down ctx 3 down ok", "lists=1 list0=- toast=Deleted_Mix screen=scan-lists", 8, false },
 	{ "11 scan lists: no, keep it", "scanlists:seed", "ok 6 1 down ctx 3 ok", "lists=2 screen=scan-list", 7, false },
+#if CONFIG_VOTE_SCAN
+	// Vote lists (docs/spec/vote-scan.md 2, 3, 7): slot 2 "Sites" holds three DMR channels; vote2=flags:threshold:margin:tx
+	{ "11 vote: off at first", "scanlists:sites", "ok 6 1 down down down ctx", "screen=scan-list vote2=0:0:0:0:0", 7, false },
+	{ "11 vote: on", "scanlists:sites", "ok 6 1 down down down ctx 4", "vote2=1:0:0:0:0 toast=Vote_on:_Sites screen=scan-list", 8, false },
+	{ "11 vote: off again", "scanlists:vote", "ok 6 1 down down down ctx 4", "vote2=0:0:0:0:0 toast=Vote_off", 8, false },
+	{ "11 vote: not a list of two modes", "scanlists:sites", "ok 6 1 down ctx 4", "vote0=0:0:0:0:0 toast=Vote:_one_mode_only", 6, false },
+	{ "11 vote: not a list of no channels", "scanlists:sites", "ok 6 1 down down ctx 4", "vote1=0:0:0:0:0 toast=Add_two_channels_first", 7, false },
+	{ "11 vote: threshold", "scanlists:vote", "ok 6 1 down down down ctx 5 up ok", "vote2=1:-85:0:0:0 screen=scan-list", 10, false },
+	{ "11 vote: margin", "scanlists:vote", "ok 6 1 down down down ctx 6 down ok", "vote2=1:0:8:0:0 screen=scan-list", 10, false },
+	{ "11 vote: no peeks", "scanlists:vote", "ok 6 1 down down down ctx 7", "vote2=3:0:0:0:0 screen=scan-list", 8, false },
+	{ "11 vote: transmit on one site", "scanlists:vote", "ok 6 1 down down down ctx 8 down down ok", "vote2=5:0:0:1:0 screen=scan-list", 11, false },
+	{ "11 vote: transmit on the voted site again", "scanlists:vote ok 6 1 down down down ctx 8 down down ok", "8 up up ok",
+	  "vote2=1:0:0:0:0 screen=scan-list", 4, false },
+	{ "11 vote: the value picker opens", "scanlists:vote", "ok 6 1 down down down ctx 5", "screen=scan-list-vote", 8, false },
+	{ "11 vote: only its own mode joins", "scanlists:vote", "ok 6 1 down down down ctx 1 ok ok",
+	  "list2=Sites:5,6,7 toast=Vote:_one_mode_only screen=scan-list-add", 10, false },
+	{ "11 vote: a channel of its mode joins", "scanlists:vote", "ok 6 1 down down down ctx 1 ok down down ok",
+	  "list2=Sites:5,6,7,3 screen=scan-list-add", 12, false },
+	{ "11 vote: OK starts it", "scanlists:vote", "ok 6 1 down down down ok", "votescan=2 scanning=1 screen=home toast=Voting_Sites", 7, false },
+	{ "11 vote: Back stops it", "scanlists:vote ok 6 1 down down down ok", "back", "scanning=0 votescan=-1 toast=Vote_stopped", 1, false },
+	// The Scan key channel (docs/spec/vote-scan.md 2): channel 3, where Home starts, is "Sites"'s; vote2 ends with the link
+	{ "11 link: the picker opens", "scanlists:vote", "ok 6 1 down down down ctx 9", "screen=scan-list-link", 8, false },
+	{ "11 link: pick a channel", "scanlists:vote", "ok 6 1 down down down ctx 9 3 ok", "vote2=1:0:0:0:3 screen=scan-list toast=Scan_key:", 10, false },
+	{ "11 link: OK on the linked channel takes it off", "scanlists:linked ok 6 1 down down down ctx 9", "3 ok",
+	  "vote2=1:0:0:0:0 screen=scan-list toast=Scan_key_link_removed", 2, false },
+	{ "11 link: the Scan key votes on it", "scanlists:linked", "scankey", "votescan=2 scanning=1 toast=Voting_Sites", 1, false },
+	{ "11 link: long press too", "scanlists:linked", "long:scankey", "votescan=2 scanning=1", 1, false },
+	{ "11 link: the key stops it", "scanlists:linked scankey", "scankey", "scanning=0 votescan=-1", 1, false },
+	{ "11 link: no link, the zone scan", "scanlists:vote", "scankey", "listscan=-1 votescan=-1 scanning=1", 1, false },
+	{ "11 link: Vote off, the zone scan", "scanlists:linked ok 6 1 down down down ctx 4 back back back", "scankey",
+	  "votescan=-1 scanning=1", 1, false },
+	{ "11 link: one list to a channel", "scanlists:linked", "ok 6 1 down down down down ctx 9 3 ok",
+	  "vote3=1:0:0:0:0 toast=Used_by_Sites screen=scan-list-link", 11, false },
+
+#endif
 #endif
 	// Dual watch (docs/ux/dual-watch.md): on in a few presses, PTT on the selected channel, the other one press away
 	{ "11 dual watch: start, B the next channel", "", "quick 7", "dual=1 sel=A pos=3 bpos=4 screen=home", 2, false },
@@ -1523,10 +1559,17 @@ static const flow_t flows_k[] = {
 	  "set47=17 shows=VFO/Channel", 1, false },
 	{ "K top key hold: call back last", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=12 shows=Call_back",
 	  1, false },
-	{ "K top key hold: Flip screen is the last", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
+	{ "K top key hold: Flip screen", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
 	  "set47=22 shows=Flip_screen", 1, false },
+#if CONFIG_SCAN_LIST && CONFIG_CHANNEL_EDIT
+	{ "K top key hold: Scan lists is the last", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
+	  "set47=23 shows=Scan_lists", 1, false },
+	{ "K top key hold wraps to default", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=0", 1,
+	  false },
+#else
 	{ "K top key hold wraps to default", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok", "set47=0", 1,
 	  false },
+#endif
 	{ "K top key hold: TG name / number after call back", "ok 7 8 up ok ok ok ok ok ok ok ok ok ok ok ok ok ok", "ok",
 	  "set47=19 shows=TG_name", 1, false },
 	{ "K a key set to power", "", "powerkey", "power=5", 1, false },
@@ -1540,6 +1583,14 @@ static const flow_t flows_k[] = {
 	  false },
 	{ "K a key set to scan skip, long, scanning", "scankey", "long:skipkey",
 	  "scanning=1 toast=Skipped_until_the_scan_stops", 1, false },
+	// Scan lists (KEYFN_SCAN_LISTS): the lists to pick from, on a press or a long press, from any screen
+#if CONFIG_SCAN_LIST
+	{ "K a key set to scan lists", "scanlists:seed", "listskey", "screen=scan-lists scanning=0", 1, false },
+	{ "K a key set to scan lists, long", "scanlists:seed", "long:listskey", "screen=scan-lists", 1, false },
+	{ "K a key set to scan lists, from a menu", "scanlists:seed ok 7", "listskey", "screen=scan-lists", 1, false },
+	{ "K a key set to scan lists, scanning", "scanlists:seed scankey", "listskey", "screen=scan-lists scanning=1", 1, false },
+	{ "K a key set to scan lists, no lists", "", "listskey", "screen=home toast=Scan_lists:_not_on_this_radio", 1, false },
+#endif
 	// VFO/Channel (KEYFN_VFO_TOGGLE) sends what a VFO/MR key does, on a press or a long press, on any screen
 	{ "K a key set to VFO/Channel", "", "vfokey", "vfo=1 toast=VFO", 1, false },
 	{ "K a key set to VFO/Channel, back", "vfokey", "vfokey", "vfo=0 toast=Back_to_channels", 1, false },
