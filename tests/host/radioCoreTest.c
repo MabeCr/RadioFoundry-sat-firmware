@@ -5667,7 +5667,8 @@ static void test_ui_settings(void)
 	CHECK(ui_svc_setting_set(UI_SET_POS_SEND_S, -1) && ui_svc_setting_get(UI_SET_POS_SEND_S) == 0);
 	CHECK(ui_svc_setting_set(UI_SET_GPS, 0) && ui_svc_setting_get(UI_SET_GPS) == 0);
 	CHECK(ui_svc_setting_set(UI_SET_THEME, -3) && ui_svc_setting_get(UI_SET_THEME) == 0);
-	CHECK(ui_svc_setting_set(UI_SET_THEME, 9) && ui_svc_setting_get(UI_SET_THEME) == (CONFIG_SAT ? 7 : 3));	// night, the last (a satellite build has the four phosphor themes after it)
+	int theme_max = CONFIG_SAT ? SETTINGS_THEME_MAX : 3;
+	CHECK(ui_svc_setting_set(UI_SET_THEME, theme_max + 1) && ui_svc_setting_get(UI_SET_THEME) == theme_max);	// clamp to the last theme valid in this build
 	CHECK(ui_svc_setting_set(UI_SET_THEME, 0));
 	// Stored values the setters never write (an older or a damaged record) read back as each getter's fallback or
 	// clamp. Each getter reads its own field of the settings in force (SETTINGS_FIELD), so every width is covered:
