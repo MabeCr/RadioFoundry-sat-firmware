@@ -491,6 +491,30 @@
     "ZONE_EDIT"
    ]
   },
+  "channel_menu": {
+   "group": "channels",
+   "needs": [
+    "CHANNEL_LIST",
+    "CHANNEL_EDIT",
+    "ZONE_EDIT"
+   ]
+  },
+  "channel_delete": {
+   "group": "channels",
+   "needs": [
+    "CHANNEL_LIST",
+    "CHANNEL_EDIT",
+    "ZONE_EDIT"
+   ]
+  },
+  "zone_menu": {
+   "group": "channels",
+   "needs": [
+    "CHANNEL_LIST",
+    "CHANNEL_EDIT",
+    "ZONE_EDIT"
+   ]
+  },
   "zone_share_to": {
    "group": "channels",
    "needs": [
@@ -611,6 +635,42 @@
    "group": "tools",
    "needs": [
     "SCAN_LIST"
+   ]
+  },
+  "scan_lists_vote": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "scan_list_vote_options": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "scan_list_vote_threshold": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "home_vote": {
+   "group": "home",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "scan_list_link": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "home_vote_link": {
+   "group": "home",
+   "needs": [
+    "VOTE_SCAN"
    ]
   },
   "home_dual": {
