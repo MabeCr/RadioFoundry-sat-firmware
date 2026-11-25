@@ -87,7 +87,7 @@ choice. The list's options screen (Tools > Scan, a list, then its options) shows
 
 One list to a channel: the picker refuses a channel another list is linked to ("Used by <list>"), and the store refuses
 the same write (`scan_list_write_vote`), so a record never holds two lists on one channel. `scan_list_find_link` finds
-the list for a channel (the lowest slot should a record from elsewhere hold two).
+the list for a channel (the lowest slot should a record from elsewhere hold two). Deleting the linked channel (Channels > Delete channel, ui.md 2.2) takes the link off, so a new channel at that number does not inherit it.
 
 ## 4. Voting between calls and at the start of a call
 

@@ -28,17 +28,19 @@ Changing the channel ends temporary changes, the reply window, digital monitor a
 
 <img src="../ux/screens/160x120i5/zones.png" width="200" alt="Zones: the VFO and the zones">
 
-The Zones list shows the VFO first, then every zone with its number of channels. Type letters to filter it.
+The Zones list shows the VFO first, then every zone with its number of channels. Type letters to filter it. **OK** goes
+to the zone. **#** opens the zone's actions: **Channels** (its list of channels), Rename, Copy as new zone, Share zone
+to... and Delete zone ([Editing a zone](#editing-a-zone)).
 
 ## Making a zone
 
 **OK**, **4** (Zones), then the last row, **Create New Zone**. Type the name and press **OK**. The radio saves the empty zone
-and focuses it in the list. Press **#** to open it and add channels with **Add channel**. A channel's own page can
+and focuses it in the list. Press **#**, then **1** (Channels) to open it and add channels with **Add channel**. A channel's own page can
 also put it in zones (**Zones** row, [Editing a channel](#editing-a-channel)).
 
 ## Editing a zone
 
-A zone's list (**OK**, **4**, focus the zone, **#**) also edits the zone. Each change is saved at once: there is
+A zone's list (**OK**, **4**, focus the zone, **#**, then **1** Channels) also edits the zone. Each change is saved at once: there is
 nothing to save or discard. On a radio without **#**, hold **OK** wherever this section says **#**.
 
 <img src="../ux/screens/160x120i5/zone_actions.png" width="200" alt="Channel actions in a zone">
@@ -56,7 +58,7 @@ nothing to save or discard. On a radio without **#**, hold **OK** wherever this 
   | 5 | Share channel to... | sends the channel to another radio or a talkgroup ([Sharing a zone](#sharing-a-zone)) |
   | 6 | Remove from zone | takes it out of this zone. The channel stays in Channels and in any other zone |
 
-- **Zone options** (the last row):
+- **Zone options** (the last row of a zone's list; **#** on the zone in Zones opens the same list of actions, with **Channels** first):
 
   | Key | Action | Does |
   |---|---|---|
@@ -126,9 +128,18 @@ row ends with the RX frequency and the talkgroup (DMR) or FM. A long name stays 
 
 <img src="../ux/screens/160x120i5/channels.png" width="200" alt="Channels: every channel by number">
 
-- **OK** on a channel opens its settings, where you can change them (below).
-- **#** in the list goes to the channel: in the current zone if it holds it, otherwise in the first zone that does.
+- **OK** on a channel goes to it: in the current zone if it holds it, otherwise in the first zone that does.
   A channel in no zone says "Not in any zone".
+- **#** on a channel opens its actions:
+
+  | Key | Action | Does |
+  |---|---|---|
+  | 1 | Edit channel | opens the channel's settings, where you can change them (below) |
+  | 2 | In zones | puts the channel in zones or takes it out of them |
+  | 3 | Share channel to... | sends the channel to another radio or a talkgroup ([Sharing a zone](#sharing-a-zone)); not on a radio without zone sharing, where Delete channel is **3** |
+  | 4 | Delete channel | asks first, with "No, keep it" focused, and says how many zones hold the channel. Yes takes it out of every zone, then deletes it. The other channels keep their numbers |
+
+  On a radio without **#**, hold **OK** for these.
 - The first row, **New from current**, starts a new channel from what the radio uses now (below).
 
 ## Editing a channel

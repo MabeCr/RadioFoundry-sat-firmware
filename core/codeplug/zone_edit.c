@@ -311,6 +311,29 @@ zone_edit_result_t zone_edit_delete(uint16_t zone)
 	return r;
 }
 
+zone_edit_result_t zone_edit_delete_channel(uint16_t number)
+{
+	storage_lock();
+	zone_edit_result_t r = codeplug_channel(number, &probe) ? ZONE_EDIT_OK : ZONE_EDIT_NO_CHANNEL;
+	// Without stored zones the virtual "All channels" zone is every channel: deleting it from there needs no write
+	uint16_t zones = codeplug_zones_stored() ? codeplug_zone_count() : 0;
+	for (uint16_t zi = 0; r == ZONE_EDIT_OK && zi < zones; zi++) {
+		r = load(zi);
+		int at = r == ZONE_EDIT_OK ? zone_list_find(&work, number) : -1;
+		if (at >= 0) {
+			r = zone_list_remove(&work, (uint16_t)at);
+			if (r == ZONE_EDIT_OK) {
+				r = write_back(zi);
+			}
+		}
+	}
+	if (r == ZONE_EDIT_OK && !codeplug_delete_channel(number)) {
+		r = ZONE_EDIT_FAILED;
+	}
+	storage_unlock();
+	return r;
+}
+
 static uint32_t applied;
 static uint8_t last_result;
 
@@ -333,6 +356,7 @@ static zone_edit_result_t run(const zone_op_t *op, uint16_t *index)
 	case ZONE_OP_RENAME: return zone_edit_rename(op->zone, op->name);
 	case ZONE_OP_DELETE: return zone_edit_delete(op->zone);
 	case ZONE_OP_NEW: return zone_edit_new(op->name, index);
+	case ZONE_OP_DELETE_CHANNEL: return zone_edit_delete_channel(op->channel);
 	default: return ZONE_EDIT_FAILED;
 	}
 }

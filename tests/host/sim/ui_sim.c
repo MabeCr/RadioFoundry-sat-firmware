@@ -865,8 +865,23 @@ uint16_t codeplug_channel_count(void)
 	return top;
 }
 
+// Channels the zone editor's Delete channel removed (codeplug_delete_channel): gone from every lookup
+#define SIM_GONE_MAX 8
+static uint16_t sim_gone[SIM_GONE_MAX];
+static uint8_t sim_gone_n;
+
+static bool sim_is_gone(uint16_t number)
+{
+	for (uint8_t i = 0; i < sim_gone_n; i++)
+		if (sim_gone[i] == number)
+			return true;
+	return false;
+}
+
 bool codeplug_channel(uint16_t number, channel_t *out)
 {
+	if (sim_is_gone(number))
+		return false;
 	const channel_t *e = sim_edit(number);
 	if (e != NULL) {
 		*out = *e;
@@ -1062,7 +1077,14 @@ bool codeplug_delete_channel(uint16_t number)
 			return true;
 		}
 	}
-	return false;
+	// A channel of the sim's own set: gone from now on (Delete channel)
+	channel_t probe;
+	if (sim_gone_n >= SIM_GONE_MAX || !codeplug_channel(number, &probe))
+		return false;
+	sim_gone[sim_gone_n++] = number;
+	sim_cp_serial++;
+	sim_rec.codeplug_writes++;
+	return true;
 }
 void storage_lock(void) { }
 void storage_unlock(void) { }
@@ -3157,6 +3179,7 @@ void sim_reset(const sim_geom_t *g, sim_map_t map)
 	t3_dial_digits[0] = t3_cli_digits[0] = 0;
 #endif
 	n_edits = 0;
+	sim_gone_n = 0;
 	n_ct_edits = 0;
 	sim_names_reset();
 	sim_cp_serial = 0;

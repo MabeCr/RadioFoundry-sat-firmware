@@ -103,29 +103,29 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "recent", "call:9991234,91,g call:9995678,3100,g call:9992222,0,p ok 3" },
 	{ "zones", "ok 4" },
 	{ "channels", "ok 5" },
-	{ "channel", "ok 5 ok" },
-	{ "channel_power", "ok 5 ok down down down down down ok enc+ enc+" },
-	{ "channel_changed", "ok 5 ok down down down down down ok enc+ enc+ ok down down down ok" },
-	{ "channel_rx_entry", "ok 5 ok down down down ok 4 4 6 0" },
-	{ "channel_name", "ok 5 ok ok 4 4 4 wait:1200 6 6" },
-	{ "channel_contact", "ok 5 ok down down down down down down down down down ok" },
-	{ "channel_discard", "ok 5 ok down down down down down ok enc+ ok back" },
+	{ "channel", "ok 5 ctx 1" },
+	{ "channel_power", "ok 5 ctx 1 down down down down down ok enc+ enc+" },
+	{ "channel_changed", "ok 5 ctx 1 down down down down down ok enc+ enc+ ok down down down ok" },
+	{ "channel_rx_entry", "ok 5 ctx 1 down down down ok 4 4 6 0" },
+	{ "channel_name", "ok 5 ctx 1 ok 4 4 4 wait:1200 6 6" },
+	{ "channel_contact", "ok 5 ctx 1 down down down down down down down down down ok" },
+	{ "channel_discard", "ok 5 ctx 1 down down down down down ok enc+ ok back" },
 	{ "codeplug_foreign", "foreign quick 2 long:ok" },	// a save over another firmware's codeplug asks first
 	{ "channel_new", "ok 5 up up up ok" },
-	{ "channel_tone_entry", "ok 5 up up ok down down down down down down down down ok 8 8 5" },
-	{ "channel_zones", "ok 5 ok up up up up ok" },
+	{ "channel_tone_entry", "ok 5 up up ctx 1 down down down down down down down down ok 8 8 5" },
+	{ "channel_zones", "ok 5 ctx 1 up up up up ok" },
 	{ "zones_new", "ok 4 down down down" },
 #if CONFIG_ZONE_SHARE
-	{ "channel_share", "ok 5 ok up up" },	// the channel editor's Share channel to...
+	{ "channel_share", "ok 5 ctx 1 up up" },	// the channel editor's Share channel to...
 #endif
-	{ "zone_channels", "ok 4 ctx" },
+	{ "zone_channels", "ok 4 ctx 1" },
 #if CONFIG_ZONE_EDIT
-	{ "zone_share_to", "ok 4 ctx down down ctx 5" },	// Channel actions' Share channel to...
-	{ "zone_share_to_id", "ok 4 ctx down down ctx 5 9 9 9 9 8 7 6" },	// a typed ID that isn't a contact
-	{ "zone_share_sending", "ok 4 ctx down down ctx 5 2 ok" },	// "Sending to ... via ..."
+	{ "zone_share_to", "ok 4 ctx 1 down down ctx 5" },	// Channel actions' Share channel to...
+	{ "zone_share_to_id", "ok 4 ctx 1 down down ctx 5 9 9 9 9 8 7 6" },	// a typed ID that isn't a contact
+	{ "zone_share_sending", "ok 4 ctx 1 down down ctx 5 2 ok" },	// "Sending to ... via ..."
 #else
-	{ "zone_share", "ok 4 ctx down down ctx" },
-	{ "zone_share_to", "ok 4 ctx down down ctx 1" },
+	{ "zone_share", "ok 4 ctx 1 down down ctx" },
+	{ "zone_share_to", "ok 4 ctx 1 down down ctx 1" },
 #endif
 	{ "banner_zone_offer", "zoneoffer:9991234" },
 	{ "zone_offer", "zoneoffer:9991234 ctx" },
@@ -140,13 +140,16 @@ static const struct { const char *name, *script; } gallery[] = {
 	{ "zone_imported", "zoneoffer:9991234 ctx 1 wait:300" },
 #if CONFIG_ZONE_EDIT
 	// The zone editor (ui.md 2.2)
-	{ "zone_actions", "ok 4 ctx ctx" },
-	{ "zone_add", "ok 4 ctx 2 ok" },
-	{ "zone_options", "ok 4 ctx up up up up ok" },
+	{ "zone_menu", "ok 4 ctx" },	// # on a zone in Zones: its actions, Channels first
+	{ "channel_menu", "ok 5 down ctx" },	// # on a channel in Channels
+	{ "channel_delete", "ok 5 down ctx up ok" },	// the last row of the menu, Delete channel
+	{ "zone_actions", "ok 4 ctx 1 ctx" },
+	{ "zone_add", "ok 4 ctx 1 2 ok" },
+	{ "zone_options", "ok 4 ctx 1 up up up up ok" },
 #if CONFIG_ZONE_SHARE
-	{ "zone_delete", "ok 4 ctx up up up up ok 4" },	// after Share zone to...
+	{ "zone_delete", "ok 4 ctx 1 up up up up ok 4" },	// after Share zone to...
 #else
-	{ "zone_delete", "ok 4 ctx up up up up ok 3" },
+	{ "zone_delete", "ok 4 ctx 1 up up up up ok 3" },
 #endif
 #endif
 	{ "tools", "ok 6" },
@@ -330,11 +333,11 @@ static const struct { const char *name, *script; } worst_screens[] = {
 	{ "w_find", "2 7" },
 	{ "w_find_number", "1 6 7 7 6 4 1 5" },
 	{ "w_channels", "ok 4" },
-	{ "w_zone", "ok 4 ctx" },
-	{ "w_zone_end", "ok 4 ctx up" },
+	{ "w_zone", "ok 4 ctx 1" },
+	{ "w_zone_end", "ok 4 ctx 1 up" },
 #if CONFIG_ZONE_EDIT
-	{ "w_zone_actions", "ok 4 ctx ctx" },
-	{ "w_zone_delete", "ok 4 ctx up up up up ok 3" },
+	{ "w_zone_actions", "ok 4 ctx 1 ctx" },
+	{ "w_zone_delete", "ok 4 ctx 1 up up up up ok 3" },
 #endif
 	{ "w_quick", "quick" },
 	{ "w_quick_fm", "down quick" },
