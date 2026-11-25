@@ -613,6 +613,30 @@
     "SCAN_LIST"
    ]
   },
+  "scan_lists_vote": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "scan_list_vote_options": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "scan_list_vote_threshold": {
+   "group": "tools",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
+  "home_vote": {
+   "group": "home",
+   "needs": [
+    "VOTE_SCAN"
+   ]
+  },
   "home_dual": {
    "group": "home",
    "needs": [
