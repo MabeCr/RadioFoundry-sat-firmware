@@ -81,6 +81,7 @@ is `tools/bringup.py list --radio <id>`.
 | `key_assign` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded |
 | `scan` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | partial, needs re-run |
 | `dual_watch` | not recorded | pass (seed) | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | ✕ |
+| `vote_scan` | off | off | off | off | off | off | off | off |
 | `beep` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | partial, needs re-run |
 | `signaling_tones` | not recorded | not recorded | not recorded | not recorded | off | not recorded | not recorded | not recorded |
 | `vibrate` | off | ✕ | not recorded | ✕ | ✕ | ✕ | ✕ | ✕ |
@@ -299,6 +300,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `GPS_SKY` | ● | ● | ✕ | ● | ● | ● | ● | ✕ |
 | `SATELLITE_TLE` | ● | ● | ● | ● | ● | ● | ● | ● |
 | `SCAN_LIST` | ○ | … | … | … | … | … | … | … |
+| `VOTE_SCAN` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● | ● | ✕ |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● | ● | ✕ |
