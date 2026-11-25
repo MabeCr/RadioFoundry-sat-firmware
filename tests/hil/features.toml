@@ -540,6 +540,10 @@ source = ["drivers/input/quadrature"]
 switch = "UI_SETTINGS"
 spec = "docs/spec/ui.md"
 
+[feature.theme_packs]
+switch = "THEME_PACKS"
+spec = "docs/spec/theme-packs.md"
+
 [feature.diag]
 switch = "DIAG"
 spec = "docs/spec/ui.md"
