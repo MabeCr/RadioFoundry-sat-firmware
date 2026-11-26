@@ -285,6 +285,8 @@ typedef struct {
 	uint8_t base_squelch;		// squelch without the temporary change
 	bool temp_power;
 	bool temp_squelch;
+	bool scan_power_set;		// a power chosen during a list or vote scan: kept across its retunes
+	uint8_t scan_power;
 	bool squelch_save;		// a squelch set in the VFO: the radio's default, written by persist()
 	uint8_t base_bw;		// the channel's own bandwidth and tones, for undoing temporary changes
 	subtone_t base_rx_tone;

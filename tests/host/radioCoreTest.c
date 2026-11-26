@@ -8000,6 +8000,18 @@ static void test_p25_vote(void)
 	fake_vote.flags = 0;
 	list_req(3);
 	CHECK(sm.view.scan == SCAN_LIST);
+	{
+		// A power chosen while a scan runs outlasts its retunes, and ends with the scan
+		uint8_t before = sm.view.power;
+		req(RREQ_POWER, 1);
+		uint8_t chosen = sm.view.power;
+		CHECK(chosen != before);
+		uint16_t at = sm.view.channel_number;
+		for (int i = 0; i < 40 && sm.view.channel_number == at; i++) {
+			run(100);
+		}
+		CHECK(sm.view.channel_number != at && sm.view.power == chosen);
+	}
 	req(RREQ_SCAN, RSCAN_STOP);
 
 	vsites = 0;

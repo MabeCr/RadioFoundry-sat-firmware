@@ -4568,6 +4568,11 @@ static bool list_go(radio_sm_t *sm, uint16_t zi, uint16_t pos, uint32_t now_ms)
 		set_zone(sm, zi, z);
 	}
 	set_channel(sm, pos, &ch);
+	if (sm->scan_power_set) {	// set_channel reset the power; the user's choice outlasts the retune
+		sm->view.power = sm->scan_power;
+		sm->temp_power = sm->view.power != channel_power(&sm->view.ch);
+		set_temporary(sm);
+	}
 	tune(sm, now_ms);
 	return true;
 }
@@ -5013,6 +5018,7 @@ static void scan_stop(radio_sm_t *sm, bool cancel, uint32_t now_ms)
 		return;
 	}
 	uint8_t kind = sc->kind;
+	sm->scan_power_set = false;
 	if (kind == SCAN_DUAL) {
 		rx2_release(sm);
 		dual_busy_set(sm, 0);
@@ -9155,6 +9161,10 @@ static void power_request(radio_sm_t *sm, const radio_req_t *req)
 		sm->view.ch.power = sm->vfo_ch.power = (uint8_t)p;
 	}
 	sm->temp_power = sm->view.power != channel_power(&sm->view.ch);
+	if (scan_on(&sm->scan)) {
+		sm->scan_power_set = true;
+		sm->scan_power = sm->view.power;
+	}
 	set_temporary(sm);
 #if CONFIG_DMR
 	hotspot_follow_power(sm);

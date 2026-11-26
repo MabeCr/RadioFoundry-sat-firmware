@@ -92,6 +92,8 @@ hands it to the housekeeping task.
 
 ## 5. Safety
 
+- **TX power during a scan.** A power step taken while a list or vote scan runs is kept across the scan's retunes
+  (`scan_power` in the radio core) and dropped when the scan ends, as other temporary changes are on a channel change.
 - **Power cuts.** A change rewrites the record's sector through the sector journal ([settings-store.md](settings-store.md)
   4): after a cut the old sector or the new one is there, never a mix. `scanListTest` cuts power at every unit of a write.
 - **Foreign data.** While a slot holds something else, the area is read only. The storage claim
