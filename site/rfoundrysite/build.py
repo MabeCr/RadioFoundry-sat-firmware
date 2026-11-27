@@ -243,7 +243,7 @@ class Site:
 			f.write(text)
 
 	def page(self, lang, rel, title, content, page_class, description="", scripts="", nav="", footer="", styles="",
-		 hide_languages=False):
+		 hide_languages=False, layout="base"):
 		"""A page of the site: rel is its path inside the language's tree; footer goes above the site footer's line.
 		styles: stylesheet links ahead of the site's own, so site.css overrides them"""
 		prefix = self.i18n.prefix(lang)
@@ -281,7 +281,7 @@ class Site:
 		       "og_image": SITE_URL + "static/img/social.png?v=" + self.asset_version,
 		       "og_width": social.W * social.ZOOM, "og_height": social.H * social.ZOOM}
 		ctx["nav"] = self.nav(lang, ctx["home"], nav)
-		self.write(full, self.tpl.render("base", ctx, lang).replace("{{root}}", root).replace("{{home}}", root + prefix))
+		self.write(full, self.tpl.render(layout, ctx, lang).replace("{{root}}", root).replace("{{home}}", root + prefix))
 
 	def nav(self, lang, home, current):
 		items = [("radios", "radios/index.html"), ("features", "features/index.html"),
@@ -801,15 +801,20 @@ class Site:
 		strings = json.dumps(self.i18n.subset(lang, ("tools.title", "tools.theme_pack.", "flash.err.")), ensure_ascii=False).replace("</", "<\\/")
 		scripts = ('<script type="application/json" id="i18n">%s</script>'
 			   '<script type="module" src="{{root}}static/js/theme-pack-tool.js?v=%s"></script>' % (strings, self.asset_version))
+		styles = '<link rel="stylesheet" href="{{root}}static/css/theme-pack-pages.css?v=%s">' % self.asset_version
 		self.page(lang, "tools/themes/index.html", self.t(lang, "tools.theme_pack.title"),
-			  self.tpl.render("theme_pack", {}, lang), "tools", scripts=scripts, nav="tools")
+			  self.tpl.render("theme_pack", {}, lang), "theme-tools", description="Install a theme pack on your radio.",
+			  scripts=scripts, styles=styles, layout="theme_tools_base")
 
 	def theme_pack_builder_page(self, lang):
 		scripts = '<script type="module" src="{{root}}static/js/theme-pack-builder.js?v=%s"></script>' % self.asset_version
-		styles = '<link rel="stylesheet" href="{{root}}static/css/theme-pack-builder.css?v=%s">' % self.asset_version
+		styles = ('<link rel="stylesheet" href="{{root}}static/css/theme-pack-pages.css?v=%s">'
+			  '<link rel="stylesheet" href="{{root}}static/css/theme-pack-builder.css?v=%s">' %
+			  (self.asset_version, self.asset_version))
 		self.page(lang, "tools/themes/builder.html", "Theme Pack Builder",
-			  self.tpl.render("theme_pack_builder", {}, lang), "tools", scripts=scripts, styles=styles, nav="tools",
-			  hide_languages=True)
+			  self.tpl.render("theme_pack_builder", {}, lang), "theme-tools",
+			  description="Create, customize, and install theme packs.", scripts=scripts, styles=styles,
+			  hide_languages=True, layout="theme_tools_base")
 
 	def support_pages(self, lang):
 		"""Support: the FAQ, the reminder to update, and the support download (static/js/supportpage.js) with the About

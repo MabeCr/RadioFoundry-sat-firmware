@@ -489,7 +489,7 @@ async function importJson(file) {
 		const doc = JSON.parse(await file.text());
 		if (doc?.format !== "rfoundry-theme-pack" || doc?.version !== 1 || !Array.isArray(doc.themes) ||
 		    doc.themes.length < 1 || doc.themes.length > 21) {
-			throw new Error("This file is not a version 1 RadioFoundry theme JSON pack.");
+			throw new Error("This file is not a valid version 1 theme JSON pack.");
 		}
 		const importedNames = new Set();
 		const imported = doc.themes.map((item, index) => {
