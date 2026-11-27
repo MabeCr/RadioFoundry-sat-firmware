@@ -42,6 +42,27 @@ const DEFAULT_COLORS = {
 	strip_bg: "#D8D8D8", strip_warn: "#884400",
 };
 
+const FIELD_PREVIEWS = {
+	bg: '<div class="sample-screen-name">COUNTY DMR</div><div class="sample-screen-sub">TG 3100 USA</div>',
+	fg: '<div class="sample-screen-name">COUNTY DMR</div><div class="sample-screen-sub sample-primary">TG 3100 USA</div>',
+	dim: '<div class="sample-zone"><span>Local repeaters</span><b>3/16</b></div><div class="sample-screen-sub">No calls heard yet</div>',
+	line: '<div class="sample-screen-name">COUNTY DMR</div><i class="sample-divider"></i><div class="sample-screen-sub">TG 3100 USA</div>',
+	tx: '<span class="sample-pill sample-tx">TX</span>',
+	rx: '<span class="sample-pill sample-rx">RX</span><span class="sample-signal"><i></i><i></i><i></i><i></i></span>',
+	warn: '<span class="sample-warning"><b>!</b> LOW BATTERY</span>',
+	idle: '<span class="sample-pill sample-idle">IDLE</span><span class="sample-screen-sub">DMR</span>',
+	pill_fg: '<span class="sample-pill sample-bright">RX</span>',
+	pill_dark_fg: '<span class="sample-pill sample-dark">TX</span>',
+	focus: '<span class="sample-selected"><b>3</b> COUNTY DMR</span>',
+	hint_bg: '<div class="sample-hint"><span>OK Menu</span><span>* Quick</span></div>',
+	priv: '<span class="sample-priv">PRIV</span>',
+	idle_fg: '<span class="sample-pill sample-idle sample-idle-text">IDLE</span>',
+	focus_fg: '<span class="sample-selected sample-selected-text"><b>3</b> COUNTY DMR</span>',
+	chnum: '<div class="sample-zone"><span>Local repeaters</span><b>3/16</b></div>',
+	strip_bg: '<div class="sample-strip"><span>IDLE</span><span>DMR</span><span>▂▅█ 84%</span></div>',
+	strip_warn: '<div class="sample-strip"><span>IDLE</span><span>DMR</span><b class="sample-strip-warning">! 18%</b></div>',
+};
+
 const byId = (id) => document.getElementById(id);
 const libraryNode = byId("theme-library");
 const colorGrid = byId("color-fields-grid");
@@ -103,6 +124,33 @@ function themeColors(colors) {
 	return Object.fromEntries(FIELDS.map(([key]) => [key, normalizeColor(colors?.[key]) || DEFAULT_COLORS[key]]));
 }
 
+function setPreviewPalette(element, palette) {
+	const vars = {
+		"--pv-bg": palette.bg, "--pv-fg": palette.fg, "--pv-dim": palette.dim, "--pv-line": palette.line,
+		"--pv-tx": palette.tx, "--pv-rx": palette.rx, "--pv-warn": palette.warn, "--pv-idle": palette.idle,
+		"--pv-pill-fg": palette.pill_fg, "--pv-pill-dark-fg": palette.pill_dark_fg, "--pv-focus": palette.focus,
+		"--pv-hint-bg": palette.hint_bg, "--pv-priv": palette.priv, "--pv-idle-fg": palette.idle_fg,
+		"--pv-focus-fg": palette.focus_fg, "--pv-chnum": palette.chnum, "--pv-strip": palette.strip_bg,
+		"--pv-strip-warn": palette.strip_warn,
+	};
+	for (const [key, value] of Object.entries(vars)) element.style.setProperty(key, value);
+}
+
+function fieldPreview(key, label) {
+	const figure = document.createElement("figure");
+	figure.className = "color-preview";
+	figure.setAttribute("role", "img");
+	figure.setAttribute("aria-label", `${label} starter sample on the home screen`);
+	const screen = document.createElement("div");
+	screen.className = `color-preview-screen color-preview-${key}`;
+	screen.innerHTML = FIELD_PREVIEWS[key];
+	setPreviewPalette(screen, DEFAULT_COLORS);
+	const caption = document.createElement("figcaption");
+	caption.textContent = "Starter";
+	figure.append(screen, caption);
+	return figure;
+}
+
 function loadThemeIntoEditor(theme) {
 	if (!theme) return;
 	editingId = theme.custom ? theme.id : null;
@@ -130,7 +178,10 @@ function createColorFields() {
 		const helpNode = document.createElement("p");
 		helpNode.textContent = help;
 		const row = document.createElement("div");
-		row.className = "color-input-row";
+		row.className = "color-editor-row";
+		const preview = fieldPreview(key, label);
+		const inputs = document.createElement("div");
+		inputs.className = "color-input-row";
 		const picker = document.createElement("input");
 		picker.className = "color-picker";
 		picker.type = "color";
@@ -156,7 +207,8 @@ function createColorFields() {
 			const color = normalizeColor(hex.value);
 			if (color) { hex.value = color; picker.value = color; }
 		});
-		row.append(picker, hex);
+		inputs.append(picker, hex);
+		row.append(preview, inputs);
 		wrapper.append(labelNode, helpNode, row);
 		colorGrid.append(wrapper);
 	}
@@ -176,15 +228,7 @@ function readEditorTheme() {
 function renderPreview(colors = null) {
 	const palette = colors || Object.fromEntries(FIELDS.map(([key]) => [key, normalizeColor(byId(`hex-${key}`)?.value) || DEFAULT_COLORS[key]]));
 	const preview = byId("theme-preview");
-	const vars = {
-		"--pv-bg": palette.bg, "--pv-fg": palette.fg, "--pv-dim": palette.dim, "--pv-line": palette.line,
-		"--pv-tx": palette.tx, "--pv-rx": palette.rx, "--pv-warn": palette.warn, "--pv-idle": palette.idle,
-		"--pv-pill-fg": palette.pill_fg, "--pv-pill-dark-fg": palette.pill_dark_fg, "--pv-focus": palette.focus,
-		"--pv-hint-bg": palette.hint_bg, "--pv-priv": palette.priv, "--pv-idle-fg": palette.idle_fg,
-		"--pv-focus-fg": palette.focus_fg, "--pv-chnum": palette.chnum, "--pv-strip": palette.strip_bg,
-		"--pv-strip-warn": palette.strip_warn,
-	};
-	for (const [key, value] of Object.entries(vars)) preview.style.setProperty(key, value);
+	setPreviewPalette(preview, palette);
 }
 
 function swatches(colors) {
