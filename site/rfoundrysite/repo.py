@@ -254,7 +254,10 @@ def boards(feature_names, variant_ids):
 
 
 def screens(gallery):
-	return sorted(os.path.basename(p)[:-4] for p in glob.glob(path("docs", "ux", "screens", gallery, "*.png")))
+	# Retired built-in theme shots can remain in an older checkout's gallery; don't publish them as available themes.
+	retired = {"aurora", "orbit", "vice_city"}
+	names = (os.path.basename(p)[:-4] for p in glob.glob(path("docs", "ux", "screens", gallery, "*.png")))
+	return sorted(name for name in names if name.rpartition("__")[2] not in retired)
 
 
 # ---------------------------------------------------------------------------------------------------------------

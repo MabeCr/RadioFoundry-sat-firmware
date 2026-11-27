@@ -35,7 +35,8 @@ All integer fields are little-endian. Version 1 uses this 20-byte header, follow
 Each 60-byte entry contains a one-byte name length, a 23-byte UTF-8 name field padded with zeroes, then 18 RGB565
 colors as unsigned 16-bit values. Color order is `bg`, `fg`, `dim`, `line`, `tx`, `rx`, `warn`, `idle`, `pill_fg`,
 `pill_dark_fg`, `focus`, `hint_bg`, `priv`, `idle_fg`, `focus_fg`, `chnum`, `strip_bg`, `strip_warn`. Pack theme IDs
-are 11 through 31; built-in IDs 0 through 10 keep their meaning. A pack holds at most 21 themes and is limited to one
+are 11 through 31. Built-in IDs 0 through 7 keep their meaning; IDs 8 through 10 are reserved so existing pack IDs
+and stored selections do not move. A pack holds at most 21 themes and is limited to one
 mapped erase unit. Unknown format versions, invalid names, a bad CRC, a mismatched payload length, or a length outside
 the mapped area reject the pack.
 
@@ -63,8 +64,8 @@ the map entry empty unless their own memory map documents an unused erase unit.
 
 ## Settings
 
-The selected theme remains a small numeric setting. IDs 0 through 10 are built-in; pack themes use IDs 11 through 31.
-Pack removal does not rewrite codeplug, radio, channel, or other settings data.
+The selected theme remains a small numeric setting. IDs 0 through 7 are built-in; IDs 8 through 10 are reserved; pack
+themes use IDs 11 through 31. Pack removal does not rewrite codeplug, radio, channel, or other settings data.
 
 ## Installer
 

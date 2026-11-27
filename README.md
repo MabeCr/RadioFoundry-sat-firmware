@@ -9,9 +9,9 @@ with theme-pack support; this fork currently enables it in the DM-32UV satellite
 1. **Install compatible firmware first.** Use the firmware installer and the theme-pack-enabled build for your radio.
    An older build or the standard release firmware will report that theme packs are unsupported.
 2. **Open this fork's hosted theme builder** [HERE](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/builder.html).
-   Choose colors, save named themes in your browser, and add up to 10 themes to a pack. The builder includes the
-   Buckeyes, Wolverines, and Harbor palettes. Your saved themes stay in that browser; download the editable JSON as a
-   backup if you want to keep or share your work. The hosted [theme pack uploader](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/index.html)
+   Choose colors, save named themes in your browser, and add up to 10 themes to a pack. The builder includes Buckeye,
+   Wolverines, Harbor, Aurora, Orbit, and Miami palettes. Your saved themes stay in that browser; download the editable
+   JSON as a backup if you want to keep or share your work. The hosted [theme pack uploader](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/index.html)
    requires Chrome or Edge on a desktop computer and a USB connection.
 3. **Or start the local theme builder.** From the repository folder, run:
 
@@ -20,9 +20,9 @@ with theme-pack support; this fork currently enables it in the DM-32UV satellite
    py -m http.server 8000
    ```
 
-   Then open <http://localhost:8000/tools/theme_pack_builder.html> in Chrome or Edge. The builder includes the
-   Buckeyes, Wolverines, and Harbor palettes, lets you edit all 18 colors, and saves your own named themes in this
-   browser. Add up to 10 themes to a pack. Save the editable JSON as a backup if you want to keep or share your work.
+   Then open <http://localhost:8000/tools/theme_pack_builder.html> in Chrome or Edge. The builder includes Buckeye,
+   Wolverines, Harbor, Aurora, Orbit, and Miami palettes, lets you edit all 18 colors, and saves your own named themes
+   in this browser. Add up to 10 themes to a pack. Save the editable JSON as a backup if you want to keep or share your work.
 4. **Download the radio pack.** Select **Download radio pack (.rftheme)**. The builder encodes the theme data in the
    radio's version 1 pack format. Each theme name can use up to 23 UTF-8 bytes.
 5. **Upload it.** Open the hosted uploader or <http://localhost:8000/build/theme-packs/uploader.html>, connect the radio over USB, choose the

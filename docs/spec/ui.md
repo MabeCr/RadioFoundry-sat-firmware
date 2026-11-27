@@ -766,8 +766,8 @@ differ in color (`home_plain`) are left out at 128x64. The list is set in
 `.github/workflows/ui-gallery.yml` (`docs/dev/ci.md`), and `make ui-gallery` reads it from there. Home (filled and plain
 status bar), RX, TX, the Channels list and Settings > Display are also drawn in the light, high-contrast and night
 themes, as `<screen>__light.png`, `<screen>__high_contrast.png` and `<screen>__night.png` (color displays).
-In a satellite build (`CONFIG_SAT`) also `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png`,
-`<screen>__orange_inverse.png`, `<screen>__aurora.png`, `<screen>__orbit.png` and `<screen>__vice_city.png`.
+In a satellite build (`CONFIG_SAT`) also `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png`
+and `<screen>__orange_inverse.png`.
 
 
 Geometries: `160x120i5` (160x120 visible, 5 px inset left and right), `160x128` (both 160 px classes render through the 4 bpp frame buffer, as the boards do),
@@ -839,8 +839,9 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
   (`UI_FEAT_REF_TRIM`). The row shows the trim in ppm and opens the Freq Trim page (`freq-trim`, section 2).
 - Voice prompts are dimmed ("Voice prompts aren't built yet: no recorded speech").
 - Theme switches the color palette (dark, light, high contrast, night; in a satellite build also terminal, orange,
-  terminal inverse, orange inverse, Aurora, Orbit and Vice City; with `CONFIG_THEME_PACKS`, installed data-only pack
-  themes follow those 11 built-ins; [theme-packs.md](theme-packs.md)). Night is four shades of pure red on black
+  terminal inverse and orange inverse; with `CONFIG_THEME_PACKS`, installed data-only pack themes use IDs 11 through 31;
+  IDs 8 through 10 stay reserved for compatibility; [theme-packs.md](theme-packs.md)). The theme-pack builder offers
+  Aurora, Orbit, Miami, Buckeye, Wolverines and Harbor as presets. Night is four shades of pure red on black
   (red 255, 176, 112, 56; green and blue 0), for eyes adapted to the dark: the meanings other themes give hues take
   brightness and their word instead (P5). Text, TX, warnings, the focus and the filled strip are the brightest red,
   with black text on them; RX, privacy and secondary text the next; separators and dimmed rows the third; the darkest

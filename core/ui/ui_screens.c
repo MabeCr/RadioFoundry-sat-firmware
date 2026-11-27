@@ -106,6 +106,7 @@ static void accent_apply(void)
 void ui_theme_set(uint8_t theme)
 {
 	if (!CONFIG_UI_COLOR || theme >= UI_THEME_COUNT ||
+	    (theme >= UI_THEME_BUILTIN_COUNT && theme < UI_THEME_ALL) ||
 	    (theme >= UI_THEME_ALL && (!CONFIG_THEME_PACKS || theme - UI_THEME_ALL >= ui_theme_pack_count())))
 		theme = UI_THEME_DARK;	// without color settings: the dark theme only
 	ui_theme = theme;
@@ -227,47 +228,6 @@ void ui_theme_set(uint8_t theme)
 		ui_col.idle = green ? RGB565(0, 110, 0) : RGB565(128, 64, 0);
 		ui_col.focus = RGB565(0, 0, 0);
 		ui_col.hint_bg = green ? RGB565(0, 190, 0) : RGB565(214, 126, 0);
-#if CONFIG_SAT
-	} else if (theme == UI_THEME_AURORA) {
-		// Aurora: a cold night sky with green and violet light, warm transmit and warning colors
-		ui_col.bg = RGB565(4, 12, 28);
-		ui_col.fg = RGB565(184, 240, 224);
-		ui_col.dim = RGB565(96, 160, 160);
-		ui_col.line = RGB565(40, 92, 104);
-		ui_col.tx = RGB565(255, 104, 112);
-		ui_col.rx = RGB565(96, 240, 168);
-		ui_col.warn = RGB565(255, 200, 72);
-		ui_col.idle = RGB565(40, 112, 104);
-		ui_col.focus = RGB565(16, 64, 64);
-		ui_col.hint_bg = RGB565(8, 28, 44);
-		ui_col.priv = RGB565(176, 144, 255);
-	} else if (theme == UI_THEME_ORBIT) {
-		// Orbit: a deep blue space palette with cyan receive, gold warnings and a bright red transmit pill
-		ui_col.bg = RGB565(4, 8, 28);
-		ui_col.fg = RGB565(208, 224, 255);
-		ui_col.dim = RGB565(120, 152, 208);
-		ui_col.line = RGB565(48, 72, 128);
-		ui_col.tx = RGB565(255, 104, 104);
-		ui_col.rx = RGB565(80, 224, 240);
-		ui_col.warn = RGB565(255, 204, 72);
-		ui_col.idle = RGB565(48, 80, 152);
-		ui_col.focus = RGB565(16, 40, 96);
-		ui_col.hint_bg = RGB565(8, 20, 52);
-		ui_col.priv = RGB565(184, 144, 255);
-	} else if (theme == UI_THEME_VICE_CITY) {
-		// Vice City: a synthwave palette of neon pink, cyan and violet on a dark purple sky
-		ui_col.bg = RGB565(20, 4, 32);
-		ui_col.fg = RGB565(255, 176, 232);
-		ui_col.dim = RGB565(184, 112, 176);
-		ui_col.line = RGB565(104, 48, 120);
-		ui_col.tx = RGB565(255, 96, 152);
-		ui_col.rx = RGB565(64, 232, 240);
-		ui_col.warn = RGB565(255, 216, 72);
-		ui_col.idle = RGB565(120, 48, 144);
-		ui_col.focus = RGB565(72, 16, 96);
-		ui_col.hint_bg = RGB565(36, 8, 56);
-		ui_col.priv = RGB565(184, 144, 255);
-#endif
 	} else {
 		ui_col.bg = RGB565(0, 0, 0);
 		ui_col.fg = RGB565(255, 255, 255);

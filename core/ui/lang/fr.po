@@ -3698,21 +3698,6 @@ msgid "Orange Inverse"
 msgstr "Orange inversé"
 
 #: core/ui/ui_menus.c
-msgctxt "SET_VALUE_THEME_AURORA"
-msgid "Aurora"
-msgstr "Aurora"
-
-#: core/ui/ui_menus.c
-msgctxt "SET_VALUE_THEME_ORBIT"
-msgid "Orbit"
-msgstr "Orbit"
-
-#: core/ui/ui_menus.c
-msgctxt "SET_VALUE_THEME_VICE_CITY"
-msgid "Vice City"
-msgstr "Vice City"
-
-#: core/ui/ui_menus.c
 msgctxt "VALUE_DEFAULT"
 msgid "Default"
 msgstr "Par défaut"

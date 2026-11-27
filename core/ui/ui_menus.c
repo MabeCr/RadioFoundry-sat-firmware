@@ -6641,11 +6641,10 @@ static const tr_id_t n_backlight[] = { TRX(SET_VALUE_BACKLIGHT_5S_20S, "5s/20s")
 #if CONFIG_UI_COLOR
 #if CONFIG_SAT
 static const int16_t v_theme[] = { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT, UI_THEME_TERMINAL,
-	UI_THEME_ORANGE, UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE, UI_THEME_AURORA, UI_THEME_ORBIT, UI_THEME_VICE_CITY };
+	UI_THEME_ORANGE, UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE };
 static const tr_id_t n_theme[] = { TRN(SET_VALUE_THEME_DARK, "Dark"), TRN(SET_VALUE_THEME_LIGHT, "Light"),
 	TRN(SET_VALUE_THEME_HIGH_CONTRAST, "High contrast"), TRN(SET_VALUE_THEME_NIGHT, "Night (red)"), TRN(TERMINAL, "Terminal"),
-	TRN(SET_VALUE_ACCENT_ORANGE, "Orange"), TRN(TERMINAL_INVERSE, "Terminal Inverse"), TRN(ORANGE_INVERSE, "Orange Inverse"),
-	TRN(SET_VALUE_THEME_AURORA, "Aurora"), TRN(SET_VALUE_THEME_ORBIT, "Orbit"), TRN(SET_VALUE_THEME_VICE_CITY, "Vice City") };
+	TRN(SET_VALUE_ACCENT_ORANGE, "Orange"), TRN(TERMINAL_INVERSE, "Terminal Inverse"), TRN(ORANGE_INVERSE, "Orange Inverse") };
 #else
 static const int16_t v_theme[] = { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT };
 static const tr_id_t n_theme[] = { TRN(SET_VALUE_THEME_DARK, "Dark"), TRN(SET_VALUE_THEME_LIGHT, "Light"),
@@ -7519,6 +7518,10 @@ static void set_value_text(const set_item_t *s, int32_t v, char *out, size_t len
 			}
 		}
 #endif
+		if (s->id == UI_SET_THEME && v >= UI_THEME_BUILTIN_COUNT && v < UI_THEME_ALL) {
+			sb_str(&b, TR(SET_VALUE_THEME_DARK, "Dark"));
+			break;
+		}
 		for (uint8_t k = 0; k < s->n; k++) {
 			if (s->values[k] == v) {
 				sb_str(&b, tr(s->names[k]));

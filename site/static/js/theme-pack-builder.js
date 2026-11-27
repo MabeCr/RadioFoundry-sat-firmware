@@ -29,9 +29,10 @@ const FIELDS = [
 ];
 
 const PRESETS = [
-	{ file: "ohio-state-buckeyes.json", source: "Ohio State Buckeyes" },
+	{ file: "ohio-state-buckeyes.json", source: "Ohio State colors" },
 	{ file: "michigan-wolverines.json", source: "Michigan Wolverines" },
 	{ file: "sample-theme-pack.json", source: "Sample palette" },
+	{ file: "radio-theme-presets.json", source: "Radio palette" },
 ];
 
 const DEFAULT_COLORS = {

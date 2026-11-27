@@ -16,7 +16,7 @@ VERSION = 1
 HEADER = struct.Struct("<4sHHIHHI")
 ENTRY = struct.Struct("<B23s18H")
 MAX_ERASE_UNIT = 4096
-MAX_THEMES = 21  # IDs 11..31; 0..10 remain the built-in themes.
+MAX_THEMES = 21  # IDs 11..31; 0..7 are built-in and 8..10 stay reserved.
 COLOR_FIELDS = (
     "bg", "fg", "dim", "line", "tx", "rx", "warn", "idle", "pill_fg", "pill_dark_fg", "focus",
     "hint_bg", "priv", "idle_fg", "focus_fg", "chnum", "strip_bg", "strip_warn",

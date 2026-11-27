@@ -200,11 +200,11 @@ typedef struct {
 } ui_colors_t;
 extern ui_colors_t ui_col;
 // Color theme on color displays (Settings > Display), the values of settings_t.theme (and, with CONFIG_SAT, sat_flags for
-// bits 2-4). Night is shades of pure red on black, for eyes adapted to the dark. Themes after Night are satellite-only
-// (docs/spec/ui.md)
+// bits 2-4). IDs 8-10 stay reserved so installed theme-pack IDs keep their meaning. Night is shades of pure red on
+// black, for eyes adapted to the dark. Terminal themes are satellite-only (docs/spec/ui.md)
 enum { UI_THEME_DARK, UI_THEME_LIGHT, UI_THEME_HIGH_CONTRAST, UI_THEME_NIGHT, UI_THEME_TERMINAL, UI_THEME_ORANGE,
-       UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE, UI_THEME_AURORA, UI_THEME_ORBIT, UI_THEME_VICE_CITY,
-       UI_THEME_ALL };
+       UI_THEME_TERMINAL_INVERSE, UI_THEME_ORANGE_INVERSE, UI_THEME_BUILTIN_COUNT,
+       UI_THEME_RESERVED_8 = UI_THEME_BUILTIN_COUNT, UI_THEME_RESERVED_9, UI_THEME_RESERVED_10, UI_THEME_ALL };
 #define UI_THEME_COUNT	(CONFIG_THEME_PACKS ? 32 : CONFIG_SAT ? UI_THEME_ALL : UI_THEME_NIGHT + 1)
 // After ui_layout_init; a value out of range is the dark theme
 void ui_theme_set(uint8_t theme);
