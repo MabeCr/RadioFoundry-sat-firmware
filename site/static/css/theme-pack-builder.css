@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: MIT */
 /* Copyright (c) 2026 The RadioFoundry Authors */
 
-.builder-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(19rem, 0.9fr); gap: var(--space-4); align-items: start; }
-.builder-column { display: grid; gap: var(--space-4); min-width: 0; }
+.builder-page { display: grid; gap: var(--space-4); }
+.builder-grid { display: grid; grid-template-columns: minmax(0, 2.15fr) minmax(16rem, 0.85fr); gap: var(--space-4); align-items: start; }
+.builder-preview-column { position: sticky; top: var(--space-4); min-width: 0; }
+.builder-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
 .builder-card { min-width: 0; padding: var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .builder-card > :last-child { margin-bottom: 0; }
 .builder-card h2 { margin-bottom: var(--space-2); }
@@ -63,7 +65,7 @@
 .color-picker { width: 2.6rem; height: 2.6rem; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
 .hex-color { min-height: 40px; padding-inline: var(--space-2); font-family: var(--font-mono); font-size: 0.9rem; text-transform: uppercase; }
 .editor-actions, .pack-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.dm32-radio-preview { position: relative; container-type: inline-size; overflow: hidden; width: min(100%, 15rem); aspect-ratio: 391 / 768; margin: var(--space-3) auto; }
+.dm32-radio-preview { position: relative; container-type: inline-size; overflow: hidden; width: min(100%, 11rem); aspect-ratio: 391 / 768; margin: var(--space-3) auto; }
 .dm32-radio-image { display: block; width: 100%; height: 100%; object-fit: contain; }
 .dm32-screen { position: absolute; top: 43.1%; left: 29.6%; display: flex; width: 42%; height: 30.2%; flex-direction: column; overflow: hidden; box-sizing: border-box; border-radius: 2.4cqw; color: var(--pv-fg); background: var(--pv-bg); font-family: var(--font-mono); line-height: 1; }
 .rf-statusbar { display: flex; flex: 0 0 6%; align-items: center; justify-content: space-between; gap: 0.3em; box-sizing: border-box; padding: 0 2.5%; color: var(--pv-pill-dark-fg); background: var(--pv-strip); font-size: 3.2cqw; }
@@ -104,7 +106,15 @@
 .upload-next p { margin-bottom: var(--space-2); }
 .upload-next p:last-child { margin-top: var(--space-2); }
 .notice { margin: var(--space-3) 0; }
-@media (max-width: 850px) { .builder-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1200px) { .color-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 850px) {
+	.builder-grid, .builder-tools { grid-template-columns: minmax(0, 1fr); }
+	.builder-preview-column { position: sticky; top: var(--space-2); z-index: 5; order: -1; }
+	.builder-preview-column > .builder-card { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--space-2); align-items: center; padding: var(--space-2); }
+	.builder-preview-column h2 { grid-column: 1 / -1; margin: 0; }
+	.builder-preview-column .dm32-radio-preview { grid-row: span 2; width: min(100%, 6rem); margin: 0; }
+	.builder-preview-column p { margin: 0; font-size: var(--text-xs); }
+}
 @media (max-width: 520px) {
 	.color-fields-grid { grid-template-columns: minmax(0, 1fr); }
 	.color-editor-row { grid-template-columns: 4.25rem minmax(0, 1fr); }

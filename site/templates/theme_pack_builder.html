@@ -6,22 +6,8 @@
 	<p class="lead">Choose colors for all 18 theme fields, save palettes in this browser, and assemble a pack of up to 10 themes.</p>
 </section>
 
-<section class="wrap section builder-grid" id="theme-builder" data-presets="{{root}}data/theme-pack-presets.json" aria-label="Theme designer">
-	<div class="builder-column">
-		<section class="builder-card" aria-labelledby="library-title">
-			<div class="library-heading">
-				<div><h2 id="library-title">Theme library</h2></div>
-				<div>
-					<button class="btn btn-secondary" type="button" id="import-json-button">Import theme JSON</button>
-					<input type="file" id="import-json-file" accept="application/json,.json" hidden>
-				</div>
-			</div>
-			<p class="muted">Presets include the Buckeyes and Wolverines palettes created for this project, plus the Harbor sample. Your saved themes stay in this browser. Built-in radio themes are already on the radio and do not need to be packed.</p>
-			<div id="theme-library" class="theme-library" aria-live="polite">
-				<p class="muted">Loading the included palettes…</p>
-			</div>
-		</section>
-
+<section class="wrap section builder-page" id="theme-builder" data-presets="{{root}}data/theme-pack-presets.json" aria-label="Theme designer">
+	<div class="builder-grid">
 		<section class="builder-card" aria-labelledby="editor-title">
 			<h2 id="editor-title">Create or edit a theme</h2>
 			<form id="theme-editor" novalidate>
@@ -38,31 +24,47 @@
 				</div>
 			</form>
 		</section>
+
+		<aside class="builder-preview-column" aria-label="Live theme preview">
+			<section class="builder-card" aria-labelledby="preview-title">
+				<h2 id="preview-title">Live preview</h2>
+				<div id="theme-preview" class="dm32-radio-preview" role="img" aria-label="DM32 radio with a live theme preview on its display">
+					<img class="dm32-radio-image" src="{{root}}static/img/dm32-radio-preview.jpg" alt="" aria-hidden="true" decoding="async">
+					<div class="dm32-screen" aria-hidden="true">
+						<div class="rf-statusbar">
+							<div class="rf-status-mode"><span class="rf-idle">IDLE</span><span class="rf-protocol">DMR</span></div>
+							<div class="rf-status-indicators">
+								<span class="rf-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+								<span class="rf-battery"><span class="rf-battery-icon"><i></i></span><span>84%</span></span>
+							</div>
+						</div>
+						<div class="rf-zone-row"><span>Local repeaters</span><span class="rf-channel-count">3/16</span></div>
+						<div class="rf-home-channel"><span class="rf-channel-number">3</span><span class="rf-channel-name">COUNTY DMR</span></div>
+						<div class="rf-talkgroup"><span class="rf-talkgroup-arrow">→</span><span>TG 3100 USA</span></div>
+						<div class="rf-channel-details"><span>TS1</span><span>CC1</span><span>1W</span></div>
+						<div class="rf-divider"></div>
+						<div class="rf-home-empty">No calls heard yet</div>
+						<div class="rf-softkeys"><span>OK Menu</span><span>* Quick</span></div>
+					</div>
+				</div>
+				<p class="small muted">Preview the home-screen layout. Colors can look slightly different on the radio because its display uses RGB565.</p>
+			</section>
+		</aside>
 	</div>
 
-	<aside class="builder-column" aria-label="Theme preview and pack">
-		<section class="builder-card" aria-labelledby="preview-title">
-			<h2 id="preview-title">Live preview</h2>
-			<div id="theme-preview" class="dm32-radio-preview" role="img" aria-label="DM32 radio with a live theme preview on its display">
-				<img class="dm32-radio-image" src="{{root}}static/img/dm32-radio-preview.jpg" alt="" aria-hidden="true" decoding="async">
-				<div class="dm32-screen" aria-hidden="true">
-					<div class="rf-statusbar">
-						<div class="rf-status-mode"><span class="rf-idle">IDLE</span><span class="rf-protocol">DMR</span></div>
-						<div class="rf-status-indicators">
-							<span class="rf-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-							<span class="rf-battery"><span class="rf-battery-icon"><i></i></span><span>84%</span></span>
-						</div>
-					</div>
-					<div class="rf-zone-row"><span>Local repeaters</span><span class="rf-channel-count">3/16</span></div>
-					<div class="rf-home-channel"><span class="rf-channel-number">3</span><span class="rf-channel-name">COUNTY DMR</span></div>
-					<div class="rf-talkgroup"><span class="rf-talkgroup-arrow">→</span><span>TG 3100 USA</span></div>
-					<div class="rf-channel-details"><span>TS1</span><span>CC1</span><span>1W</span></div>
-					<div class="rf-divider"></div>
-					<div class="rf-home-empty">No calls heard yet</div>
-					<div class="rf-softkeys"><span>OK Menu</span><span>* Quick</span></div>
+	<div class="builder-tools">
+		<section class="builder-card" aria-labelledby="library-title">
+			<div class="library-heading">
+				<div><h2 id="library-title">Theme library</h2></div>
+				<div>
+					<button class="btn btn-secondary" type="button" id="import-json-button">Import theme JSON</button>
+					<input type="file" id="import-json-file" accept="application/json,.json" hidden>
 				</div>
 			</div>
-			<p class="small muted">Preview the home-screen layout. Colors can look slightly different on the radio because its display uses RGB565.</p>
+			<p class="muted">Presets include the Buckeyes and Wolverines palettes created for this project, plus the Harbor sample. Your saved themes stay in this browser. Built-in radio themes are already on the radio and do not need to be packed.</p>
+			<div id="theme-library" class="theme-library" aria-live="polite">
+				<p class="muted">Loading the included palettes…</p>
+			</div>
 		</section>
 
 		<section class="builder-card pack-card" aria-labelledby="pack-title">
@@ -85,5 +87,5 @@
 				<p class="small muted">The uploader transfers theme data to the radio; it does not flash firmware.</p>
 			</div>
 		</section>
-	</aside>
+	</div>
 </section>

@@ -139,14 +139,15 @@ function setPreviewPalette(element, palette) {
 function fieldPreview(key, label) {
 	const figure = document.createElement("figure");
 	figure.className = "color-preview";
+	figure.dataset.field = key;
 	figure.setAttribute("role", "img");
-	figure.setAttribute("aria-label", `${label} starter sample on the home screen`);
+	figure.setAttribute("aria-label", `${label} color sample on the home screen`);
 	const screen = document.createElement("div");
 	screen.className = `color-preview-screen color-preview-${key}`;
 	screen.innerHTML = FIELD_PREVIEWS[key];
 	setPreviewPalette(screen, DEFAULT_COLORS);
 	const caption = document.createElement("figcaption");
-	caption.textContent = "Starter";
+	caption.textContent = "Color sample";
 	figure.append(screen, caption);
 	return figure;
 }
@@ -197,10 +198,13 @@ function createColorFields() {
 		hex.spellcheck = false;
 		hex.inputMode = "text";
 		hex.setAttribute("aria-label", `${label} hex color`);
-		picker.addEventListener("input", () => { hex.value = picker.value.toUpperCase(); renderPreview(); });
+		const updateFromPicker = () => { hex.value = picker.value.toUpperCase(); renderPreview(); };
+		picker.addEventListener("input", updateFromPicker);
+		picker.addEventListener("change", updateFromPicker);
 		hex.addEventListener("input", () => {
 			const color = normalizeColor(hex.value);
-			if (color) picker.value = color;
+			if (!color) return;
+			picker.value = color;
 			renderPreview();
 		});
 		hex.addEventListener("blur", () => {
@@ -229,6 +233,10 @@ function renderPreview(colors = null) {
 	const palette = colors || Object.fromEntries(FIELDS.map(([key]) => [key, normalizeColor(byId(`hex-${key}`)?.value) || DEFAULT_COLORS[key]]));
 	const preview = byId("theme-preview");
 	setPreviewPalette(preview, palette);
+	for (const [key] of FIELDS) {
+		const screen = colorGrid.querySelector(`.color-preview[data-field="${key}"] .color-preview-screen`);
+		if (screen) setPreviewPalette(screen, { ...DEFAULT_COLORS, [key]: palette[key] });
+	}
 }
 
 function swatches(colors) {
@@ -654,10 +662,4 @@ byId("import-json-button").addEventListener("click", () => byId("import-json-fil
 byId("import-json-file").addEventListener("change", () => importJson(byId("import-json-file").files?.[0]));
 downloadPackButton.addEventListener("click", exportBinary);
 downloadJsonButton.addEventListener("click", exportJson);
-for (const [key] of FIELDS) {
-	byId(`hex-${key}`).addEventListener("input", () => {
-		const value = normalizeColor(byId(`hex-${key}`).value);
-		if (value) byId(`color-${key}`).value = value;
-	});
-}
 loadPresets();
