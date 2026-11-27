@@ -27,24 +27,22 @@ with theme-pack support; this fork currently enables it in the DM-32UV satellite
 
 1. **Install compatible firmware first.** Use the firmware installer and the theme-pack-enabled build for your radio.
    An older build or the standard release firmware will report that theme packs are unsupported.
-2. **Design your palettes.** Copy [`themes/sample-theme-pack.json`](themes/sample-theme-pack.json), then edit the theme
-   names and colors. Each theme needs all 18 color fields listed in [Theme packs](docs/spec/theme-packs.md), written as
-   `#RRGGBB` values. Keep text readable against its background: for example, `fg` on `bg`, `focus_fg` on `focus`,
-   `pill_fg` on `tx`, and `pill_dark_fg` on `rx` and `warn`. A pack can contain 1 to 21 themes; each name can be up to
-   23 UTF-8 bytes.
-3. **Build and check the pack.** From the repository folder, run:
+2. **Start the local theme builder.** From the repository folder, run:
 
    ```sh
-   python3 tools/theme_pack.py build themes/my-themes.json build/theme-packs/my-themes.rftheme
-   python3 tools/theme_pack.py inspect build/theme-packs/my-themes.rftheme
+   py tools/theme_pack_local_site.py
+   py -m http.server 8000
    ```
 
-   On Windows, use `py` instead of `python3`.
-4. **Upload it.** Open the **Tools → Theme Packs** page for a deployment of this fork in Chrome or Edge, connect the
-   radio over USB, choose the `.rftheme` file, and select **Install theme pack**. If previewing the website from a local
-   checkout, install its Python requirements (`python3 -m pip install -r site/requirements.txt`) and run
-   `python3 site/build.py --serve`; then open <http://localhost:8000/tools/themes/index.html>. The local website also
-   needs the build tools described in [Website development](docs/dev/website.md).
+   Then open <http://localhost:8000/tools/theme_pack_builder.html> in Chrome or Edge. The builder includes the
+   Buckeyes, Wolverines, and Harbor palettes, lets you edit all 18 colors, and saves your own named themes in this
+   browser. Add up to 10 themes to a pack. Save the editable JSON as a backup if you want to keep or share your work.
+3. **Download the radio pack.** Select **Download radio pack (.rftheme)**. The builder encodes the theme data in the
+   radio's version 1 pack format. Each theme name can use up to 23 UTF-8 bytes.
+4. **Upload it.** Open <http://localhost:8000/build/theme-packs/uploader.html>, connect the radio over USB, choose the
+   downloaded `.rftheme` file, and select **Install theme pack**. The uploader requires a compatible desktop browser
+   with Web Serial support. If you already use the generated site uploader instead, open its **Tools → Theme Packs**
+   page and choose the same file there.
 5. **Choose the theme.** Wait for the uploader to verify the write, restart the radio, and select the theme in
    **Settings → Display**.
 
