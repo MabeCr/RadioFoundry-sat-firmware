@@ -185,7 +185,25 @@ class Site:
 			"f4-stub.json": repo.f4_stub(),
 			"screens.json": self.screens,
 			"releases.json": {"releases": self.release_list()},
+			"theme-pack-presets.json": self.theme_pack_presets(),
 		}
+
+	def theme_pack_presets(self):
+		"""Palettes offered by the theme builder, sourced from the editable pack JSON files."""
+		out = []
+		seen = set()
+		for filename, source in (("ohio-state-buckeyes.json", "Ohio State Buckeyes"),
+					("michigan-wolverines.json", "Michigan Wolverines"),
+					("sample-theme-pack.json", "Sample palette")):
+			with open(repo.path("themes", filename), encoding="utf-8") as f:
+				doc = json.load(f)
+			for theme in doc["themes"]:
+				key = theme["name"].casefold()
+				if key in seen:
+					continue
+				seen.add(key)
+				out.append({"name": theme["name"], "colors": theme["colors"], "source": source})
+		return {"themes": out}
 
 	def firmware_line(self, lang):
 		"""The footer's firmware release (what the flasher installs) and the changelog: the GitHub releases, or main's
@@ -224,7 +242,8 @@ class Site:
 		with open(p, "w", encoding="utf-8") as f:
 			f.write(text)
 
-	def page(self, lang, rel, title, content, page_class, description="", scripts="", nav="", footer="", styles=""):
+	def page(self, lang, rel, title, content, page_class, description="", scripts="", nav="", footer="", styles="",
+		 hide_languages=False):
 		"""A page of the site: rel is its path inside the language's tree; footer goes above the site footer's line.
 		styles: stylesheet links ahead of the site's own, so site.css overrides them"""
 		prefix = self.i18n.prefix(lang)
@@ -233,7 +252,7 @@ class Site:
 		root = "../" * depth
 		meta = next(l for l in self.i18n.languages if l["code"] == lang)
 		# the switcher and the alternate links only when there is another language: each names this page in it
-		many = len(self.i18n.languages) > 1
+		many = len(self.i18n.languages) > 1 and not hide_languages
 		# a compact menu (details: works without script). Each link carries its language's own words for the
 		# first-visit hint (static/js/langhint.js), which offers that language in that language
 		langs = ('<details class="lang-switch"><summary aria-label="%s" title="%s">%s</summary><nav aria-label="%s">%s</nav>'
@@ -380,6 +399,8 @@ class Site:
 			self.tools_page(lang)
 			self.satellite_tle_page(lang)
 			self.theme_pack_page(lang)
+			if lang == self.i18n.default:
+				self.theme_pack_builder_page(lang)
 			self.support_pages(lang)
 			self.codeplug_page(lang)
 			self.docs_pages(lang)
@@ -782,6 +803,13 @@ class Site:
 			   '<script type="module" src="{{root}}static/js/theme-pack-tool.js?v=%s"></script>' % (strings, self.asset_version))
 		self.page(lang, "tools/themes/index.html", self.t(lang, "tools.theme_pack.title"),
 			  self.tpl.render("theme_pack", {}, lang), "tools", scripts=scripts, nav="tools")
+
+	def theme_pack_builder_page(self, lang):
+		scripts = '<script type="module" src="{{root}}static/js/theme-pack-builder.js?v=%s"></script>' % self.asset_version
+		styles = '<link rel="stylesheet" href="{{root}}static/css/theme-pack-builder.css?v=%s">' % self.asset_version
+		self.page(lang, "tools/themes/builder.html", "Theme Pack Builder",
+			  self.tpl.render("theme_pack_builder", {}, lang), "tools", scripts=scripts, styles=styles, nav="tools",
+			  hide_languages=True)
 
 	def support_pages(self, lang):
 		"""Support: the FAQ, the reminder to update, and the support download (static/js/supportpage.js) with the About

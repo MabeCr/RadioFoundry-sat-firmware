@@ -541,24 +541,47 @@ async function importJson(file) {
 
 async function loadPresets() {
 	const loaded = [];
-	for (const preset of PRESETS) {
+	const manifestUrl = byId("theme-builder")?.dataset.presets;
+	if (manifestUrl) {
 		try {
-			const response = await fetch(`../themes/${preset.file}`);
+			const response = await fetch(manifestUrl);
 			if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 			const doc = await response.json();
-			if (doc.format !== "rfoundry-theme-pack" || doc.version !== 1 || !Array.isArray(doc.themes)) continue;
-			for (const [index, theme] of doc.themes.entries()) {
-				if (!theme || typeof theme.name !== "string" || !theme.colors) continue;
-				loaded.push({
-					id: `preset:${preset.file}:${index}`,
-					name: theme.name,
-					colors: themeColors(theme.colors),
-					custom: false,
-					source: preset.source,
-				});
+			if (Array.isArray(doc.themes)) {
+				for (const [index, theme] of doc.themes.entries()) {
+					if (!theme || typeof theme.name !== "string" || !theme.colors) continue;
+					loaded.push({
+						id: `preset:site:${index}`,
+						name: theme.name,
+						colors: themeColors(theme.colors),
+						custom: false,
+						source: theme.source || "Included preset",
+					});
+				}
 			}
 		} catch (error) {
-			console.warn(`Could not load preset ${preset.file}:`, error);
+			console.warn("Could not load the site theme presets:", error);
+		}
+	} else {
+		for (const preset of PRESETS) {
+			try {
+				const response = await fetch(`../themes/${preset.file}`);
+				if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+				const doc = await response.json();
+				if (doc.format !== "rfoundry-theme-pack" || doc.version !== 1 || !Array.isArray(doc.themes)) continue;
+				for (const [index, theme] of doc.themes.entries()) {
+					if (!theme || typeof theme.name !== "string" || !theme.colors) continue;
+					loaded.push({
+						id: `preset:${preset.file}:${index}`,
+						name: theme.name,
+						colors: themeColors(theme.colors),
+						custom: false,
+						source: preset.source,
+					});
+				}
+			} catch (error) {
+				console.warn(`Could not load preset ${preset.file}:`, error);
+			}
 		}
 	}
 	const seen = new Set();
