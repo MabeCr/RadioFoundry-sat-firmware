@@ -153,6 +153,7 @@ is `tools/bringup.py list --radio <id>`.
 | `key_lock` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | ✕ |
 | `channel_knob` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass | pass |
 | `ui_settings` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | partial, needs re-run | ✕ |
+| `theme_packs` | off | off | off | off | off | off | off | off |
 | `diag` | not recorded | not recorded | not recorded | not recorded | not recorded | not recorded | pass, needs re-run | ✕ |
 | `backlight_test` | off | off | off | off | off | off | off | ✕ |
 | `ui_color` | not recorded | not recorded | ✕ | not recorded | not recorded | not recorded | ✕ | ✕ |
@@ -311,6 +312,7 @@ clock`; ? = not known yet). No driver reads the clock yet ([radio-features.md](s
 | `SAT_CHART` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_ALERT` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | `SAT_SPLASH` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| `THEME_PACKS` | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | `KEY_ASSIGN` | ● | ● | ● | ● | ● | ● | ● | ● |
 | `CHANNEL_LIST` | ● | ● | ● | ● | ● | ● | ● | ✕ |
 | `CHANNEL_EDIT` | ● | ● | ● | ● | ● | ● | ● | ✕ |

@@ -1,0 +1,31 @@
+{
+  "_spdx": "SPDX-License-Identifier: MIT",
+  "_copyright": "Copyright (c) 2026 The RadioFoundry Authors",
+  "format": "rfoundry-theme-pack",
+  "version": 1,
+  "themes": [
+    {
+      "name": "Buckeye",
+      "colors": {
+        "bg": "#000000",
+        "fg": "#FFFFFF",
+        "dim": "#666666",
+        "line": "#BB0000",
+        "tx": "#BB0000",
+        "rx": "#FFFFFF",
+        "warn": "#BB0000",
+        "idle": "#666666",
+        "pill_fg": "#FFFFFF",
+        "pill_dark_fg": "#000000",
+        "focus": "#BB0000",
+        "hint_bg": "#666666",
+        "priv": "#BB0000",
+        "idle_fg": "#FFFFFF",
+        "focus_fg": "#FFFFFF",
+        "chnum": "#666666",
+        "strip_bg": "#666666",
+        "strip_warn": "#BB0000"
+      }
+    }
+  ]
+}

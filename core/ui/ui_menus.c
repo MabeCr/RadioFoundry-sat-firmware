@@ -7,6 +7,7 @@
 #include <string.h>
 #include "board.h"
 #include "ui_nav.h"
+#include "theme_pack.h"
 #include "ui_svc.h"
 #include "ui_svc_aprs.h"
 #include "aprs/aprs_fmt.h"
@@ -7517,11 +7518,25 @@ static void set_value_text(const set_item_t *s, int32_t v, char *out, size_t len
 			}
 		}
 #endif
+		if (s->id == UI_SET_THEME && v >= UI_THEME_BUILTIN_COUNT && v < UI_THEME_ALL) {
+			sb_str(&b, TR(SET_VALUE_THEME_DARK, "Dark"));
+			break;
+		}
 		for (uint8_t k = 0; k < s->n; k++) {
 			if (s->values[k] == v) {
 				sb_str(&b, tr(s->names[k]));
 				return;
 			}
+		}
+		if (s->id == UI_SET_THEME && CONFIG_THEME_PACKS && v >= UI_THEME_ALL) {
+			char name[THEME_PACK_NAME_LEN];
+			uint16_t colors[THEME_PACK_COLOR_COUNT];
+			if (ui_theme_pack_get((uint8_t)(v - UI_THEME_ALL), name, colors)) {
+				sb_str(&b, name);
+				return;
+			}
+			sb_str(&b, TR(SET_VALUE_THEME_DARK, "Dark"));
+			return;
 		}
 		sb_i32(&b, v);
 		break;
@@ -7715,6 +7730,19 @@ static void group_select(uint16_t i, bool hold)
 		set_store(s, !v);
 		break;
 	case ST_LIST: {
+		if (s->id == UI_SET_THEME && CONFIG_THEME_PACKS) {
+			uint8_t count = (uint8_t)(s->n + ui_theme_pack_count());
+			uint8_t k = 0;
+			while (k < s->n && s->values[k] != v)
+				k++;
+			if (k == s->n && v >= UI_THEME_ALL && v - UI_THEME_ALL < ui_theme_pack_count())
+				k = (uint8_t)(s->n + v - UI_THEME_ALL);
+			else if (k == s->n)
+				k = 0u;
+			uint8_t next = count != 0u ? (uint8_t)((k + 1u) % count) : 0u;
+			set_store(s, next < s->n ? s->values[next] : UI_THEME_ALL + next - s->n);
+			break;
+		}
 		uint8_t k = 0;
 		while (k < s->n && s->values[k] != v)
 			k++;

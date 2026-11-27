@@ -766,7 +766,8 @@ differ in color (`home_plain`) are left out at 128x64. The list is set in
 `.github/workflows/ui-gallery.yml` (`docs/dev/ci.md`), and `make ui-gallery` reads it from there. Home (filled and plain
 status bar), RX, TX, the Channels list and Settings > Display are also drawn in the light, high-contrast and night
 themes, as `<screen>__light.png`, `<screen>__high_contrast.png` and `<screen>__night.png` (color displays).
-In a satellite build (`CONFIG_SAT`) also `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png` and `<screen>__orange_inverse.png`.
+In a satellite build (`CONFIG_SAT`) also `<screen>__terminal.png`, `<screen>__orange.png`, `<screen>__terminal_inverse.png`
+and `<screen>__orange_inverse.png`.
 
 
 Geometries: `160x120i5` (160x120 visible, 5 px inset left and right), `160x128` (both 160 px classes render through the 4 bpp frame buffer, as the boards do),
@@ -837,7 +838,10 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
 - Freq trim (Advanced, the last row: Up from the top) is shown only on a radio whose board has `hal_radio_t.ref_trim`
   (`UI_FEAT_REF_TRIM`). The row shows the trim in ppm and opens the Freq Trim page (`freq-trim`, section 2).
 - Voice prompts are dimmed ("Voice prompts aren't built yet: no recorded speech").
-- Theme switches the color palette (dark, light, high contrast, night; in a satellite build also terminal, orange, terminal inverse, orange inverse, the phosphor themes). Night is four shades of pure red on black
+- Theme switches the color palette (dark, light, high contrast, night; in a satellite build also terminal, orange,
+  terminal inverse and orange inverse; with `CONFIG_THEME_PACKS`, installed data-only pack themes use IDs 11 through 31;
+  IDs 8 through 10 stay reserved for compatibility; [theme-packs.md](theme-packs.md)). The theme-pack builder offers
+  Aurora, Orbit, Miami, Buckeye and Wolverines as presets. Night is four shades of pure red on black
   (red 255, 176, 112, 56; green and blue 0), for eyes adapted to the dark: the meanings other themes give hues take
   brightness and their word instead (P5). Text, TX, warnings, the focus and the filled strip are the brightest red,
   with black text on them; RX, privacy and secondary text the next; separators and dimmed rows the third; the darkest
@@ -866,8 +870,8 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
   with Default the focus is a dark green bar and the strip is plain (Default has no strip color of its own); any other
   color applies as on the dark theme, to the focus, the channel number and, with Filled status bar on, the strip. An
   edited row or tile and a toast are outlines as in Night, and no white is drawn with Default. `ui_theme_is_mono()`
-  covers both themes; `ui_theme_is_night()` alone dims the two rows. The theme value 4 doesn't fit `theme` bits 0-1, so its high
-  bit is kept in `updown_home` bit 7 ([settings-store.md](settings-store.md)).
+  covers both themes; `ui_theme_is_night()` alone dims the two rows. Theme values 4..31 use `sat_flags` bits 2..4 in a
+  satellite build ([settings-store.md](settings-store.md) 3).
 - Orange theme (`ui_theme_set` 5) is Terminal in amber phosphor: orange text, lines and focus bar on black, green for
   receive, a red pill with black text for transmit, yellow for warnings. It takes a Highlight color like Terminal, and
   `ui_theme_is_terminal()` and `ui_theme_is_mono()` cover it too.
@@ -876,6 +880,10 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
   warnings brown (blue on orange). Their pills carry text in the background's color (`pill_fg`, `pill_dark_fg`), the
   focus is a black bar with background-colored text, and a toast and an edited row or tile are the normal reverse
   video: a light screen has no night vision to protect. Like Night they ignore Highlight color and Filled status bar
+
+- A pack theme uses its own validated RGB565 palette and name. Default Highlight leaves the pack's focus, strip and
+  text colors intact; an explicit Highlight choice applies the standard accent palette. Packs require a satellite build
+  with `CONFIG_THEME_PACKS`; see [theme-packs.md](theme-packs.md). The boot splash keeps its own colors.
   (`ui_theme_is_inverse()`; their rows are dimmed with "This theme uses its own colors"). The sky plot uses dark shades.
 - Night theme (`ui_theme_set` 3) protects night vision: a black background, pure reds for text and lines, dim green
   only for receive, dim amber only for warnings, nothing blue or white. TX is the brightest red, in a pill with black

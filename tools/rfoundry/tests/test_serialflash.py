@@ -510,6 +510,41 @@ class Command(unittest.TestCase):
             self.assertEqual(calls, [("stub", "/dev/fake", app)])
             self.assertIn("SHA-256 verified", so)
 
+    def test_release_packages_theme_enabled_satellite_variant(self):
+        """The satellite firmware has a distinct name and manifest with the satellite feature set."""
+        sys.path.insert(0, os.path.join(HERE, "..", ".."))
+        import release
+        satellite = ["CONFIG_SAT=y", "CONFIG_THEME_PACKS=y", "CONFIG_UI_COLOR=y", "CONFIG_DEBUGLINK=y"]
+
+        def print_values(board_id, goal, variant=None, options=(), make_args=()):
+            if goal == "print-satellite-vars":
+                return satellite
+            if goal == "print-config":
+                self.assertEqual(make_args, satellite)
+                return [arg.removeprefix("CONFIG_") for arg in satellite]
+            return []
+
+        with tempfile.TemporaryDirectory() as d:
+            bp = os.path.join(d, "rfoundry_dm32.bin")
+            with open(bp, "wb") as f:
+                f.write(bytes([0x5A]) * 4096)
+            out = os.path.join(d, "dist")
+            with mock.patch.object(release, "make_print", side_effect=print_values):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    release.main(["--board", "dm32", "--satellite", "--version", "v9.9.9", "--bin", bp,
+                                  "--out", out, "--git", GIT, "--toolchain", "csky test"])
+            image = os.path.join(out, "rfoundry-dm32-satellite-v9.9.9.bin")
+            manifest = mf.load(os.path.join(out, "rfoundry-dm32-satellite-v9.9.9.json"))
+            self.assertEqual(manifest["variant"], "satellite")
+            self.assertIn("THEME_PACKS", manifest["features"].split(","))
+            self.assertEqual(manifest["image"]["file"], os.path.basename(image))
+            with open(image, "rb") as f:
+                packaged = f.read()
+            self.assertIs(mf.verify(manifest, packaged), boards.get("dm32"))
+            with open(os.path.join(out, "SHA256SUMS"), encoding="ascii") as f:
+                sums = f.read()
+            self.assertIn(hashlib.sha256(packaged).hexdigest() + "  " + os.path.basename(image), sums)
+
     def test_release_refuses_a_merged_image(self):
         sys.path.insert(0, os.path.join(HERE, "..", ".."))
         import release

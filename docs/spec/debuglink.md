@@ -118,6 +118,7 @@ All multi-byte numbers are little endian. Text is ASCII, lines end with `\n`.
 | `0x24` | AIR | operation u8 + arguments (3.28); `CONFIG_AIR_RAW` builds, else status 1 | samples, receive chunks, the session's fit, or none (3.28) |
 | `0x25` | SUPPORT | operation u8 (3.29); `CONFIG_SUPPORT_INFO` builds, else status 4 | key=value text (3.29) |
 | `0x26` | SATELLITE | operation u8 + arguments (3.30); `CONFIG_SATELLITE_TLE` builds only | capability, inventory, or transaction result (3.30) |
+| `0x27` | THEME_PACK | operation u8 + bounded arguments (3.32); `CONFIG_THEME_PACKS` and mapped area only | pack capability, transfer status (3.32) |
 | `0x30` | SAT | operation u8 + arguments (3.31); `CONFIG_SAT` builds, else status 4 | errors, a look, a pass, or a bench result (3.31) |
 
 ### 3.1 VERSION
@@ -1120,6 +1121,25 @@ the radio's own profile when it has one (the `sat.profile` view key), else by th
 both lines have the right length and check digits. `tests/hil/test_sat.py` compares the radio's looks and passes with
 `tests/host/sat_ref.h` and records the model's time a run.
 
+### 3.32 THEME_PACK
+
+`DL_CMD_THEME_PACK` (`0x27`) installs or removes a data-only theme pack in the board's dedicated theme area
+([theme-packs.md](theme-packs.md)). It is available only with `CONFIG_THEME_PACKS` and a valid mapped area. The host
+never supplies a flash address. Operations are refused while transmitting and use the storage lock.
+
+| Op | Name | Arguments | Reply after the status |
+|---|---|---|---|
+| 0 | INFO | none | format version u8 (1), maximum pack size u16 (4096), installed theme count u8 |
+| 1 | BEGIN | total file length u16 | none; erases only the mapped theme-pack sector and starts a transfer |
+| 2 | DATA | offset u16, 1..61 bytes | none; offsets must be sequential |
+| 3 | COMMIT | none | none; validates the complete stored pack and makes its themes available |
+| 4 | REMOVE | none | none; erases only the mapped theme-pack sector |
+
+The total transfer is limited to one 4096-byte erase unit. The website validates the package before BEGIN. A commit
+re-reads and validates the pack; an invalid or interrupted pack exposes no pack themes, and built-in themes remain
+available. Since the area is one erase unit, a power loss while replacing it may lose the previous pack. No operation
+accepts an arbitrary address or writes codeplug, settings, or firmware.
+
 ## 4. Safety
 
 - PTT: a firmware time-out on every injected PTT (10 s maximum); the host tool refuses longer holds; the radio
@@ -1153,6 +1173,8 @@ both lines have the right length and check digits. `tests/hil/test_sat.py` compa
 - SAT changes RAM (the tracked satellite, the observer, the clock) and the satellite area only, through the journal;
   it never writes a foreign area unless CLEAR's token is given. It tunes and keys nothing, and bounds each request's
   work (3.24).
+- THEME_PACK writes the single mapped theme-pack sector only, through sequential offsets; no request contains a flash
+  address (3.32).
 - CODEPLUG writes only codeplug blocks of the open-firmware image, never the settings ring, the journal, the native
   area, the staging area or the calibration window, through the journal or a staged commit (3.20).
 - The debug link never enters hotspot or CPS mode, and never takes bytes that belong to an MMDVM frame or a CPS

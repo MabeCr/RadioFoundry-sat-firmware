@@ -83,7 +83,8 @@ uint32_t storage_staging_size(void)
 	uint32_t a = m->staging_addr, n = m->staging_size;
 	bool clear = !overlaps(a, n, m->settings_addr, m->settings_size) && !overlaps(a, n, m->journal_addr, 2u * STORAGE_SECTOR) &&
 		     !overlaps(a, n, m->openfw_eeprom, 0x10000u) && !overlaps(a, n, m->openfw_flash, m->openfw_end - m->openfw_flash) &&
-		     !overlaps(a, n, m->native_addr, m->native_size) && !overlaps(a, n, m->calibration_addr, m->calibration_size);
+		     !overlaps(a, n, m->native_addr, m->native_size) && !overlaps(a, n, m->calibration_addr, m->calibration_size) &&
+		     !overlaps(a, n, m->theme_pack_addr, m->theme_pack_size);
 	return clear ? n - n % STORAGE_SECTOR : 0;
 }
 
@@ -159,7 +160,8 @@ static bool target_ok(const hal_flash_map_t *m, uint32_t target)
 	uint32_t j = m->journal_addr;
 
 	return (target % STORAGE_SECTOR) == 0 && target < board.flash->size && target + STORAGE_SECTOR > target &&
-	       !(target + STORAGE_SECTOR > j && target < j + 2u * STORAGE_SECTOR);
+	       !(target + STORAGE_SECTOR > j && target < j + 2u * STORAGE_SECTOR) &&
+	       !overlaps(target, STORAGE_SECTOR, m->theme_pack_addr, m->theme_pack_size);
 }
 
 // A patch header in J0 (h: its first P_DATA bytes): the bytes of J0 it uses, 0 if it isn't one or is torn

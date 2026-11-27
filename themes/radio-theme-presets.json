@@ -1,0 +1,38 @@
+{
+  "_spdx": "SPDX-License-Identifier: MIT",
+  "_copyright": "Copyright (c) 2026 The RadioFoundry Authors",
+  "format": "rfoundry-theme-pack",
+  "version": 1,
+  "themes": [
+    {
+      "name": "Aurora",
+      "colors": {
+        "bg": "#040C1C", "fg": "#B8F0E0", "dim": "#60A0A0", "line": "#285C68",
+        "tx": "#FF6870", "rx": "#60F0A8", "warn": "#FFC848", "idle": "#287068",
+        "pill_fg": "#FFFFFF", "pill_dark_fg": "#000000", "focus": "#104040", "hint_bg": "#081C2C",
+        "priv": "#B090FF", "idle_fg": "#FFFFFF", "focus_fg": "#B8F0E0", "chnum": "#60A0A0",
+        "strip_bg": "#D8D8D8", "strip_warn": "#884400"
+      }
+    },
+    {
+      "name": "Orbit",
+      "colors": {
+        "bg": "#04081C", "fg": "#D0E0FF", "dim": "#7898D0", "line": "#304880",
+        "tx": "#FF6868", "rx": "#50E0F0", "warn": "#FFCC48", "idle": "#305098",
+        "pill_fg": "#FFFFFF", "pill_dark_fg": "#000000", "focus": "#102860", "hint_bg": "#081434",
+        "priv": "#B890FF", "idle_fg": "#FFFFFF", "focus_fg": "#D0E0FF", "chnum": "#7898D0",
+        "strip_bg": "#D8D8D8", "strip_warn": "#884400"
+      }
+    },
+    {
+      "name": "Miami",
+      "colors": {
+        "bg": "#140420", "fg": "#FFB0E8", "dim": "#B870B0", "line": "#683078",
+        "tx": "#FF6098", "rx": "#40E8F0", "warn": "#FFD848", "idle": "#783090",
+        "pill_fg": "#FFFFFF", "pill_dark_fg": "#000000", "focus": "#481060", "hint_bg": "#240838",
+        "priv": "#B890FF", "idle_fg": "#FFFFFF", "focus_fg": "#FFB0E8", "chnum": "#B870B0",
+        "strip_bg": "#D8D8D8", "strip_warn": "#884400"
+      }
+    }
+  ]
+}

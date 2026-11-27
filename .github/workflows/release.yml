@@ -238,7 +238,8 @@ jobs:
           NOTES="Firmware images for the radios listed below, without the AMBE codec, and rfoundry for Linux, macOS and
           Windows. Flash with: rfoundry flash --release ${TAG}. rfoundry keeps the codec already in your radio when
           that is known to be safe, or writes it from your radio's stock firmware file (--stock). See
-          docs/user/02-installing.md."
+          docs/user/02-installing.md. If a board has a satellite image with theme-pack support, that separate image
+          is named with -satellite- and its manifest lists the feature cuts."
           # a beta tag (bN) is a pre-release: the site's default install (the latest release) skips it
           PRE=""
           if python3 tools/release_version.py prerelease "$TAG"; then PRE=--prerelease; fi

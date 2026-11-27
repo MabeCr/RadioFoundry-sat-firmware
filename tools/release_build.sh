@@ -3,8 +3,9 @@
 # Copyright (c) 2026 The RadioFoundry Authors
 #
 # Builds and packages every releasable board of one toolchain (docs/dev/release.md): each board whose board.toml has
-# [status] release = "stable", its default image and each build option value's image (tools/boards.py builds), each
-# packaged by tools/release.py into OUT. release.yml runs it once per toolchain, through the csky-elf image's run.sh
+# [status] release = "stable", its default image and each build option value's image (tools/boards.py builds), plus a
+# satellite image when that configuration enables theme packs. Each image is packaged by tools/release.py into OUT.
+# release.yml runs it once per toolchain, through the csky-elf image's run.sh
 # for C-SKY, so it needs only sh, make, git and a Python 3.11 or later.
 #
 #   tools/release_build.sh --toolchain arm --version v26.11 --out dist
@@ -48,4 +49,20 @@ for b in $(echo "$boards" | tr , ' '); do
 		# shellcheck disable=SC2086
 		"$PY" tools/release.py --board "$b" $opts --version "$VERSION" --out "$OUT"
 	done 3< "$builds"
+	# A board that enables theme packs in its satellite build has a separate data-flash mapping for the pack. Package
+	# that image beside the full build so users can choose it explicitly; its manifest lists the satellite feature cuts.
+	satellite_vars=$(make -s BOARD="$b" print-satellite-vars)
+	case " $satellite_vars " in
+	*" CONFIG_THEME_PACKS=y "*)
+		echo "== $b satellite (theme packs)"
+		tools/satellite.sh "$b" RELEASE="$RELEASE" -j"$JOBS"
+		stack=$(tools/satellite.sh "$b" RELEASE="$RELEASE" stack-check)
+		echo "$stack"
+		echo "$stack" | grep -qE '^stack check .*: every task fits' || {
+			echo "release_build: $b satellite stack check failed" >&2
+			exit 1
+		}
+		"$PY" tools/release.py --board "$b" --satellite --version "$VERSION" --out "$OUT"
+		;;
+	esac
 done
