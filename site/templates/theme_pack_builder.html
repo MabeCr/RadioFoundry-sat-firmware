@@ -46,27 +46,23 @@
 			<div id="theme-preview" class="dm32-radio-preview" role="img" aria-label="DM32 radio with a live theme preview on its display">
 				<img class="dm32-radio-image" src="{{root}}static/img/dm32-radio-preview.jpg" alt="" aria-hidden="true" decoding="async">
 				<div class="dm32-screen" aria-hidden="true">
-					<div class="dm32-statusbar">
-						<span class="dm32-battery"><span class="dm32-battery-level"></span></span>
-						<span class="dm32-status-lock">▣</span>
-						<span class="dm32-status-spacer"></span>
-						<span class="dm32-status-bt">ᛒ</span>
+					<div class="rf-statusbar">
+						<div class="rf-status-mode"><span class="rf-idle">IDLE</span><span class="rf-protocol">DMR</span></div>
+						<div class="rf-status-indicators">
+							<span class="rf-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+							<span class="rf-battery"><span class="rf-battery-icon"><i></i></span><span>84%</span></span>
+						</div>
 					</div>
-					<div class="dm32-group">GROUP 1</div>
-					<div class="dm32-channel dm32-channel-a">
-						<div class="dm32-channel-meta"><span></span><span class="dm32-channel-name">Zone01</span><span class="dm32-channel-number">001</span></div>
-						<div class="dm32-channel-scale"><span class="dm32-channel-tag">A</span><span class="dm32-scale"></span></div>
-						<div class="dm32-mode-row"><span class="dm32-mode-pill dm32-mode-selected">NFM</span><span class="dm32-mode-pill dm32-mode-private">M</span><span class="dm32-mode-pill dm32-mode-warning">W</span></div>
-					</div>
-					<div class="dm32-frequency"><span>145.500</span><small>00</small></div>
-					<div class="dm32-channel dm32-channel-b">
-						<div class="dm32-channel-meta"><span></span><span class="dm32-channel-name">Zone01</span><span class="dm32-channel-number">004</span></div>
-						<div class="dm32-channel-scale"><span class="dm32-channel-tag">B</span><span class="dm32-scale"></span></div>
-					</div>
-					<div class="dm32-screen-footer"><span>M/Y</span><span>A/R</span></div>
+					<div class="rf-zone-row"><span>Local repeaters</span><span class="rf-channel-count">3/16</span></div>
+					<div class="rf-home-channel"><span class="rf-channel-number">3</span><span class="rf-channel-name">COUNTY DMR</span></div>
+					<div class="rf-talkgroup"><span class="rf-talkgroup-arrow">→</span><span>TG 3100 USA</span></div>
+					<div class="rf-channel-details"><span>TS1</span><span>CC1</span><span>1W</span></div>
+					<div class="rf-divider"></div>
+					<div class="rf-home-empty">No calls heard yet</div>
+					<div class="rf-softkeys"><span>OK Menu</span><span>* Quick</span></div>
 				</div>
 			</div>
-			<p class="small muted">The preview uses the DM32 screen proportions. Radio colors may look slightly different because the display uses RGB565.</p>
+			<p class="small muted">Preview the home-screen layout. Colors can look slightly different on the radio because its display uses RGB565.</p>
 		</section>
 
 		<section class="builder-card pack-card" aria-labelledby="pack-title">
