@@ -5,7 +5,7 @@
   "version": 1,
   "themes": [
     {
-      "name": "Harbor",
+      "name": "Sample",
       "colors": {
         "bg": "#061826", "fg": "#D5F1EE", "dim": "#76A7A4", "line": "#305C60",
         "tx": "#FF7A70", "rx": "#4FD9B3", "warn": "#FFC85E", "idle": "#2E7770",

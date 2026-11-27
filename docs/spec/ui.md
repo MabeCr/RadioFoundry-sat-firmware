@@ -841,7 +841,7 @@ The state pill reads SCAN, in the warning color, in place of IDLE while a scan r
 - Theme switches the color palette (dark, light, high contrast, night; in a satellite build also terminal, orange,
   terminal inverse and orange inverse; with `CONFIG_THEME_PACKS`, installed data-only pack themes use IDs 11 through 31;
   IDs 8 through 10 stay reserved for compatibility; [theme-packs.md](theme-packs.md)). The theme-pack builder offers
-  Aurora, Orbit, Miami, Buckeye, Wolverines and Harbor as presets. Night is four shades of pure red on black
+  Aurora, Orbit, Miami, Buckeye and Wolverines as presets. Night is four shades of pure red on black
   (red 255, 176, 112, 56; green and blue 0), for eyes adapted to the dark: the meanings other themes give hues take
   brightness and their word instead (P5). Text, TX, warnings, the focus and the filled strip are the brightest red,
   with black text on them; RX, privacy and secondary text the next; separators and dimmed rows the third; the darkest

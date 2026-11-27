@@ -192,9 +192,10 @@ class Site:
 		"""Palettes offered by the theme builder, sourced from the editable pack JSON files."""
 		out = []
 		seen = set()
+		preset_ids = {"buckeye": "preset:site:0", "wolverines": "preset:site:1", "aurora": "preset:site:3",
+			      "orbit": "preset:site:4", "miami": "preset:site:5"}
 		for filename, source in (("ohio-state-buckeyes.json", "Ohio State colors"),
 					("michigan-wolverines.json", "Michigan Wolverines"),
-					("sample-theme-pack.json", "Sample palette"),
 					("radio-theme-presets.json", "Radio palette")):
 			with open(repo.path("themes", filename), encoding="utf-8") as f:
 				doc = json.load(f)
@@ -203,7 +204,8 @@ class Site:
 				if key in seen:
 					continue
 				seen.add(key)
-				out.append({"name": theme["name"], "colors": theme["colors"], "source": source})
+				out.append({"id": preset_ids.get(key, "preset:site:" + key), "name": theme["name"],
+					    "colors": theme["colors"], "source": source})
 		return {"themes": out}
 
 	def firmware_line(self, lang):

@@ -31,7 +31,6 @@ const FIELDS = [
 const PRESETS = [
 	{ file: "ohio-state-buckeyes.json", source: "Ohio State colors" },
 	{ file: "michigan-wolverines.json", source: "Michigan Wolverines" },
-	{ file: "sample-theme-pack.json", source: "Sample palette" },
 	{ file: "radio-theme-presets.json", source: "Radio palette" },
 ];
 
@@ -614,7 +613,7 @@ async function loadPresets() {
 				for (const [index, theme] of doc.themes.entries()) {
 					if (!theme || typeof theme.name !== "string" || !theme.colors) continue;
 					loaded.push({
-						id: `preset:site:${index}`,
+						id: typeof theme.id === "string" ? theme.id : `preset:site:${index}`,
 						name: theme.name,
 						colors: themeColors(theme.colors),
 						custom: false,
