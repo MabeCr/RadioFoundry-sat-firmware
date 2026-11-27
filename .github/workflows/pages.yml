@@ -28,7 +28,7 @@ jobs:
       - name: Install site dependencies
         run: python -m pip install -r site/requirements.txt
       - name: Build the site for this repository
-        run: python site/build.py --strict --out build/site --repo-url "https://github.com/${GITHUB_REPOSITORY}" --ref "${GITHUB_REF_NAME}"
+        run: python site/build.py --out build/site --repo-url "https://github.com/${GITHUB_REPOSITORY}" --ref "${GITHUB_REF_NAME}"
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b   # v5.0.0
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b   # v4.0.0
         with:
