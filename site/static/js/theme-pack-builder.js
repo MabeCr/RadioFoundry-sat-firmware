@@ -72,6 +72,8 @@ const packList = byId("pack-list");
 const statusNode = byId("builder-status");
 const downloadPackButton = byId("download-rftheme");
 const downloadJsonButton = byId("download-json");
+const previewZoom = byId("preview-zoom");
+const previewZoomValue = byId("preview-zoom-value");
 
 let presets = [];
 let customThemes = readStore(STORE_THEMES, []);
@@ -237,6 +239,14 @@ function renderPreview(colors = null) {
 		const screen = colorGrid.querySelector(`.color-preview[data-field="${key}"] .color-preview-screen`);
 		if (screen) setPreviewPalette(screen, { ...DEFAULT_COLORS, [key]: palette[key] });
 	}
+}
+
+function renderPreviewZoom() {
+	const zoom = Number(previewZoom.value);
+	byId("theme-preview").style.setProperty("--radio-zoom", String(zoom));
+	const value = `${Math.round(zoom * 100)}%`;
+	previewZoomValue.value = value;
+	previewZoomValue.textContent = value;
 }
 
 function swatches(colors) {
@@ -650,6 +660,8 @@ async function loadPresets() {
 
 createColorFields();
 renderPreview();
+previewZoom.addEventListener("input", renderPreviewZoom);
+renderPreviewZoom();
 byId("theme-editor").addEventListener("submit", saveTheme);
 byId("new-theme").addEventListener("click", () => { resetEditor(); setStatus("Ready for a new theme."); });
 byId("clear-pack").addEventListener("click", () => {
