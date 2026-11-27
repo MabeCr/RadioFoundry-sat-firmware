@@ -1,18 +1,22 @@
 <!-- SPDX-License-Identifier: MIT -->
 <!-- Copyright (c) 2026 The RadioFoundry Authors -->
-<section class="wrap section page-head">
+<section class="wrap section page-head builder-head">
 	<p class="eyebrow"><a href="{{root}}tools/themes/index.html">Theme Packs</a></p>
 	<h1>Theme Pack Builder</h1>
-	<p class="lead">Choose colors for all 18 theme fields, save palettes in this browser, and assemble a pack of up to 10 themes.</p>
+	<p class="lead">Choose colors for 18 fields, preview your theme, and build packs of up to 10.</p>
 </section>
 
 <section class="wrap section builder-page" id="theme-builder" data-presets="{{root}}data/theme-pack-presets.json" aria-label="Theme designer">
 	<div class="builder-grid">
 		<section class="builder-card" aria-labelledby="editor-title">
-			<h2 id="editor-title">Create or edit a theme</h2>
 			<form id="theme-editor" novalidate>
-				<label class="pack-name-label" for="theme-name">Theme name <span class="muted">(up to 23 UTF-8 bytes)</span></label>
-				<input id="theme-name" name="theme-name" type="text" maxlength="23" autocomplete="off" required>
+				<div class="editor-heading">
+					<h2 id="editor-title">Create or edit a theme</h2>
+					<div class="editor-name">
+						<label class="pack-name-label" for="theme-name">Theme name <span class="muted">(up to 23 UTF-8 bytes)</span></label>
+						<input id="theme-name" name="theme-name" type="text" maxlength="23" autocomplete="off" required>
+					</div>
+				</div>
 				<p class="small muted">Names are shown in Settings &gt; Display. Use short names so they fit on the radio.</p>
 				<fieldset class="color-fields">
 					<legend>Palette colors</legend>

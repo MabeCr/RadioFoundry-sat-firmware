@@ -2,6 +2,10 @@
 /* Copyright (c) 2026 The RadioFoundry Authors */
 
 .builder-page { display: grid; gap: var(--space-4); }
+.builder-head.section { padding-block: var(--space-2); }
+.builder-head .eyebrow { margin-bottom: var(--space-1); }
+.builder-head h1 { margin: 0; }
+.builder-head .lead { margin: var(--space-1) 0 0; }
 .builder-grid { display: grid; grid-template-columns: minmax(0, 2.15fr) minmax(16rem, 0.85fr); gap: var(--space-4); align-items: start; }
 .builder-preview-column { position: sticky; top: var(--space-4); min-width: 0; }
 .builder-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
@@ -9,6 +13,10 @@
 .builder-card > :last-child { margin-bottom: 0; }
 .builder-card h2 { margin-bottom: var(--space-2); }
 .builder-card h3 { margin-bottom: var(--space-2); }
+.editor-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--space-3); align-items: center; }
+.editor-heading h2 { margin: 0; }
+.editor-name { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2); align-items: center; }
+.editor-name .pack-name-label { margin: 0; font-size: var(--text-sm); white-space: nowrap; }
 .library-heading { display: flex; align-items: start; justify-content: space-between; gap: var(--space-2); }
 .library-heading h2 { margin-bottom: 0; }
 .theme-library { display: grid; gap: var(--space-2); }
@@ -106,9 +114,21 @@
 .upload-next p { margin-bottom: var(--space-2); }
 .upload-next p:last-child { margin-top: var(--space-2); }
 .notice { margin: var(--space-3) 0; }
-@media (min-width: 1200px) { .color-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1200px) {
+	.color-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.color-control { padding: 6px; }
+	.color-control p { min-height: 0; margin-bottom: 3px; overflow: hidden; font-size: 0.68rem; line-height: 1.2; }
+	.color-editor-row { grid-template-columns: 4.5rem minmax(0, 1fr); gap: 4px; }
+	.color-input-row { grid-template-columns: 2rem minmax(0, 1fr); gap: 4px; }
+	.color-preview-screen { height: 2rem; }
+	.color-preview figcaption { display: none; }
+	.color-picker { width: 2rem; height: 2rem; }
+	.hex-color { min-height: 2rem; padding-inline: 4px; font-size: 0.75rem; }
+}
 @media (max-width: 850px) {
 	.builder-grid, .builder-tools { grid-template-columns: minmax(0, 1fr); }
+	.editor-heading, .editor-name { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+	.editor-name .pack-name-label { white-space: normal; }
 	.builder-preview-column { position: sticky; top: var(--space-2); z-index: 5; order: -1; }
 	.builder-preview-column > .builder-card { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--space-2); align-items: center; padding: var(--space-2); }
 	.builder-preview-column h2 { grid-column: 1 / -1; margin: 0; }
