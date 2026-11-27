@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.repository == 'photogdoug/RadioFoundry-sat-fw-Themes'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
@@ -35,6 +36,7 @@ jobs:
           path: build/site
 
   deploy:
+    if: github.repository == 'photogdoug/RadioFoundry-sat-fw-Themes'
     needs: build
     runs-on: ubuntu-24.04
     permissions:

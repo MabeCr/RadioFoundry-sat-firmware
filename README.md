@@ -27,7 +27,7 @@ with theme-pack support; this fork currently enables it in the DM-32UV satellite
 
 1. **Install compatible firmware first.** Use the firmware installer and the theme-pack-enabled build for your radio.
    An older build or the standard release firmware will report that theme packs are unsupported.
-2. **Open the hosted theme builder** at [GitHub Pages](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/builder.html).
+2. **Open this fork's hosted theme builder** at [GitHub Pages](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/builder.html).
    Choose colors, save named themes in your browser, and add up to 10 themes to a pack. The builder includes the
    Buckeyes, Wolverines, and Harbor palettes. Your saved themes stay in that browser; download the editable JSON as a
    backup if you want to keep or share your work. The hosted [theme pack uploader](https://photogdoug.github.io/RadioFoundry-sat-fw-Themes/tools/themes/index.html)
