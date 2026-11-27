@@ -115,6 +115,8 @@
 .upload-next p:last-child { margin-top: var(--space-2); }
 .notice { margin: var(--space-3) 0; }
 @media (min-width: 1200px) {
+	.builder-grid > .builder-card { padding: var(--space-3); }
+	.color-fields { margin: var(--space-3) 0; padding: var(--space-2); }
 	.color-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 	.color-control { padding: 6px; }
 	.color-control p { min-height: 0; margin-bottom: 3px; overflow: hidden; font-size: 0.68rem; line-height: 1.2; }
