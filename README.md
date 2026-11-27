@@ -1,22 +1,3 @@
-# RadioFoundry
-
-**English** · [简体中文](README.zh.md)
-
-**Free, MIT-licensed multi-mode firmware for affordable digital radios: DMR, P25, NXDN and FM.** One shared core runs the digital voice stacks, the UI, the codeplug and
-the host tools; each radio adds a thin board layer. It brings the features low-cost stock firmware leaves
-out, with a UI designed from first principles. Anyone can use it for anything, commercial products included.
-
-### 🌐 [radiofoundry.org](https://radiofoundry.org)
-
-**The website is the recommended way to install RadioFoundry and to edit your radio's codeplug.** In a Chromium browser
-(Chrome, Edge), plug in the radio and use the [web installer](https://radiofoundry.org/flash/index.html) to back up,
-install, update and restore, and the [Codeplug Editor](https://radiofoundry.org/codeplug/index.html) for channels, zones,
-contacts and the DMR ID database. Nothing to install, and your files never leave your computer. The command line tools
-and the [manual steps](docs/user/02-installing.md) are for scripting and for browsers that can't talk to a radio.
-
-**[Install](docs/user/02-installing.md)** · **[User manual](docs/user/README.md)** · **[Radios](#radios-and-status)** ·
-**[Features](#features)** · **[Developer docs](docs/dev/README.md)**
-
 ## Custom theme packs
 
 Theme packs add named color palettes to a compatible RadioFoundry radio. A pack contains color data only. Uploading one
@@ -55,6 +36,27 @@ The radio stores one pack at a time. Uploading another pack replaces the current
 keep into the same JSON file before building. **Remove installed pack** deletes the pack and leaves the built-in themes
 available. The GitHub Pages links above publish this fork's theme tools; the official RadioFoundry website remains
 separate.
+
+
+# RadioFoundry
+
+**English** · [简体中文](README.zh.md)
+
+**Free, MIT-licensed multi-mode firmware for affordable digital radios: DMR, P25, NXDN and FM.** One shared core runs the digital voice stacks, the UI, the codeplug and
+the host tools; each radio adds a thin board layer. It brings the features low-cost stock firmware leaves
+out, with a UI designed from first principles. Anyone can use it for anything, commercial products included.
+
+### 🌐 [radiofoundry.org](https://radiofoundry.org)
+
+**The website is the recommended way to install RadioFoundry and to edit your radio's codeplug.** In a Chromium browser
+(Chrome, Edge), plug in the radio and use the [web installer](https://radiofoundry.org/flash/index.html) to back up,
+install, update and restore, and the [Codeplug Editor](https://radiofoundry.org/codeplug/index.html) for channels, zones,
+contacts and the DMR ID database. Nothing to install, and your files never leave your computer. The command line tools
+and the [manual steps](docs/user/02-installing.md) are for scripting and for browsers that can't talk to a radio.
+
+**[Install](docs/user/02-installing.md)** · **[User manual](docs/user/README.md)** · **[Radios](#radios-and-status)** ·
+**[Features](#features)** · **[Developer docs](docs/dev/README.md)**
+
 
 <p>
 <img src="docs/ux/screens/240x320i10x5/boot.png" width="200" alt="Boot screen">
