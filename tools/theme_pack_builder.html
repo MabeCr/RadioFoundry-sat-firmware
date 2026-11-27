@@ -47,17 +47,21 @@
 			<section class="builder-card" aria-labelledby="editor-title">
 				<h2 id="editor-title">Create or edit a theme</h2>
 				<form id="theme-editor" novalidate>
-					<label class="pack-name-label" for="theme-name">Theme name <span class="muted">(up to 23 UTF-8 bytes)</span></label>
-					<input id="theme-name" name="theme-name" type="text" maxlength="23" autocomplete="off" required>
+					<div class="editor-toolbar">
+						<div class="editor-name">
+							<label class="pack-name-label" for="theme-name">Theme name <span class="muted">(up to 23 UTF-8 bytes)</span></label>
+							<input id="theme-name" name="theme-name" type="text" maxlength="23" autocomplete="off" required>
+						</div>
+						<div class="editor-actions">
+							<button class="btn" type="submit" id="save-theme">Save theme</button>
+							<button class="btn btn-secondary" type="button" id="new-theme">New theme</button>
+						</div>
+					</div>
 					<p class="small muted">Names are shown in Settings &gt; Display. Use short names so they fit on the radio.</p>
 					<fieldset class="color-fields">
 						<legend>Palette colors</legend>
 						<div id="color-fields-grid" class="color-fields-grid"></div>
 					</fieldset>
-					<div class="editor-actions">
-						<button class="btn" type="submit" id="save-theme">Save theme</button>
-						<button class="btn btn-secondary" type="button" id="new-theme">New theme</button>
-					</div>
 				</form>
 			</section>
 		</div>

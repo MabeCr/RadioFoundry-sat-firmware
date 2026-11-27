@@ -18,10 +18,9 @@
 .preview-zoom-control { display: flex; align-items: center; gap: var(--space-1); color: var(--muted); font-size: var(--text-xs); }
 .preview-zoom-control input { width: 4.5rem; min-height: 0; margin: 0; accent-color: var(--accent); }
 .preview-zoom-control output { min-width: 2.6rem; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
-.editor-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--space-3); align-items: center; }
-.editor-heading h2 { margin: 0; }
-.editor-name { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2); align-items: center; }
-.editor-name .pack-name-label { margin: 0; font-size: var(--text-sm); white-space: nowrap; }
+.editor-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; }
+.editor-name { min-width: 0; }
+.editor-name .pack-name-label { margin: 0 0 var(--space-1); font-size: var(--text-sm); white-space: nowrap; }
 .library-heading { display: flex; align-items: start; justify-content: space-between; gap: var(--space-2); }
 .library-heading h2 { margin-bottom: 0; }
 .theme-library { display: grid; gap: var(--space-2); }
@@ -135,8 +134,6 @@
 }
 @media (max-width: 850px) {
 	.builder-grid, .builder-tools { grid-template-columns: minmax(0, 1fr); }
-	.editor-heading, .editor-name { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-	.editor-name .pack-name-label { white-space: normal; }
 	.builder-preview-column { position: sticky; top: var(--space-2); z-index: 5; order: -1; }
 	.builder-preview-column > .builder-card { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: var(--space-2); align-items: center; padding: var(--space-2); }
 	.builder-preview-column .preview-heading { grid-column: 1 / -1; width: 100%; }
@@ -150,4 +147,7 @@
 	.library-actions { grid-column: 1 / -1; }
 	.library-heading { align-items: stretch; flex-direction: column; }
 	.pack-item-row { align-items: start; flex-direction: column; }
+}
+@media (max-width: 420px) {
+	.editor-toolbar { grid-template-columns: minmax(0, 1fr); }
 }
