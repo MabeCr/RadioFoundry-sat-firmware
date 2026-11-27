@@ -75,14 +75,24 @@ edit them into a short list of what changed for users.
 |---|---|
 | `rfoundry-<board>-<version>.bin` | The raw image `make BOARD=<board>` built, linked for the board's application base. No codec. A board with a first stage releases `rfoundry_<board>_install.bin`, the first stage then the application; `tools/release.py` refuses the application alone |
 | `rfoundry-<board>-<version>.json` | Its manifest (below) |
+| `rfoundry-<board>-satellite-<version>.bin` and `.json` | For boards whose satellite build enables theme packs: a separate image and its feature manifest |
 | `rfoundry-<version>-<os>-<arch>[.exe]` | rfoundry, one file per system: `linux-x86_64`, `macos-arm64`, `macos-x86_64`, `windows-x86_64` |
 | `SHA256SUMS` | SHA-256 of every file above |
 | `RadioFoundry-manual-<version>.pdf` | The user manual (the manual workflow) |
+
+A satellite image is packaged only when the board's `SATELLITE_VARS` enables `CONFIG_THEME_PACKS`. Its manifest has
+`variant: "satellite"` and lists the features that image includes and omits. It is a separate firmware configuration;
+the satellite build's feature cuts apply. Use that image when its manifest shows the feature you need. The regular
+release image keeps the board's default feature set.
 
 `tools/release.py --board <id> --version v26.11` writes the first two (with `--variant amateur`, the image of `make
 VARIANT=amateur` as `rfoundry-<board>-amateur-<version>.bin`, its manifest naming the variant: [build-config.md](../build-config.md#variants)) and the sums for a built image into `dist/`
 (or `--out DIR`). It refuses an image that reaches into a codec sector or carries the codec's signature word, so a
 release can never contain the codec, even by accident.
+
+For a board whose `SATELLITE_VARS` enables theme packs, `tools/release.py --board <id> --satellite --version v26.11`
+packages `build/<id>-satellite/rfoundry_<id>.bin` as `rfoundry-<id>-satellite-v26.11.bin` and records
+`variant: "satellite"` plus the satellite feature list in its manifest.
 
 The manifest (`format` `rfoundry-release/1`, written and checked by `tools/rfoundry/rfoundry/manifest.py`):
 
@@ -211,7 +221,7 @@ never handles the key. Updates of a radio that runs RadioFoundry need no stock f
 
 | Job | Does |
 |---|---|
-| `firmware (<toolchain>)` | One job per toolchain: `firmware (Arm)` and `firmware (C-SKY)`. Sets up the pinned compiler with `.github/actions/toolchain` ([ci.md](ci.md#toolchains)): the self-hosted image's, the Arm GNU Toolchain checked by SHA-256, or the csky-elf image, never a source build. Without csky-elf GCC on the runner and without the image, the C-SKY job fails. On a tag runs the gate: `tools/ci.sh --quick --steps registry,host,bench,python,licenses` on the runner, then `tools/ci.sh --quick --steps firmware --toolchain <id>` with the toolchain's compiler (through `tools/docker/csky-toolchain/run.sh` for the image). Then `tools/release_build.sh --toolchain <id>`, the same way: for every board on the toolchain with `[status] release = "stable"` (`tools/boards.py list --toolchain <id> --release stable`), it builds the default image and each build option value's image (`tools/boards.py builds`) and runs `tools/release.py` on each. Uploads them as `firmware-arm` or `firmware-csky` |
+| `firmware (<toolchain>)` | One job per toolchain: `firmware (Arm)` and `firmware (C-SKY)`. Sets up the pinned compiler with `.github/actions/toolchain` ([ci.md](ci.md#toolchains)): the self-hosted image's, the Arm GNU Toolchain checked by SHA-256, or the csky-elf image, never a source build. Without csky-elf GCC on the runner and without the image, the C-SKY job fails. On a tag runs the gate: `tools/ci.sh --quick --steps registry,host,bench,python,licenses` on the runner, then `tools/ci.sh --quick --steps firmware --toolchain <id>` with the toolchain's compiler (through `tools/docker/csky-toolchain/run.sh` for the image). Then `tools/release_build.sh --toolchain <id>`, the same way: for every board on the toolchain with `[status] release = "stable"` (`tools/boards.py list --toolchain <id> --release stable`), it builds the default image and each build option value's image (`tools/boards.py builds`), plus a satellite image when that configuration enables theme packs. Uploads them as `firmware-arm` or `firmware-csky` |
 | `rfoundry` | On Ubuntu 22.04, macOS 14 (arm64), macOS 13 (x86_64) and Windows 2022: installs the package, runs its tests, builds a single-file executable with PyInstaller 6.11.1 (libusb from the `libusb-package` wheel, the `certifi` CA bundle, and `serial_loader`, `hrc7000_codec` and `stubtool` for the serial route inside) and runs `--version` on it |
 | `publish` | On a `v*` tag only, after every toolchain's job and every rfoundry build passed: one `SHA256SUMS` over everything, checks every manifest against its image and that none includes the codec, creates the release if the manual workflow hasn't, uploads with `--clobber` |
 

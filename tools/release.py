@@ -13,6 +13,7 @@
 Writes, into --out:
   rfoundry-<board>-<version>.bin    the codec-less image, as built (a variant or a build option value:
                                rfoundry-<board>-<variant>-<value>-<version>.bin)
+  rfoundry-<board>-satellite-<version>.bin    a board's satellite build when it enables theme packs
   rfoundry-<board>-<version>.json   its manifest (board, variant, version, git hash, image ranges, codec profile, sectors)
   SHA256SUMS                   one line per file (appended; one file for the whole release)
 
@@ -36,19 +37,21 @@ def git(*a):
     return subprocess.run(["git", "-C", ROOT] + list(a), capture_output=True, text=True, check=True).stdout.strip()
 
 
-def make_print(board_id, goal, variant=None, options=()):
+def make_print(board_id, goal, variant=None, options=(), make_args=()):
     """The words a make print-* goal prints for the build"""
     cmd = (["make", "-s", "-C", ROOT, "BOARD=" + board_id, goal] + (["VARIANT=" + variant] if variant else [])
-           + ["%s=%s" % o for o in sorted(dict(options).items())])
+           + ["%s=%s" % o for o in sorted(dict(options).items())] + list(make_args))
     return subprocess.run(cmd, capture_output=True, text=True).stdout.split()
 
 
-def features(board_id, variant=None, options=(), value="y"):
+def features(board_id, variant=None, options=(), value="y", make_args=()):
     """The switches the build has at value (y: on, n: off) as a comma list (make print-config). Off leaves out what the
     board can't have (BOARD_UNSUPPORTED, BOARD_NOT_WRITTEN), as the radio's VERSION off= does (Makefile RFOUNDRY_OFF)"""
-    names = [kv.split("=")[0] for kv in make_print(board_id, "print-config", variant, options) if kv.endswith("=" + value)]
+    names = [kv.split("=")[0] for kv in make_print(board_id, "print-config", variant, options, make_args)
+             if kv.endswith("=" + value)]
     if value == "n":
-        never = {n for goal in ("print-unsupported", "print-not-written") for n in make_print(board_id, goal, variant, options)}
+        never = {n for goal in ("print-unsupported", "print-not-written")
+                 for n in make_print(board_id, goal, variant, options, make_args)}
         names = [n for n in names if n not in never]
     return ",".join(names)
 
@@ -86,6 +89,7 @@ def main(argv=None):
     ap.add_argument("--board", required=True)
     ap.add_argument("--version", required=True, help="the release tag, e.g. v26.11")
     ap.add_argument("--variant", help="a release variant (config/variants/<name>.mk); default: the full build")
+    ap.add_argument("--satellite", action="store_true", help="package the board's SATELLITE_VARS image")
     ap.add_argument("--build-option", action="append", default=[], metavar="NAME=VALUE",
                     help="a board build option's value other than its default (boards/<board>/board.toml "
                          "[[build_options]]): its own image, build directory and file names")
@@ -102,6 +106,8 @@ def main(argv=None):
     except KeyError as e:
         raise SystemExit("release: %s" % e.args[0])
     variant = None if args.variant in (None, "", "full") else args.variant
+    if args.satellite and variant:
+        raise SystemExit("release: --satellite and --variant cannot be combined")
     if variant and not os.path.isfile(os.path.join(ROOT, "config", "variants", variant + ".mk")):
         raise SystemExit("release: unknown variant %s (config/variants/)" % variant)
     options = {}
@@ -112,9 +118,23 @@ def main(argv=None):
                              % (board.id, name, value, ", ".join("%s=%s" % (o["name"], "|".join(v["id"] for v in o["values"]))
                                                                 for o in board.build_options) or "none"))
         options[name] = value
+    if args.satellite and options:
+        raise SystemExit("release: --satellite and --build-option cannot be combined")
+    satellite_args = []
+    if args.satellite:
+        satellite_args = make_print(board.id, "print-satellite-vars")
+        if not satellite_args:
+            raise SystemExit("release: %s has no SATELLITE_VARS build" % board.id)
+        if "CONFIG_SAT=y" not in satellite_args:
+            satellite_args.insert(0, "CONFIG_SAT=y")
+        if "CONFIG_THEME_PACKS=y" not in satellite_args:
+            raise SystemExit("release: %s satellite build does not enable CONFIG_THEME_PACKS" % board.id)
     # the Makefile's names (rfoundry/names.py): a non-default value is in the build directory and the image
     # (build/md380-vhf/rfoundry_md380-vhf.bin)
-    path = args.bin or os.path.join(ROOT, board.build_image(options, variant))
+    if args.satellite:
+        path = args.bin or os.path.join(ROOT, "build", board.id + "-satellite", "rfoundry_" + board.id + ".bin")
+    else:
+        path = args.bin or os.path.join(ROOT, board.build_image(options, variant))
     with open(path, "rb") as f:
         image = f.read()
     check_no_codec(board, image)
@@ -125,22 +145,22 @@ def main(argv=None):
             raise SystemExit("release: the %s image must start with its first stage: release rfoundry_%s_install.bin, not the "
                              "application alone" % (board.name, board.id))
     commit = args.git or git("rev-parse", "HEAD")
-    feats = args.features if args.features is not None else features(board.id, variant, options)
+    feats = args.features if args.features is not None else features(board.id, variant, options, make_args=satellite_args)
     tc = args.toolchain if args.toolchain is not None else toolchain(board.id)
-    # variant and build option images carry them in their names; the full default build keeps the plain names rfoundry
-    # fetches
-    name_id = board.release_id(options, variant)
+    # Variants and build options carry them in their names; the satellite image also has a distinct name so users can
+    # choose its feature set explicitly. The full default build keeps the plain names rfoundry fetches.
+    name_id = board.id + "-satellite" if args.satellite else board.release_id(options, variant)
     bin_name = mf.image_name(name_id, args.version)
     json_name = mf.image_name(name_id, args.version, "json")
     try:
         man = mf.generate(board, image, args.version, commit, feats, tc, file_name=bin_name)
     except mf.ManifestError as e:
         raise SystemExit("release: %s" % e)
-    man["variant"] = variant or "full"
+    man["variant"] = "satellite" if args.satellite else (variant or "full")
     # every switch the build has off: with features, the switches this release knew, so the web flasher's update tells
     # a feature added since from one a custom build left on (site/static/js/flasher/update.js)
     if args.features is None:
-        man["off"] = features(board.id, variant, options, "n")
+        man["off"] = features(board.id, variant, options, "n", satellite_args)
     # the commit's time, which the web editor compares with a radio's git_time= to offer this release to a build that
     # isn't one (docs/dev/codeplug-editor.md)
     try:

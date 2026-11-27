@@ -77,10 +77,10 @@
 .color-picker { width: 2.6rem; height: 2.6rem; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
 .hex-color { min-height: 40px; padding-inline: var(--space-2); font-family: var(--font-mono); font-size: 0.9rem; text-transform: uppercase; }
 .editor-actions, .pack-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.dm32-radio-preview { position: relative; container-type: inline-size; overflow: hidden; width: min(100%, 15rem); aspect-ratio: 342 / 455; margin: var(--space-3) auto; }
-.dm32-radio-canvas { position: absolute; inset: 0; transform: scale(var(--radio-zoom, 1.3)); transform-origin: 50% 53.1%; }
-.dm32-radio-image { display: block; width: 100%; height: 100%; object-fit: fill; }
-.dm32-screen { position: absolute; top: 27.7%; left: 25.7%; display: flex; width: 48.5%; height: 50.8%; flex-direction: column; overflow: hidden; box-sizing: border-box; border-radius: 2.4cqw; color: var(--pv-fg); background: var(--pv-bg); font-family: var(--font-mono); line-height: 1; }
+.radio-preview { position: relative; container-type: inline-size; overflow: hidden; width: min(100%, 15rem); aspect-ratio: 342 / 455; margin: var(--space-3) auto; }
+.radio-preview-canvas { position: absolute; inset: 0; transform: scale(var(--radio-zoom, 1.3)); transform-origin: 50% 53.1%; }
+.radio-preview-image { display: block; width: 100%; height: 100%; object-fit: fill; }
+.radio-screen { position: absolute; top: 27.7%; left: 25.7%; display: flex; width: 48.5%; height: 50.8%; flex-direction: column; overflow: hidden; box-sizing: border-box; border-radius: 2.4cqw; color: var(--pv-fg); background: var(--pv-bg); font-family: var(--font-mono); line-height: 1; }
 .rf-statusbar { display: flex; flex: 0 0 6%; align-items: center; justify-content: space-between; gap: 0.3em; box-sizing: border-box; padding: 0 2.5%; color: var(--pv-pill-dark-fg); background: var(--pv-strip); font-size: 3.2cqw; }
 .rf-status-mode, .rf-status-indicators, .rf-signal, .rf-battery { display: flex; align-items: center; }
 .rf-status-mode, .rf-status-indicators { gap: 0.35em; }
@@ -137,7 +137,7 @@
 	.builder-preview-column { position: sticky; top: var(--space-2); z-index: 5; order: -1; }
 	.builder-preview-column > .builder-card { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); gap: var(--space-2); align-items: center; padding: var(--space-2); }
 	.builder-preview-column .preview-heading { grid-column: 1 / -1; width: 100%; }
-	.builder-preview-column .dm32-radio-preview { grid-row: span 2; width: min(100%, 6.75rem); margin: 0; }
+	.builder-preview-column .radio-preview { grid-row: span 2; width: min(100%, 6.75rem); margin: 0; }
 	.builder-preview-column p { margin: 0; font-size: var(--text-xs); }
 }
 @media (max-width: 520px) {
