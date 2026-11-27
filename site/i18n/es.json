@@ -182,6 +182,7 @@
  "tools.theme_pack.status.invalid": "El archivo no es un paquete de temas versión 1 válido.",
  "tools.theme_pack.status.unsupported": "El firmware de esta radio no admite paquetes de temas.",
  "tools.theme_pack.status.failed": "Falló la actualización del paquete: {error}",
+ "tools.theme_pack.status.port_error": "El navegador no pudo acceder al puerto de la radio. Comprueba la conexión, cierra otras aplicaciones o pestañas serie e inténtalo de nuevo.",
  "tools.theme_pack.status.verify_failed": "La radio no confirmó la cantidad de temas instalados.",
  "tools.theme_pack.status.radio_not_found": "Ese puerto no respondió como una radio compatible. Comprueba la radio y el cable e inténtalo de nuevo.",
  "tools.theme_pack.status.no_serial": "Este navegador no admite USB serial. Usa un navegador de escritorio compatible.",

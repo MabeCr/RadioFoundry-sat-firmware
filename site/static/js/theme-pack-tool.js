@@ -91,7 +91,9 @@ async function run(action) {
 		const browserKey = browserErrorKey(error);
 		status.textContent = error.status === 1 || error.status === 4 || error.message === t("tools.theme_pack.status.unsupported")
 			? t("tools.theme_pack.status.unsupported")
-			: t("tools.theme_pack.status.failed", { error: browserKey ? t(browserKey) : error.message });
+			: t("tools.theme_pack.status.failed", {
+				error: browserKey ? t("tools.theme_pack.status.port_error") : error.message,
+			});
 	} finally {
 		if (stream) await stream.close();
 		fileInput.disabled = false;

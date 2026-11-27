@@ -182,6 +182,7 @@
  "tools.theme_pack.status.invalid": "This is not a valid version 1 theme pack.",
  "tools.theme_pack.status.unsupported": "This radio firmware does not support theme packs.",
  "tools.theme_pack.status.failed": "Theme pack update failed: {error}",
+ "tools.theme_pack.status.port_error": "The browser could not access the radio port. Check the connection, close other serial apps or tabs, and try again.",
  "tools.theme_pack.status.verify_failed": "The radio did not report the installed theme count.",
  "tools.theme_pack.status.radio_not_found": "That port did not respond as a compatible radio. Check the radio and cable, then try again.",
  "tools.theme_pack.status.no_serial": "This browser does not support USB serial. Use a supported desktop browser.",

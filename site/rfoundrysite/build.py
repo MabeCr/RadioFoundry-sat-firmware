@@ -798,7 +798,7 @@ class Site:
 			  self.tpl.render("satellite_tle", {}, lang), "tools", scripts=scripts, nav="tools")
 
 	def theme_pack_page(self, lang):
-		strings = json.dumps(self.i18n.subset(lang, ("tools.title", "tools.theme_pack.", "flash.err.")), ensure_ascii=False).replace("</", "<\\/")
+		strings = json.dumps(self.i18n.subset(lang, ("tools.title", "tools.theme_pack.")), ensure_ascii=False).replace("</", "<\\/")
 		scripts = ('<script type="application/json" id="i18n">%s</script>'
 			   '<script type="module" src="{{root}}static/js/theme-pack-tool.js?v=%s"></script>' % (strings, self.asset_version))
 		styles = '<link rel="stylesheet" href="{{root}}static/css/theme-pack-pages.css?v=%s">' % self.asset_version
