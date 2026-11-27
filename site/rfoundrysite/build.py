@@ -815,7 +815,7 @@ class Site:
 			  '<link rel="stylesheet" href="{{root}}static/css/theme-pack-builder.css?v=%s">' %
 			  (self.asset_version, self.asset_version))
 		self.page(lang, "tools/themes/builder.html", "Theme Pack Builder",
-			  self.tpl.render("theme_pack_builder", {}, lang), "theme-tools",
+			  self.tpl.render("theme_pack_builder", {"assets": self.asset_version}, lang), "theme-tools",
 			  description="Create, customize, and install theme packs.", scripts=scripts, styles=styles,
 			  hide_languages=True, layout="theme_tools_base")
 
