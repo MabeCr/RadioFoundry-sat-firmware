@@ -43,20 +43,30 @@
 	<aside class="builder-column" aria-label="Theme preview and pack">
 		<section class="builder-card" aria-labelledby="preview-title">
 			<h2 id="preview-title">Live preview</h2>
-			<div id="theme-preview" class="radio-preview" aria-label="Palette preview">
-				<div class="preview-status"><span class="preview-pill preview-idle">IDLE</span><span>DMR · Zone 1</span><span class="preview-battery">▰ 92%</span></div>
-				<div class="preview-screen">
-					<p class="preview-label">Home channel</p>
-					<p class="preview-channel">North Ridge</p>
-					<p class="preview-secondary">462.6750 MHz · DMR</p>
-					<div class="preview-divider"></div>
-					<div class="preview-row preview-selected"><span>Primary Repeater</span><span>DMR</span></div>
-					<div class="preview-row"><span>County Simplex</span><span>FM</span></div>
-					<div class="preview-pills"><span class="preview-pill preview-rx">RX</span><span class="preview-pill preview-tx">TX</span><span class="preview-pill preview-warning">WARN</span><span class="preview-private">PRIV</span></div>
+			<div id="theme-preview" class="dm32-radio-preview" role="img" aria-label="DM32 radio with a live theme preview on its display">
+				<img class="dm32-radio-image" src="{{root}}static/img/dm32-radio-preview.jpg" alt="" aria-hidden="true" decoding="async">
+				<div class="dm32-screen" aria-hidden="true">
+					<div class="dm32-statusbar">
+						<span class="dm32-battery"><span class="dm32-battery-level"></span></span>
+						<span class="dm32-status-lock">▣</span>
+						<span class="dm32-status-spacer"></span>
+						<span class="dm32-status-bt">ᛒ</span>
+					</div>
+					<div class="dm32-group">GROUP 1</div>
+					<div class="dm32-channel dm32-channel-a">
+						<div class="dm32-channel-meta"><span></span><span class="dm32-channel-name">Zone01</span><span class="dm32-channel-number">001</span></div>
+						<div class="dm32-channel-scale"><span class="dm32-channel-tag">A</span><span class="dm32-scale"></span></div>
+						<div class="dm32-mode-row"><span class="dm32-mode-pill dm32-mode-selected">NFM</span><span class="dm32-mode-pill dm32-mode-private">M</span><span class="dm32-mode-pill dm32-mode-warning">W</span></div>
+					</div>
+					<div class="dm32-frequency"><span>145.500</span><small>00</small></div>
+					<div class="dm32-channel dm32-channel-b">
+						<div class="dm32-channel-meta"><span></span><span class="dm32-channel-name">Zone01</span><span class="dm32-channel-number">004</span></div>
+						<div class="dm32-channel-scale"><span class="dm32-channel-tag">B</span><span class="dm32-scale"></span></div>
+					</div>
+					<div class="dm32-screen-footer"><span>M/Y</span><span>A/R</span></div>
 				</div>
-				<div class="preview-strip"><span>READY</span><span>CH 01</span><span>GPS</span></div>
 			</div>
-			<p class="small muted">The radio uses RGB565 colors, so its screen may look slightly different from this preview.</p>
+			<p class="small muted">The preview uses the DM32 screen proportions. Radio colors may look slightly different because the display uses RGB565.</p>
 		</section>
 
 		<section class="builder-card pack-card" aria-labelledby="pack-title">
